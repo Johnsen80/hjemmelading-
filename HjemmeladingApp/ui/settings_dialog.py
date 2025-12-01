@@ -300,22 +300,41 @@ class SettingsDialog(QtWidgets.QDialog):
         text_hex = text_color.name()
         btn_hex = base_color.name()
 
-        dialog_css = f"""
-QWidget{{ background-color: {win_hex}; color: {text_hex}; }}
-QGroupBox{{ background-color: transparent; color: {text_hex}; border: none; }}
-QLabel{{ color: {text_hex}; }}
-QLineEdit{{ background-color: {QtGui.QColor(window_color).darker(110).name()}; color: {text_hex}; border: 1px solid {QtGui.QColor(window_color).lighter(120).name()}; padding:4px; }}
-QComboBox{{ background-color: {QtGui.QColor(window_color).darker(110).name()}; color: {text_hex}; }}
-QTabWidget::pane {{ background: {win_hex}; }}
-"""
+        # Precompute repeated QColor names to avoid very long lines
+        lineedit_bg = QtGui.QColor(window_color).darker(110).name()
+        lineedit_border = QtGui.QColor(window_color).lighter(120).name()
+        combobox_bg = QtGui.QColor(window_color).darker(110).name()
+
+        dialog_parts = [
+            f"QWidget{{ background-color: {win_hex}; color: {text_hex}; }}",
+            f"QGroupBox{{ background-color: transparent; color: {text_hex}; border: none; }}",
+            f"QLabel{{ color: {text_hex}; }}",
+            (
+                f"QLineEdit{{ background-color: {lineedit_bg}; color: {text_hex}; "
+                f"border: 1px solid {lineedit_border}; padding:4px; }}"
+            ),
+            f"QComboBox{{ background-color: {combobox_bg}; color: {text_hex}; }}",
+            f"QTabWidget::pane {{ background: {win_hex}; }}",
+        ]
+
+        dialog_css = "\n".join(dialog_parts) + "\n"
 
         # Button styles adjusted by chosen button style
         if btn_style == "filled":
-            btn_css = f"background-color: {btn_hex}; color: {text_hex}; padding:6px 12px; border-radius:6px;"
+            btn_css = (
+                f"background-color: {btn_hex}; color: {text_hex}; "
+                "padding:6px 12px; border-radius:6px;"
+            )
         elif btn_style == "outlined":
-            btn_css = f"background-color: transparent; color: {text_hex}; border: 2px solid {btn_hex}; padding:4px 10px; border-radius:6px;"
+            btn_css = (
+                f"background-color: transparent; color: {text_hex}; "
+                f"border: 2px solid {btn_hex}; padding:4px 10px; border-radius:6px;"
+            )
         else:  # flat
-            btn_css = f"background-color: transparent; color: {text_hex}; border: none; padding:4px 10px;"
+            btn_css = (
+                f"background-color: transparent; color: {text_hex}; "
+                "border: none; padding:4px 10px;"
+            )
 
         # Apply built styles
         dialog_css += f"\nQPushButton{{ {btn_css} }}\n"
