@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\HjemmeladingApp\main.py", line 121, in open_settings_dialog
+    from HjemmeladingApp.ui.settings_dialog import SettingsDialog
+ModuleNotFoundError: No module named 'HjemmeladingApp'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\HjemmeladingApp\main.py", line 167, in open_settings_dialog
+    QMessageBox.warning(self, "Feil", f"Kunne ikke åpne innstillinger: {e}\nSe logg: {get_log_dir()}\\debug_err.log")
+                                                                                      ^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'get_log_dir' where it is not associated with a value

@@ -4,6 +4,26 @@ os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 sys.path.insert(0, r'C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading')
 print('HEADLESS_SMOKE: start')
 try:
+    # Install a Qt message handler to filter noisy font-directory warnings
+    try:
+        # qInstallMessageHandler is available in PyQt6.QtCore
+        from PyQt6.QtCore import qInstallMessageHandler
+
+        def _qt_message_handler(msg_type, context, message):
+            try:
+                text = str(message)
+            except Exception:
+                text = message
+            # Filter the specific QFontDatabase warning about missing Qt fonts
+            if 'Cannot find font directory' in text or 'Qt no longer ships fonts' in text:
+                return
+            # Otherwise forward to stderr
+            sys.__stderr__.write(str(message) + "\n")
+
+        qInstallMessageHandler(_qt_message_handler)
+    except Exception:
+        # If Qt isn't importable or qInstallMessageHandler unavailable, ignore
+        pass
     # Try to import QtWebEngine early (it must be imported before a Q(Core)Application
     # is created in some environments). If not available, ensure we set the
     # AA_ShareOpenGLContexts attribute on QApplication before instantiation.
@@ -23,7 +43,7 @@ try:
 
     app = QApplication([])
     print('HEADLESS_SMOKE: QApplication created')
-    # Try to register any bundled fonts so Qt and matplotlib can find glyphs
+    # Try to register any bundled fonts so Qt and matplotlib can find gly    git --versionphs
     try:
         # Import local helper if present
         try:

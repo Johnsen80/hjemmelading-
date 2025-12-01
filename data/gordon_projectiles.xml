@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<GordonsReloadingTool>
+  <projectilefile>
+    <var name="mname" value="Hornady" />
+    <var name="pname" value="FMJ" />
+    <var name="lotid" value="30196" />
+    <var name="caliber" value=".308" />
+    <var name="gdia" value="7.8" />
+    <var name="glen" value="23.98" />
+    <var name="gmass" value="125" />
+    <var name="gpressure" value="250" />
+    <var name="gfriction" value="0" />
+    <var name="gtaildiaA" value="0" />
+    <var name="gtaildiaB" value="0" />
+    <var name="gtailh" value="0" />
+    <var name="gtailtype" value="0" />
+    <var name="gdepthmax" value="0" />
+    <var name="g1bc" value="0" />
+    <var name="g7bc" value="0" />
+    <var name="gUBCS" value="T0F1F2C4N1" />
+    <var name="cdate" value="2023-11-30" />
+    <var name="cby" value="grtuser" />
+    <var name="mdate" value="2023-11-30" />
+    <var name="mby" value="" />
+    <var name="type" value="" />
+    <var name="mode" value="userfile" />
+    <var name="status" value="" />
+    <var name="origin" value="" />
+    <var name="descr" value="" />
+    <var name="imageUuid" value="" />
+  </projectilefile>
+  <projectilefile>
+    <var name="mname" value="Norma" />
+    <var name="pname" value="EcoStrike" />
+    <var name="lotid" value="20676941" />
+    <var name="caliber" value=".308" />
+    <var name="gdia" value="7.81" />
+    <var name="glen" value="32.509999999999998" />
+    <var name="gmass" value="150" />
+    <var name="gpressure" value="250" />
+    <var name="gfriction" value="0" />
+    <var name="gtaildiaA" value="0" />
+    <var name="gtaildiaB" value="0" />
+    <var name="gtailh" value="0" />
+    <var name="gtailtype" value="0" />
+    <var name="gdepthmax" value="0" />
+    <var name="g1bc" value="0.42" />
+    <var name="g7bc" value="0" />
+    <var name="gUBCS" value="H2B1F4%3F1N2" />
+    <var name="cdate" value="2024-11-19" />
+    <var name="cby" value="grtuser" />
+    <var name="mdate" value="2024-11-19" />
+    <var name="mby" value="" />
+    <var name="type" value="" />
+    <var name="mode" value="userfile" />
+    <var name="status" value="" />
+    <var name="origin" value="" />
+    <var name="descr" value="" />
+    <var name="imageUuid" value="" />
+  </projectilefile>
+  <projectilefile>
+    <var name="mname" value="North%20Fork" />
+    <var name="pname" value="SS" />
+    <var name="lotid" value="202301" />
+    <var name="caliber" value=".308" />
+    <var name="gdia" value="7.8" />
+    <var name="glen" value="28.300000000000001" />
+    <var name="gmass" value="150" />
+    <var name="gpressure" value="250" />
+    <var name="gfriction" value="0" />
+    <var name="gtaildiaA" value="0" />
+    <var name="gtaildiaB" value="0" />
+    <var name="gtailh" value="0" />
+    <var name="gtailtype" value="0" />
+    <var name="gdepthmax" value="0" />
+    <var name="g1bc" value="0" />
+    <var name="g7bc" value="0" />
+    <var name="gUBCS" value="H2S2F2%3F4%3F%3F" />
+    <var name="cdate" value="2023-08-18" />
+    <var name="cby" value="grtuser" />
+    <var name="mdate" value="" />
+    <var name="mby" value="" />
+    <var name="type" value="" />
+    <var name="mode" value="userfile" />
+    <var name="status" value="" />
+    <var name="origin" value="" />
+    <var name="descr" value="" />
+    <var name="imageUuid" value="" />
+  </projectilefile>
+</GordonsReloadingTool>

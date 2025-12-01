@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_317debf82e3b281558f1d39ac5ecd9ac {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+    <script src="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@3.0.0/Control.FullScreen.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@3.0.0/Control.FullScreen.css"/>
+    <script src="https://cdn.jsdelivr.net/gh/ardhi/Leaflet.MousePosition/src/L.Control.MousePosition.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ardhi/Leaflet.MousePosition/src/L.Control.MousePosition.min.css"/>
+</head>
+<body>
+    
+    
+        <script>
+        var shooterMarker = null;
+        var targetMarker = null;
+        var line = null;
+        
+        function onMapClick(e) {
+            if (!shooterMarker) {
+                // Første klikk: Sett skytter
+                shooterMarker = L.marker(e.latlng, {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map_);
+                shooterMarker.bindPopup("<b>Skyteposisjon</b><br>Lat: " + e.latlng.lat.toFixed(5) + "<br>Lon: " + e.latlng.lng.toFixed(5)).openPopup();
+            } else if (!targetMarker) {
+                // Andre klikk: Sett mål
+                targetMarker = L.marker(e.latlng, {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map_);
+                targetMarker.bindPopup("<b>Mål</b><br>Lat: " + e.latlng.lat.toFixed(5) + "<br>Lon: " + e.latlng.lng.toFixed(5)).openPopup();
+                
+                // Tegn linje
+                line = L.polyline([shooterMarker.getLatLng(), targetMarker.getLatLng()], {
+                    color: 'red',
+                    weight: 3,
+                    opacity: 0.7,
+                    dashArray: '10, 5'
+                }).addTo(map_);
+                
+                // Beregn distanse
+                var dist = shooterMarker.getLatLng().distanceTo(targetMarker.getLatLng());
+                line.bindPopup("<b>Distanse:</b> " + dist.toFixed(1) + " m");
+            }
+        }
+        
+        map_.on('click', onMapClick);
+        
+        // Reset funksjon
+        function resetMarkers() {
+            if (shooterMarker) map_.removeLayer(shooterMarker);
+            if (targetMarker) map_.removeLayer(targetMarker);
+            if (line) map_.removeLayer(line);
+            shooterMarker = null;
+            targetMarker = null;
+            line = null;
+        }
+        </script>
+        
+    
+            <div class="folium-map" id="map_317debf82e3b281558f1d39ac5ecd9ac" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_317debf82e3b281558f1d39ac5ecd9ac = L.map(
+                "map_317debf82e3b281558f1d39ac5ecd9ac",
+                {
+                    center: [59.9139, 10.7522],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 13,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_b4f81f94a0c34f0e6faa48beb1d55b00 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_b4f81f94a0c34f0e6faa48beb1d55b00.addTo(map_317debf82e3b281558f1d39ac5ecd9ac);
+        
+    
+            var tile_layer_0b8b61c0cffa7bd6034d14ce3d657dd1 = L.tileLayer(
+                "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "OpenTopoMap",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_0b8b61c0cffa7bd6034d14ce3d657dd1.addTo(map_317debf82e3b281558f1d39ac5ecd9ac);
+        
+    
+            var tile_layer_7beb82559bb81c5287a5dce3588cb1d5 = L.tileLayer(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Esri",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_7beb82559bb81c5287a5dce3588cb1d5.addTo(map_317debf82e3b281558f1d39ac5ecd9ac);
+        
+    
+            var tile_layer_548601bf60d5903d27bcdc28be9cdae7 = L.tileLayer(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Esri",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_548601bf60d5903d27bcdc28be9cdae7.addTo(map_317debf82e3b281558f1d39ac5ecd9ac);
+        
+    
+            var layer_control_e31fc6ce530b1a6624f068183a3c8172_layers = {
+                base_layers : {
+                    "Standard" : tile_layer_b4f81f94a0c34f0e6faa48beb1d55b00,
+                    "Topografisk (H\u00f8ydekurver)" : tile_layer_0b8b61c0cffa7bd6034d14ce3d657dd1,
+                    "Satellitt" : tile_layer_7beb82559bb81c5287a5dce3588cb1d5,
+                    "Topo Map (3D-effekt)" : tile_layer_548601bf60d5903d27bcdc28be9cdae7,
+                },
+                overlays :  {
+                },
+            };
+            let layer_control_e31fc6ce530b1a6624f068183a3c8172 = L.control.layers(
+                layer_control_e31fc6ce530b1a6624f068183a3c8172_layers.base_layers,
+                layer_control_e31fc6ce530b1a6624f068183a3c8172_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": true,
+  "autoZIndex": true,
+}
+            ).addTo(map_317debf82e3b281558f1d39ac5ecd9ac);
+
+        
+    
+            var measure_control_f6a5d76026e1da943f7d67c340031652 = new L.Control.Measure(
+                {
+  "position": "topleft",
+  "primaryLengthUnit": "meters",
+  "secondaryLengthUnit": "miles",
+  "primaryAreaUnit": "sqmeters",
+  "secondaryAreaUnit": "acres",
+});
+            map_317debf82e3b281558f1d39ac5ecd9ac.addControl(measure_control_f6a5d76026e1da943f7d67c340031652);
+
+            // Workaround for using this plugin with Leaflet>=1.8.0
+            // https://github.com/ljagis/leaflet-measure/issues/171
+            L.Control.Measure.include({
+                _setCaptureMarkerIcon: function () {
+                    // disable autopan
+                    this._captureMarker.options.autoPanOnFocus = false;
+                    // default function
+                    this._captureMarker.setIcon(
+                        L.divIcon({
+                            iconSize: this._map.getSize().multiplyBy(2)
+                        })
+                    );
+                },
+            });
+
+        
+    
+            L.control.fullscreen(
+                {
+  "position": "topleft",
+  "title": "Fullskjerm",
+  "titleCancel": "Lukk fullskjerm",
+  "forceSeparateButton": false,
+}
+            ).addTo(map_317debf82e3b281558f1d39ac5ecd9ac);
+        
+    
+            var mouse_position_303ea531f434bd749cee1e9991ddc188 = new L.Control.MousePosition(
+                {
+  "position": "bottomright",
+  "separator": " | ",
+  "emptyString": "Unavailable",
+  "lngFirst": false,
+  "numDigits": 5,
+  "prefix": "Pos:",
+}
+            );
+            mouse_position_303ea531f434bd749cee1e9991ddc188.options["latFormatter"] =
+                <function TerrainMapViewer.load_default_map.<locals>.<lambda> at 0x000001917F23A660>;
+            mouse_position_303ea531f434bd749cee1e9991ddc188.options["lngFormatter"] =
+                <function TerrainMapViewer.load_default_map.<locals>.<lambda> at 0x000001917F23AA20>;
+            map_317debf82e3b281558f1d39ac5ecd9ac.addControl(mouse_position_303ea531f434bd749cee1e9991ddc188);
+        
+</script>
+</html>

@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\tools\run_weapon_editor.py", line 14, in <module>
+    from src.ui.weapon_profile_editor import WeaponProfileEditor
+ModuleNotFoundError: No module named 'src'
+Failed to import PyQt6 or the editor module.
+Traceback (most recent call last):
+  File "C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\tools\run_weapon_editor.py", line 14, in <module>
+    from src.ui.weapon_profile_editor import WeaponProfileEditor
+ModuleNotFoundError: No module named 'src'

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <title>GRT Import Demo</title>
+    <script src="importGRT.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        .import-box { border: 1px solid #ccc; padding: 1em; border-radius: 8px; max-width: 600px; }
+        textarea { width: 100%; height: 120px; margin-bottom: 1em; }
+        .result { background: #f9f9f9; padding: 1em; border-radius: 8px; margin-top: 1em; }
+    </style>
+</head>
+<body>
+    <h1>Importer GordonsReloadingTool Data</h1>
+    <div class="import-box">
+        <label for="datasheet">Lim inn datasheet-tekst:</label>
+        <textarea id="datasheet"></textarea>
+        <div style="margin-bottom:0.5em">
+            <button onclick="importDatasheet()">Importer Datasheet</button>
+            <button onclick="fillSaami()">Fyll SAAMI-eksempel</button>
+            <button onclick="fillCip()">Fyll CIP-eksempel</button>
+        </div>
+        <div id="datasheetResult" class="result"></div>
+    </div>
+    <div class="import-box" style="margin-top:2em;">
+        <label for="loads">Lim inn loads-tekst:</label>
+        <textarea id="loads"></textarea>
+        <div style="margin-bottom:0.5em">
+            <button onclick="importLoads()">Importer Loads</button>
+            <button onclick="fillLoads()">Fyll krutt/kule-eksempel</button>
+            <button onclick="fillAll()">Fyll alt (kopier)</button>
+        </div>
+        <div id="loadsResult" class="result"></div>
+    </div>
+    <script>
+        // SIKKERHETSNB: Eksempeldatasett er fiktive og merket som "ikke bruk til lading".
+        // Bruk disse bare for testing/utvikling av importfunksjoner.
+        const sampleDatasheetSaami = `Caliber: .308 Winchester
+Standard: SAAMI
+Pmax = 00000 bar
+L6 = 000.0 mm
+Note: Eksempeldatasett — ikke bruk til lading`;
+
+        const sampleDatasheetCip = `Caliber: 7.62x51mm
+Standard: CIP
+Pmax = 00000 bar
+L6 = 000.0 mm
+Note: Eksempeldatasett — ikke bruk til lading`;
+
+        const sampleLoads = `Bullet: 165 gr Boat Tail
+Powder: EXAMPLEPOWDER
+Weight: 165
+BC: 0.450
+Start: 30.0
+Max: 40.0
+
+Bullet: 150 gr Spitzer
+Powder: EXAMPLEPOWDER2
+Weight: 150
+BC: 0.400
+Start: 28.0
+Max: 38.0
+
+Note: Eksempellaster — ikke bruk til lading`;
+
+        function fillSaami() {
+            document.getElementById('datasheet').value = sampleDatasheetSaami;
+            importDatasheet();
+        }
+
+        function fillCip() {
+            document.getElementById('datasheet').value = sampleDatasheetCip;
+            importDatasheet();
+        }
+
+        function fillLoads() {
+            document.getElementById('loads').value = sampleLoads;
+            importLoads();
+        }
+
+        function fillAll() {
+            document.getElementById('datasheet').value = sampleDatasheetSaami;
+            document.getElementById('loads').value = sampleLoads;
+            importDatasheet();
+            importLoads();
+        }
+
+        function importDatasheet() {
+            const text = document.getElementById('datasheet').value;
+            const result = window.GRTImporter.parseDatasheet(text);
+            document.getElementById('datasheetResult').innerText = JSON.stringify(result, null, 2);
+        }
+        function importLoads() {
+            const text = document.getElementById('loads').value;
+            const result = window.GRTImporter.parseLoads(text);
+            document.getElementById('loadsResult').innerText = JSON.stringify(result, null, 2);
+        }
+    </script>
+</body>
+</html>

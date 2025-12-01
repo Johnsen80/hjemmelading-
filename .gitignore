@@ -1,0 +1,10 @@
+/.venv/
+*.lnk
+error.log
+tools/shortcut_creation_debug.json
+/dist/
+/build/
+__pycache__/
+*.pyc
+*.pyo
+HjemmeladingApp/resources/fonts/

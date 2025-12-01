@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -7,12 +6,8 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from ..settings import settings
 from ..utils import backgrounds, safe_logger
-try:
-    # use central logger when available
-    from src.logging_config import get_logger, get_log_dir
-    _logger = get_logger(__name__)
-except Exception:
-    _logger = None
+# Prefer the project's logging config when present, otherwise None
+_logger = None
 
 
 DEFAULT_LOGO_PATH = Path(r"C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\Logo")

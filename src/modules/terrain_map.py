@@ -1,0 +1,1538 @@
+# Enkel dialog for valg av formål
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QPushButton
+
+class PurposeSelectionDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Velg formål")
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(QLabel("Hva skal du bruke terrenganalysen til?"))
+        self.combo = QComboBox()
+        self.combo.addItems(["range", "hunting", "fri analyse"])
+        layout.addWidget(self.combo)
+        btn = QPushButton("OK")
+        btn.clicked.connect(self.accept)
+        layout.addWidget(btn)
+
+    def get_purpose(self):
+        return self.combo.currentText()
+
+"""
+Terrain Map - Geospatial Shooting Analysis
+3D terrengvisualisering med høydekurver for ballistisk analyse
+"""
+
+import os
+import math
+try:
+    import requests
+    _HAS_REQUESTS = True
+except Exception as _req_err:
+    _HAS_REQUESTS = False
+    try:
+        append_exception(f"requests import failed: {_req_err}", _req_err)
+    except Exception:
+        pass
+try:
+    import folium
+    _HAS_FOLIUM = True
+except Exception as _fol_err:
+    _HAS_FOLIUM = False
+    try:
+        append_exception(f"folium import failed: {_fol_err}", _fol_err)
+    except Exception:
+        pass
+
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                            QPushButton, QGroupBox, QLineEdit, QTextEdit,
+                            QDoubleSpinBox, QComboBox, QSpinBox, QFormLayout,
+                            QMessageBox, QTabWidget, QTableWidget, QTableWidgetItem,
+                            QDialog, QFileDialog, QCheckBox)
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QThread
+# QtWebEngine import can fail if attributes weren't set before QCoreApplication
+# was created. Import defensively so the module can still be imported.
+try:
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
+    _HAS_QTWEBENGINE = True
+except Exception as _web_err:
+    _HAS_QTWEBENGINE = False
+    try:
+        append_exception(f"QtWebEngineWidgets import failed: {_web_err}", _web_err)
+    except Exception:
+        pass
+from PyQt6.QtGui import QFont
+from src.database.database import get_database
+from src.utils.ballistics import BallisticsCalculator, BallisticData
+from src.utils.i18n import tr
+from src.utils.ai_coach import get_ai_coach_response
+ 
+import logging
+from src.logging_config import configure_logging
+from HjemmeladingApp.utils.safe_logger import append_exception
+
+# Configure logging and module logger
+configure_logging()
+logger = logging.getLogger(__name__)
+
+def _safe_add_marker(map_obj, location, popup=None, color='blue', icon='info'):
+    """Safely add a folium Marker to map_obj if folium is available.
+    Any exceptions are caught and logged to avoid crashing the UI.
+    Returns True on success, False otherwise."""
+    if not globals().get('_HAS_FOLIUM'):
+        logger.warning("folium not available, cannot add marker %s", popup)
+        return False
+    try:
+        folium.Marker(
+            location=location,
+            popup=popup,
+            icon=folium.Icon(color=color, icon=icon)
+        ).add_to(map_obj)
+        return True
+    except Exception as _mk_err:
+        try:
+            append_exception(f"Failed to add folium.Marker: {_mk_err}", _mk_err)
+        except Exception:
+            pass
+        logger.exception("Failed to add folium marker")
+        return False
+
+class TerrainMapViewer(QWidget):
+    """Widget for terrain-aware shooting analysis"""
+
+def _safe_add_polyline(map_obj, locations, color='blue', weight=3, opacity=0.8):
+    """Safely add a folium PolyLine to map_obj if folium is available."""
+    if not globals().get('_HAS_FOLIUM'):
+        logger.warning("folium not available, cannot add polyline")
+        return False
+    try:
+        folium.PolyLine(
+            locations=locations,
+            color=color,
+            weight=weight,
+            opacity=opacity
+        ).add_to(map_obj)
+        return True
+    except Exception as _pl_err:
+        try:
+            append_exception(f"Failed to add folium.PolyLine: {_pl_err}", _pl_err)
+        except Exception:
+            pass
+        logger.exception("Failed to add folium polyline")
+        return False
+
+class NetworkWorker(QThread):
+    """Run a callable in a background thread and emit result/error."""
+    finished = pyqtSignal(object, str)
+    error = pyqtSignal(object, str)
+
+    def __init__(self, func, args=(), kwargs=None, task=""):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs or {}
+        self.task = task
+
+    def run(self):
+        try:
+            result = self.func(*self.args, **self.kwargs)
+            self.finished.emit(result, self.task)
+        except Exception as e:
+            self.error.emit(e, self.task)
+
+    def create_range_search_section(self):
+        """Skytebanesøk og interaktiv markering"""
+        group = QGroupBox("🔎 Skytebanesøk og markering")
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+
+        self.range_search_input = QLineEdit()
+        self.range_search_input.setPlaceholderText("Søk etter skytebane...")
+        layout.addWidget(self.range_search_input)
+
+        self.range_search_btn = QPushButton("Søk skytebane")
+        self.range_search_btn.clicked.connect(self.search_range)
+        layout.addWidget(self.range_search_btn)
+
+        self.range_results = QComboBox()
+        layout.addWidget(self.range_results)
+
+        self.mark_stand_btn = QPushButton("Marker standplass på kartet")
+        self.mark_stand_btn.clicked.connect(self.mark_standplass)
+        layout.addWidget(self.mark_stand_btn)
+
+        self.mark_target_btn = QPushButton("Marker mål på kartet")
+        self.mark_target_btn.clicked.connect(self.mark_target)
+        layout.addWidget(self.mark_target_btn)
+
+        return group
+
+    def create_map_section(self):
+        """Dummy skytebanesøk - kan utvides med API"""
+        query = self.range_search_input.text().strip().lower()
+        # TODO: Integrer med ekstern API eller database
+        demo_ranges = [
+            ("Løvenskioldbanen, Oslo", (59.9700, 10.6000)),
+            ("Jonsvatnet Skytebane, Trondheim", (63.4300, 10.5000)),
+            ("Dale Skytebane, Bergen", (60.4000, 5.3000)),
+        ]
+        self.range_results.clear()
+        for name, coords in demo_ranges:
+            if query in name.lower():
+                self.range_results.addItem(name, coords)
+        if self.range_results.count() == 0:
+            self.range_results.addItem("Ingen treff", None)
+
+    def mark_standplass(self):
+        """Marker valgt standplass på kartet"""
+        coords = self.range_results.currentData()
+        if coords:
+            lat, lon = coords
+            self.shooter_lat.setValue(lat)
+            self.shooter_lon.setValue(lon)
+            # Set pos without elevation and fetch elevation asynchronously
+            self.shooter_pos = (lat, lon, None)
+            try:
+                self.get_elevation_async(lat, lon, role='shooter')
+            except Exception:
+                # fallback to synchronous if async setup fails
+                self.shooter_pos = (lat, lon, self.get_elevation(lat, lon))
+            # Marker på kartet
+
+            # Enable mouse click handling for interactive marking
+            self.map_click_state = "standplass"  # alternate between standplass and mål
+            self.map_view.installEventFilter(self)
+            if self.current_map:
+                _safe_add_marker(self.current_map, [lat, lon], popup="Standplass", color='red', icon='user')
+                self.update_map_view()
+
+    def mark_target(self):
+        """Marker mål på kartet"""
+        # Demo: Sett mål 100m fra standplass
+        if self.shooter_pos:
+            lat, lon, elev = self.shooter_pos
+            target_lat = lat + 0.0009  # ca 100m nord
+            target_lon = lon
+            self.target_lat.setValue(target_lat)
+            self.target_lon.setValue(target_lon)
+            self.target_pos = (target_lat, target_lon, None)
+            try:
+                self.get_elevation_async(target_lat, target_lon, role='target')
+            except Exception:
+                self.target_pos = (target_lat, target_lon, self.get_elevation(target_lat, target_lon))
+            if self.current_map:
+                pass  # No code here, just placeholder for block
+
+    def eventFilter(self, obj, event):
+        # Handle mouse click events on the map view for interactive marking
+        if obj == self.map_view and event.type() == event.Type.MouseButtonPress:
+            # Get click position in widget coordinates
+            pos = event.position() if hasattr(event, 'position') else event.pos()
+            x, y = int(pos.x()), int(pos.y())
+            # Convert widget coordinates to map coordinates (lat/lon)
+            # This requires knowing the map bounds and widget size
+            # For now, use a placeholder conversion (centered on Oslo)
+            # TODO: Replace with real conversion using folium/leaflet JS bridge
+            lat = 59.9139 + (y - self.map_view.height()//2) * 0.0001
+            lon = 10.7522 + (x - self.map_view.width()//2) * 0.0001
+            if self.map_click_state == "standplass":
+                self.shooter_lat.setValue(lat)
+                self.shooter_lon.setValue(lon)
+                self.shooter_pos = (lat, lon, None)
+                try:
+                    self.get_elevation_async(lat, lon, role='shooter')
+                except Exception:
+                    self.shooter_pos = (lat, lon, self.get_elevation(lat, lon))
+                if self.current_map:
+                    _safe_add_marker(self.current_map, [lat, lon], popup="Standplass", color='red', icon='user')
+                    self.update_map_view()
+                self.map_click_state = "mål"
+            else:
+                self.target_lat.setValue(lat)
+                self.target_lon.setValue(lon)
+                self.target_pos = (lat, lon, None)
+                try:
+                    self.get_elevation_async(lat, lon, role='target')
+                except Exception:
+                    self.target_pos = (lat, lon, self.get_elevation(lat, lon))
+                if self.current_map:
+                    _safe_add_marker(self.current_map, [lat, lon], popup="Mål", color='green', icon='flag')
+                    self.update_map_view()
+                self.map_click_state = "standplass"
+            return True
+        return super().eventFilter(obj, event)
+
+import os
+import math
+
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                            QPushButton, QGroupBox, QLineEdit, QTextEdit,
+                            QDoubleSpinBox, QComboBox, QSpinBox, QFormLayout,
+                            QMessageBox, QTabWidget, QTableWidget, QTableWidgetItem,
+                            QDialog, QFileDialog, QCheckBox)
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal
+# QWebEngineView imported defensively earlier; reuse _HAS_QTWEBENGINE flag
+from PyQt6.QtGui import QFont
+from src.database.database import get_database
+from src.utils.ballistics import BallisticsCalculator, BallisticData
+from src.utils.i18n import tr
+from src.utils.ai_coach import get_ai_coach_response
+
+class TerrainMapViewer(QWidget):
+    """Widget for terrain-aware shooting analysis"""
+
+    def create_control_section(self):
+        """Oppretter kontrollseksjon"""
+        group = QGroupBox(tr("weather", self.current_language))
+        group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+
+        # --- Kalibrerings- og ballistikkvalidering ---
+        from src.modules.calibration_validation_workflow import CalibrationValidationDialog
+        calibration_btn = QPushButton("🔬 Kalibrerings- og Ballistikkvalidering")
+        calibration_btn.setStyleSheet("background-color: #f7cac9; font-weight: bold;")
+        def open_calibration_dialog():
+            dlg = CalibrationValidationDialog(self)
+            dlg.exec()
+        calibration_btn.clicked.connect(open_calibration_dialog)
+        layout.addWidget(calibration_btn)
+
+        # Ammunisjon
+        form = QFormLayout()
+        self.ammo_combo = QComboBox()
+        self.ammo_combo.addItem("Velg ammunisjon...", None)
+        self.load_ammo_profiles()
+        form.addRow("Ammunisjon:", self.ammo_combo)
+        layout.addLayout(form)
+
+        # Koordinater (manuell input)
+        coords_group = QGroupBox("📍 Koordinater (manuell)")
+        coords_layout = QFormLayout()
+        coords_group.setLayout(coords_layout)
+        self.shooter_lat = QDoubleSpinBox()
+        self.shooter_lat.setRange(-90, 90)
+        self.shooter_lat.setDecimals(6)
+        self.shooter_lat.setValue(59.9139)  # Oslo default
+        coords_layout.addRow("Skytter Lat:", self.shooter_lat)
+        self.shooter_lon = QDoubleSpinBox()
+        self.shooter_lon.setRange(-180, 180)
+        self.shooter_lon.setDecimals(6)
+        self.shooter_lon.setValue(10.7522)
+        coords_layout.addRow("Skytter Lon:", self.shooter_lon)
+        self.target_lat = QDoubleSpinBox()
+        self.target_lat.setRange(-90, 90)
+        self.target_lat.setDecimals(6)
+        self.target_lat.setValue(59.9200)
+        coords_layout.addRow("Mål Lat:", self.target_lat)
+        self.target_lon = QDoubleSpinBox()
+        self.target_lon.setRange(-180, 180)
+        self.target_lon.setDecimals(6)
+        self.target_lon.setValue(10.7600)
+        coords_layout.addRow("Mål Lon:", self.target_lon)
+        apply_coords_btn = QPushButton("✓ Bruk koordinater")
+        apply_coords_btn.clicked.connect(self.apply_manual_coordinates)
+        coords_layout.addRow(apply_coords_btn)
+        layout.addWidget(coords_group)
+
+        # Værdata
+        weather_group = QGroupBox("🌦️ Vær (Yr.no)")
+        weather_layout = QVBoxLayout()
+        weather_group.setLayout(weather_layout)
+        fetch_weather_btn = QPushButton("☁️ Hent vær for skyteposisjon")
+        fetch_weather_btn.clicked.connect(self.fetch_weather)
+        weather_layout.addWidget(fetch_weather_btn)
+        self.weather_display = QTextEdit()
+        self.weather_display.setReadOnly(True)
+        self.weather_display.setMaximumHeight(150)
+        self.weather_display.setText("Sett skyteposisjon og klikk 'Hent vær'")
+        weather_layout.addWidget(self.weather_display)
+        # Værdatakildevalg
+        self.weather_source_combo = QComboBox()
+        self.weather_source_combo.addItem("Yr/Met.no", "yr")
+        self.weather_source_combo.addItem("OpenWeatherMap", "owm")
+        layout.addWidget(QLabel("Velg værdatakilde:"))
+        layout.addWidget(self.weather_source_combo)
+        layout.addWidget(weather_group)
+
+        # AI-coach seksjon
+        ai_group = QGroupBox("🤖 AI Coach - Ballistikk & Vær")
+        ai_layout = QVBoxLayout()
+        ai_group.setLayout(ai_layout)
+        self.ai_input = QLineEdit()
+        self.ai_input.setPlaceholderText("Spør AI-coach om ballistikk, vær, terreng...")
+        ai_layout.addWidget(self.ai_input)
+        self.ai_btn = QPushButton("Spør AI-coach")
+        self.ai_btn.clicked.connect(self.ask_ai_coach)
+        ai_layout.addWidget(self.ai_btn)
+        self.ai_output = QTextEdit()
+        self.ai_output.setReadOnly(True)
+        self.ai_output.setMaximumHeight(120)
+        ai_layout.addWidget(self.ai_output)
+        layout.addWidget(ai_group)
+
+        # Analyser-knapp
+        analyze_btn = QPushButton(tr("analyze_shot", self.current_language))
+        analyze_btn.setMinimumHeight(50)
+        analyze_btn.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        analyze_btn.clicked.connect(self.analyze_shot)
+        layout.addWidget(analyze_btn)
+
+        layout.addStretch()
+        return group
+        
+        # Formål
+        self.selected_purpose = "range"  # default til skytebane
+        
+        self.init_ui()
+    
+    def init_ui(self):
+        """Initialiserer brukergrensesnittet"""
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        # Tittel
+        title = QLabel(tr("title", self.current_language))
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        layout.addWidget(title)
+        
+        subtitle = QLabel(tr("subtitle", self.current_language))
+        subtitle.setStyleSheet("color: gray; font-size: 11pt;")
+        layout.addWidget(subtitle)
+        
+        # Språkvalg
+        self.language_combo = QComboBox()
+        self.language_combo.addItem("Norsk", "no")
+        self.language_combo.addItem("Engelsk", "en")
+        self.language_combo.currentIndexChanged.connect(self.change_language)
+        layout.addWidget(QLabel("Velg språk:"))
+        layout.addWidget(self.language_combo)
+        self.current_language = "no"
+        
+        # Hovedlayout: Kart til venstre, kontroller til høyre
+        main_layout = QHBoxLayout()
+        layout.addLayout(main_layout)
+        
+        # Venstre: Kart
+        map_group = self.create_map_section()
+        main_layout.addWidget(map_group, 3)
+        
+        # Høyre: Kontroller og resultater
+        control_group = self.create_control_section()
+        main_layout.addWidget(control_group, 1)
+        
+        # Nederst: Analyse-resultater
+        results_group = self.create_results_section()
+        layout.addWidget(results_group)
+        
+        # Last default map
+        try:
+            self.load_default_map()
+        except Exception as e:
+            QMessageBox.warning(self, "Kart-advarsel", 
+                f"Kunne ikke laste terrengkart:\n{str(e)}\n\nDu kan fortsatt bruke manuelle koordinater.")
+            logger.error("Map loading error: %s", e)
+    
+    def create_map_section(self):
+        """Oppretter kartseksjon"""
+        group = QGroupBox(tr("title", self.current_language))
+        group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+        
+        # Info
+        info = QLabel("""
+        <b>Bruk:</b><br>
+        1. Klikk på kartet for å sette <span style='color: red;'>skyteposisjon (rød)</span><br>
+        2. Klikk igjen for å sette <span style='color: green;'>mål (grønn)</span><br>
+        3. Se analyse av distanse, terreng og ballistikk<br>
+        <i>Zoom: Scroll eller +/- knapper | Pan: Dra kartet</i>
+        """)
+        info.setWordWrap(True)
+        layout.addWidget(info)
+        
+        # Web view for kart
+        try:
+            self.map_view = QWebEngineView()
+            self.map_view.setMinimumHeight(500)
+            self.map_view.setMinimumWidth(600)
+            
+            # Debug: Vis loading-status (logged)
+            self.map_view.loadStarted.connect(lambda: logger.debug("Map loading started..."))
+            self.map_view.loadFinished.connect(lambda success: logger.debug("Map loaded: %s", success))
+            
+            layout.addWidget(self.map_view)
+        except Exception as e:
+            # When QtWebEngine isn't available (import/order issues or missing binary
+            # components), provide a user-friendly fallback: show a helpful message
+            # in the UI and offer to open a simple static folium map in the system
+            # web browser. This keeps the rest of the app usable while giving the
+            # user access to a map preview.
+            logger.error("QWebEngineView init error: %s", e)
+            error_label = QLabel()
+            error_label.setWordWrap(True)
+            error_label.setText(
+                "❌ Kunne ikke initialisere interaktivt kart (QtWebEngine mangler).\n"
+                "Du kan fortsatt bruke manuelle koordinater eller åpne et statisk kart i nettleseren."
+            )
+            error_label.setStyleSheet("color: red; padding: 12px;")
+            layout.addWidget(error_label)
+
+            open_static_btn = QPushButton("Åpne statisk kart i nettleser")
+            def _open_static_map():
+                try:
+                    import tempfile, webbrowser
+                    # Create a small folium map centered on current shooter coords (fallback Oslo)
+                    center = (getattr(self, 'shooter_lat', None) and getattr(self, 'shooter_lat', None).value()) if hasattr(self, 'shooter_lat') else 59.9139
+                    center_lat = getattr(self, 'shooter_lat', None).value() if hasattr(self, 'shooter_lat') else 59.9139
+                    center_lon = getattr(self, 'shooter_lon', None).value() if hasattr(self, 'shooter_lon') else 10.7522
+                    fmap = folium.Map(location=[center_lat, center_lon], zoom_start=12)
+                    _safe_add_marker(fmap, [center_lat, center_lon], popup="Standplass (statisk)")
+                    fd, path = tempfile.mkstemp(suffix='.html', prefix='hj_map_')
+                    os.close(fd)
+                    fmap.save(path)
+                    webbrowser.open('file://' + path)
+                except Exception as _open_err:
+                    try:
+                        append_exception(f"Failed to create/open static folium map: {_open_err}", _open_err)
+                    except Exception:
+                        pass
+            open_static_btn.clicked.connect(_open_static_map)
+            layout.addWidget(open_static_btn)
+        
+        # Kart-kontroller
+        btn_layout = QHBoxLayout()
+        
+        reset_btn = QPushButton(tr("reset_positions", self.current_language))
+        reset_btn.clicked.connect(self.reset_positions)
+        btn_layout.addWidget(reset_btn)
+        
+        save_location_btn = QPushButton(tr("save_location", self.current_language))
+        save_location_btn.clicked.connect(self.save_location)
+        btn_layout.addWidget(save_location_btn)
+        
+        load_location_btn = QPushButton(tr("load_location", self.current_language))
+        load_location_btn.clicked.connect(self.load_location)
+        btn_layout.addWidget(load_location_btn)
+        
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+        
+        return group
+    
+    def create_control_section(self):
+        """Oppretter kontrollseksjon"""
+        group = QGroupBox(tr("weather", self.current_language))
+        group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+        
+        # Ammunisjon
+        form = QFormLayout()
+        
+        self.ammo_combo = QComboBox()
+        self.ammo_combo.addItem("Velg ammunisjon...", None)
+        self.load_ammo_profiles()
+        form.addRow("Ammunisjon:", self.ammo_combo)
+        
+        layout.addLayout(form)
+        
+        # Koordinater (manuell input)
+        coords_group = QGroupBox("📍 Koordinater (manuell)")
+        coords_layout = QFormLayout()
+        coords_group.setLayout(coords_layout)
+        
+        self.shooter_lat = QDoubleSpinBox()
+        self.shooter_lat.setRange(-90, 90)
+        self.shooter_lat.setDecimals(6)
+        self.shooter_lat.setValue(59.9139)  # Oslo default
+        coords_layout.addRow("Skytter Lat:", self.shooter_lat)
+        
+        self.shooter_lon = QDoubleSpinBox()
+        self.shooter_lon.setRange(-180, 180)
+        self.shooter_lon.setDecimals(6)
+        self.shooter_lon.setValue(10.7522)
+        coords_layout.addRow("Skytter Lon:", self.shooter_lon)
+        
+        self.target_lat = QDoubleSpinBox()
+        self.target_lat.setRange(-90, 90)
+        self.target_lat.setDecimals(6)
+        self.target_lat.setValue(59.9200)
+        coords_layout.addRow("Mål Lat:", self.target_lat)
+        
+        self.target_lon = QDoubleSpinBox()
+        self.target_lon.setRange(-180, 180)
+        self.target_lon.setDecimals(6)
+        self.target_lon.setValue(10.7600)
+        coords_layout.addRow("Mål Lon:", self.target_lon)
+        
+        apply_coords_btn = QPushButton("✓ Bruk koordinater")
+        apply_coords_btn.clicked.connect(self.apply_manual_coordinates)
+        coords_layout.addRow(apply_coords_btn)
+        
+        layout.addWidget(coords_group)
+        
+        # Værdata
+        weather_group = QGroupBox("🌦️ Vær (Yr.no)")
+        weather_layout = QVBoxLayout()
+        weather_group.setLayout(weather_layout)
+        
+        fetch_weather_btn = QPushButton("☁️ Hent vær for skyteposisjon")
+        fetch_weather_btn.clicked.connect(self.fetch_weather)
+        weather_layout.addWidget(fetch_weather_btn)
+        
+        self.weather_display = QTextEdit()
+        self.weather_display.setReadOnly(True)
+        self.weather_display.setMaximumHeight(150)
+        self.weather_display.setText("Sett skyteposisjon og klikk 'Hent vær'")
+        weather_layout.addWidget(self.weather_display)
+        
+        # Værdatakildevalg
+        self.weather_source_combo = QComboBox()
+        self.weather_source_combo.addItem("Yr/Met.no", "yr")
+        self.weather_source_combo.addItem("OpenWeatherMap", "owm")
+        layout.addWidget(QLabel("Velg værdatakilde:"))
+        layout.addWidget(self.weather_source_combo)
+        
+        layout.addWidget(weather_group)
+        
+        # AI-coach seksjon
+        ai_group = QGroupBox("🤖 AI Coach - Ballistikk & Vær")
+        ai_layout = QVBoxLayout()
+        ai_group.setLayout(ai_layout)
+        self.ai_input = QLineEdit()
+        self.ai_input.setPlaceholderText("Spør AI-coach om ballistikk, vær, terreng...")
+        ai_layout.addWidget(self.ai_input)
+        self.ai_btn = QPushButton("Spør AI-coach")
+        self.ai_btn.clicked.connect(self.ask_ai_coach)
+        ai_layout.addWidget(self.ai_btn)
+        self.ai_output = QTextEdit()
+        self.ai_output.setReadOnly(True)
+        self.ai_output.setMaximumHeight(120)
+        ai_layout.addWidget(self.ai_output)
+        layout.addWidget(ai_group)
+        
+        # Analyser-knapp
+        analyze_btn = QPushButton(tr("analyze_shot", self.current_language))
+        analyze_btn.setMinimumHeight(50)
+        analyze_btn.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        analyze_btn.clicked.connect(self.analyze_shot)
+        layout.addWidget(analyze_btn)
+        
+        layout.addStretch()
+        
+        return group
+    
+    def create_results_section(self):
+        """Oppretter resultatseksjon"""
+        group = QGroupBox(tr("ai_coach", self.current_language))
+        group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+        
+        self.results_text = QTextEdit()
+        self.results_text.setReadOnly(True)
+        self.results_text.setMaximumHeight(200)
+        self.results_text.setText("Sett skyteposisjon og mål, deretter klikk 'Analyser Skyting'")
+        layout.addWidget(self.results_text)
+        
+        return group
+    
+    def load_ammo_profiles(self):
+        """Laster ammunisjonsprofiler"""
+        ammos = self.db.execute_query("""
+            SELECT id, name, velocity_fps, bc_g1, caliber
+            FROM ammo_profiles 
+            ORDER BY name
+        """)
+        
+        for row in ammos:
+            ammo_id, name, velocity, bc, caliber = row
+            display = f"{name} ({caliber}) - {velocity} fps" if velocity else name
+            self.ammo_combo.addItem(display, ammo_id)
+    
+    def load_default_map(self):
+        """Laster default kart (Oslo)"""
+        # Deaktiver kart-visning på grunn av tekniske problemer med Leaflet i QWebEngineView
+        # Brukere kan bruke manuelle koordinater for full funksjonalitet
+        
+        info_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 40px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    margin: 0;
+                }
+                .container {
+                    background: rgba(255,255,255,0.1);
+                    padding: 30px;
+                    border-radius: 15px;
+                    backdrop-filter: blur(10px);
+                    max-width: 600px;
+                    margin: 0 auto;
+                }
+                h1 { margin-top: 0; font-size: 28px; }
+                h2 { color: #FFD700; margin-top: 20px; }
+                ul { text-align: left; line-height: 1.8; }
+                .highlight {
+                    background: rgba(255,215,0,0.2);
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                    border-left: 4px solid #FFD700;
+                }
+                .icon { font-size: 48px; margin: 20px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">🗺️</div>
+                <h1>Terrain Map - Geospatial Shooting Analysis</h1>
+                
+                <div class="highlight">
+                    <h2>📍 Bruk manuelle koordinater</h2>
+                    <p>Interaktivt kart er midlertidig deaktivert på grunn av tekniske problemer med Leaflet-biblioteket i Qt WebEngine.</p>
+                </div>
+                
+                <h2>✅ Full funksjonalitet tilgjengelig:</h2>
+                <ul>
+                    <li>✓ Manuell koordinat-input nedenfor</li>
+                    <li>✓ Automatisk høyde-data fra OpenTopoData</li>
+                    <li>✓ Værdata fra Yr.no / OpenWeatherMap</li>
+                    <li>✓ Distanse og vinkel-beregning</li>
+                    <li>✓ Rifleman's Rule korreksjon</li>
+                    <li>✓ Density Altitude analyse</li>
+                    <li>✓ Ballistisk drop-beregning</li>
+                </ul>
+                
+                <div class="highlight">
+                    <h2>🎯 Slik bruker du:</h2>
+                    <ol style="text-align: left; line-height: 1.8;">
+                        <li>Finn koordinater fra Google Maps eller kart-app</li>
+                        <li>Fyll inn i feltene nedenfor</li>
+                        <li>Velg ammunisjon</li>
+                        <li>Klikk "Analyser shooting"</li>
+                    </ol>
+                </div>
+                
+                <p style="margin-top: 30px; font-size: 12px; opacity: 0.8;">
+                    <i>💡 Tips: Bruk Google Maps for å finne nøyaktige koordinater - høyreklikk på kartet og velg koordinatene</i>
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        self.map_view.setHtml(info_html)
+    
+    def display_map(self, folium_map):
+        """Viser folium map i WebEngineView"""
+        try:
+            # Sørg for at data-mappen eksisterer
+            os.makedirs("data", exist_ok=True)
+            
+            # Lagre til temp fil i data-mappen
+            map_file = os.path.join("data", "temp_terrain_map.html")
+            folium_map.save(map_file)
+
+            # Verifiser at filen eksisterer
+            if not os.path.exists(map_file):
+                raise FileNotFoundError(f"Map file not created: {map_file}")
+            
+            # Last inn i QWebEngineView
+            abs_path = os.path.abspath(map_file)
+            file_url = QUrl.fromLocalFile(abs_path)
+            
+            logger.debug("Loading map from: %s", abs_path)
+            logger.debug("File exists: %s", os.path.exists(abs_path))
+            try:
+                logger.debug("File size: %d bytes", os.path.getsize(abs_path))
+            except Exception:
+                logger.debug("Could not determine file size for %s", abs_path)
+            
+            self.map_view.setUrl(file_url)
+            
+        except Exception as e:
+            error_msg = f"Kunne ikke laste kart:\n{str(e)}\n\nBruk manuelle koordinater nedenfor."
+            QMessageBox.warning(self, "Kart-advarsel", error_msg)
+            logger.error("Map display error: %s", e)
+            
+            # Vis enkel feilmelding i map view
+            self.map_view.setHtml(f"""
+                <html><body style='font-family: Arial; padding: 20px; text-align: center;'>
+                    <h2 style='color: #FF5722;'>⚠️ Kart kunne ikke lastes</h2>
+                    <p>{str(e)}</p>
+                    <p><b>Løsning:</b> Bruk manuelle koordinater nedenfor for analyse.</p>
+                </body></html>
+            """)
+    
+    def init_ui(self):
+        """Initialiserer brukergrensesnittet"""
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        # Tittel
+        title = QLabel(tr("title", self.current_language))
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        layout.addWidget(title)
+        subtitle = QLabel(tr("subtitle", self.current_language))
+        subtitle.setStyleSheet("color: gray; font-size: 11pt;")
+        layout.addWidget(subtitle)
+        # Språkvalg
+        self.language_combo = QComboBox()
+        self.language_combo.addItem("Norsk", "no")
+        self.language_combo.addItem("Engelsk", "en")
+        self.language_combo.currentIndexChanged.connect(self.change_language)
+        layout.addWidget(QLabel("Velg språk:"))
+        layout.addWidget(self.language_combo)
+        self.current_language = "no"
+        # Hovedlayout: Kart til venstre, kontroller til høyre
+        main_layout = QHBoxLayout()
+        layout.addLayout(main_layout)
+        # Venstre: Kart
+        map_group = self.create_map_section()
+        main_layout.addWidget(map_group, 3)
+        # Høyre: Kontroller og resultater
+        control_vbox = QVBoxLayout()
+        control_group = QWidget()
+        control_group.setLayout(control_vbox)
+        control_vbox.addWidget(self.create_control_section())
+        control_vbox.addWidget(self.create_range_search_section())
+        main_layout.addWidget(control_group, 1)
+        # Nederst: Analyse-resultater
+        results_group = self.create_results_section()
+        layout.addWidget(results_group)
+        # Last default map
+        try:
+            self.load_default_map()
+        except Exception as e:
+            QMessageBox.warning(self, "Kart-advarsel", 
+                f"Kunne ikke laste terrengkart:\n{str(e)}\n\nDu kan fortsatt bruke manuelle koordinater.")
+            logger.error("Map loading error: %s", e)
+
+    def generate_weather_explanation(self, temp, pressure, humidity, wind_speed, wind_dir):
+        """AI-basert forklaring for vær og utfordringer"""
+        info = []
+        if temp != 'N/A':
+            if float(temp) < 0:
+                info.append("Kaldt vær kan gi lavere hastighet og mer drop.")
+            elif float(temp) > 25:
+                info.append("Varmt vær gir høyere trykk og kan påvirke presisjon.")
+        if wind_speed != 'N/A' and wind_speed is not None:
+            try:
+                ws = float(wind_speed)
+                if ws > 8:
+                    info.append(f"Sterk vind ({ws} m/s) gir store utfordringer for presisjon og treffpunkt.")
+                elif ws > 4:
+                    info.append(f"Moderat vind ({ws} m/s) krever vindkorreksjon.")
+                elif ws > 0:
+                    info.append(f"Lett vind ({ws} m/s) gir små, men merkbare avvik.")
+                else:
+                    info.append("Vindstille forhold.")
+            except Exception:
+                pass
+        if humidity != 'N/A' and humidity is not None:
+            try:
+                h = float(humidity)
+                if h > 80:
+                    info.append("Høy luftfuktighet kan gi lavere ballistisk koeffisient.")
+                elif h < 30:
+                    info.append("Tørr luft gir litt høyere hastighet.")
+            except Exception:
+                pass
+        if pressure != 'N/A' and pressure is not None:
+            try:
+                p = float(pressure)
+                if p < 990:
+                    info.append("Lavt trykk gir høyere kulebane og mer drop.")
+                elif p > 1030:
+                    info.append("Høyt trykk gir lavere kulebane.")
+            except Exception:
+                pass
+        if wind_dir != 'N/A' and wind_dir is not None:
+            info.append(f"Vindretning: {wind_dir}° (se pil på kartet)")
+        if not info:
+            return "Normale forhold."
+        return "<br>".join(info)
+    
+    def fetch_weather_data_owm(self, lat, lon):
+        """Henter værdata fra OpenWeatherMap"""
+        api_key = "YOUR_API_KEY"
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&appid={api_key}"
+        try:
+            response = requests.get(url)
+            data = response.json()
+            weather = {
+                'vind': data['wind']['speed'],
+                'vind_retning': data['wind'].get('deg', None),
+                'temp': data['main']['temp'],
+                'trykk': data['main']['pressure'],
+                'fukt': data['main']['humidity'],
+                'beskrivelse': data['weather'][0]['description'],
+            }
+            return weather
+        except Exception as e:
+            logger.error("OWM værdata-feil: %s", e)
+            return None
+
+    def fetch_weather(self):
+        """Triggered by UI: fetch weather for current shooter position asynchronously."""
+        try:
+            lat = float(self.shooter_lat.value()) if hasattr(self, 'shooter_lat') else None
+            lon = float(self.shooter_lon.value()) if hasattr(self, 'shooter_lon') else None
+        except Exception:
+            lat = lon = None
+
+        if lat is None or lon is None:
+            self.weather_display.setText("Mangler koordinater for værdata.")
+            return
+
+        self.weather_display.setText("⏳ Henter værdata...")
+
+        # Start background worker to fetch weather without blocking UI
+        worker = NetworkWorker(self._fetch_weather_task, args=(lat, lon), task="weather")
+        worker.finished.connect(self._on_weather_fetched)
+        worker.error.connect(self._on_worker_error)
+        # keep a reference so thread isn't garbage-collected
+        if not hasattr(self, '_active_workers'):
+            self._active_workers = []
+        self._active_workers.append(worker)
+        worker.start()
+
+    def _fetch_weather_task(self, lat, lon):
+        source = self.weather_source_combo.currentData() if hasattr(self, 'weather_source_combo') else "yr"
+        if source == "yr":
+            return self.fetch_weather_data(lat, lon)
+        else:
+            return self.fetch_weather_data_owm(lat, lon)
+
+    def _on_weather_fetched(self, result, task):
+        try:
+            # remove finished workers from list
+            if hasattr(self, '_active_workers'):
+                # threads clean themselves when finished; prune dead ones
+                self._active_workers = [w for w in self._active_workers if w.isRunning()]
+        except Exception:
+            pass
+
+        if task != "weather":
+            return
+
+        if not result:
+            self.weather_display.setText("Kunne ikke hente værdata.")
+            return
+
+        txt = (
+            f"Vind: {result.get('vind')} m/s\n"
+            f"Temp: {result.get('temp')} °C\n"
+            f"Trykk: {result.get('trykk')} hPa\n"
+            f"Fukt: {result.get('fukt')}%\n"
+            f"{result.get('beskrivelse')}"
+        )
+        self.weather_display.setText(txt)
+
+        # Add marker on map (main thread)
+        try:
+            lat = float(self.shooter_lat.value())
+            lon = float(self.shooter_lon.value())
+            if self.current_map:
+                popup_text = (
+                    f"<b>Værdata:</b><br>"
+                    f"Vind: {result.get('vind')} m/s ({result.get('vind_retning')}°)<br>"
+                    f"Temp: {result.get('temp')}°C<br>"
+                    f"Trykk: {result.get('trykk')} hPa<br>"
+                    f"Fukt: {result.get('fukt')}%<br>"
+                    f"{result.get('beskrivelse')}"
+                )
+                _safe_add_marker(self.current_map, [lat, lon], popup=popup_text, color='cadetblue', icon='cloud')
+                if result.get('vind_retning') is not None:
+                    _safe_add_polyline(self.current_map, [
+                        [lat, lon],
+                        [lat + 0.002 * math.cos(math.radians(result.get('vind_retning'))),
+                         lon + 0.002 * math.sin(math.radians(result.get('vind_retning')))]
+                    ], color='blue', weight=4, opacity=0.8)
+                self.update_map_view()
+        except Exception as e:
+            logger.debug("Could not add weather marker: %s", e)
+
+    def _on_worker_error(self, exc, task):
+        logger.error("Worker error for %s: %s", task, exc)
+        if task == 'weather' and hasattr(self, 'weather_display'):
+            self.weather_display.setText('Feil ved henting av værdata.')
+
+    def show_weather_on_map(self, lat, lon):
+        """Viser værdata og vindretning på kartet"""
+        source = self.weather_source_combo.currentData() if hasattr(self, 'weather_source_combo') else "yr"
+        if source == "yr":
+            weather = self.fetch_weather_data(lat, lon)
+        else:
+            weather = self.fetch_weather_data_owm(lat, lon)
+        if weather and self.current_map:
+            popup_text = (
+                f"<b>Værdata:</b><br>"
+                f"Vind: {weather['vind']} m/s ({weather['vind_retning']}°)<br>"
+                f"Temp: {weather['temp']}°C<br>"
+                f"Trykk: {weather['trykk']} hPa<br>"
+                f"Fukt: {weather['fukt']}%<br>"
+                f"{weather['beskrivelse']}"
+            )
+            _safe_add_marker(self.current_map, [lat, lon], popup=popup_text, color='cadetblue', icon='cloud')
+            # Vis vindretning med pil
+            if weather['vind_retning'] is not None:
+                _safe_add_polyline(self.current_map, [
+                    [lat, lon],
+                    [lat + 0.002 * math.cos(math.radians(weather['vind_retning'])),
+                     lon + 0.002 * math.sin(math.radians(weather['vind_retning']))]
+                ], color='blue', weight=4, opacity=0.8)
+            self.update_map_view()
+
+    def get_elevation(self, lat, lon):
+        """Henter elevation fra OpenTopoData"""
+        try:
+            url = f"https://api.opentopodata.org/v1/srtm30m?locations={lat},{lon}"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            elevation = data['results'][0]['elevation']
+            
+            return elevation
+        except Exception as e:
+            logger.debug("get_elevation failed: %s", e, exc_info=True)
+            try:
+                append_exception("get_elevation failed", e)
+            except Exception:
+                pass
+            return None
+
+    def get_elevation_async(self, lat, lon, role='shooter'):
+        """Fetch elevation in background and update shooter/target pos when done."""
+        worker = NetworkWorker(self.get_elevation, args=(lat, lon), task=f"elev_{role}")
+        worker.finished.connect(self._on_elevation_fetched)
+        worker.error.connect(self._on_worker_error)
+        if not hasattr(self, '_active_workers'):
+            self._active_workers = []
+        self._active_workers.append(worker)
+        # store context so we can assign when finished
+        worker._elev_context = {'lat': lat, 'lon': lon, 'role': role}
+        worker.start()
+
+    def _on_elevation_fetched(self, result, task):
+        """Handle elevation result from background worker."""
+        try:
+            if hasattr(self, '_active_workers'):
+                self._active_workers = [w for w in self._active_workers if w.isRunning()]
+        except Exception:
+            pass
+
+        if not task.startswith('elev_'):
+            return
+
+        # find the worker that matches (best-effort)
+        lat = lon = None
+        role = task.replace('elev_', '')
+        try:
+            # result is elevation value
+            elevation = result
+            if role == 'shooter':
+                if hasattr(self, 'shooter_pos') and self.shooter_pos:
+                    s_lat, s_lon, _ = self.shooter_pos
+                    self.shooter_pos = (s_lat, s_lon, elevation)
+            else:
+                if hasattr(self, 'target_pos') and self.target_pos:
+                    t_lat, t_lon, _ = self.target_pos
+                    self.target_pos = (t_lat, t_lon, elevation)
+        except Exception as e:
+            logger.debug("Elevation fetch handler error: %s", e)
+    
+    def analyze_shot(self):
+        """Run analysis in a background thread to avoid blocking the GUI."""
+        if not self.shooter_pos or not self.target_pos:
+            QMessageBox.warning(
+                self, "Mangler data",
+                "Sett både skyteposisjon og mål først!\n\nBruk enten:\n- Klikk på kartet, eller\n- Fyll inn koordinater manuelt"
+            )
+            return
+
+        ammo_id = self.ammo_combo.currentData()
+        if not ammo_id:
+            QMessageBox.warning(self, "Mangler ammunisjon", "Velg en ammunisjonsprofil!")
+            return
+
+        # Show immediate feedback
+        self.results_text.setText("⏳ Henter terrengdata og beregner (kjører i bakgrunnen)...")
+
+        # Prepare arguments for background task
+        shooter_pos = self.shooter_pos
+        target_pos = self.target_pos
+        worker = NetworkWorker(self._analyze_shot_task, args=(shooter_pos, target_pos, ammo_id), task="analyze")
+        worker.finished.connect(self._on_analyze_finished)
+        worker.error.connect(self._on_worker_error)
+        if not hasattr(self, '_active_workers'):
+            self._active_workers = []
+        self._active_workers.append(worker)
+        worker.start()
+
+    def _analyze_shot_task(self, shooter_pos, target_pos, ammo_id):
+        """Background task that performs the heavy analysis and returns HTML results."""
+        try:
+            import matplotlib.pyplot as plt
+            import io, base64
+            from geopy.distance import geodesic
+
+            shooter_lat, shooter_lon, _ = shooter_pos
+            target_lat, target_lon, _ = target_pos
+
+            # Refresh elevation in background
+            shooter_elev = self.get_elevation(shooter_lat, shooter_lon)
+            target_elev = self.get_elevation(target_lat, target_lon)
+            if shooter_elev is None or target_elev is None:
+                return {"error": "Kunne ikke hente terrengdata"}
+
+            # Update effective positions
+            shooter_pos = (shooter_lat, shooter_lon, shooter_elev)
+            target_pos = (target_lat, target_lon, target_elev)
+
+            # Ammo data
+            ammo_data = self.db.execute_query(
+                "SELECT name, velocity_fps, bc_g1, caliber FROM ammo_profiles WHERE id = ?",
+                (ammo_id,)
+            )
+            if not ammo_data:
+                return {"error": "Ammunisjonsdata mangler"}
+            ammo_name, velocity, bc, caliber = ammo_data[0]
+
+            horizontal_distance = geodesic((shooter_lat, shooter_lon), (target_lat, target_lon)).meters
+            elevation_diff = target_elev - shooter_elev
+            shooting_angle_rad = math.atan2(elevation_diff, horizontal_distance)
+            shooting_angle_deg = math.degrees(shooting_angle_rad)
+            los_distance = math.sqrt(horizontal_distance**2 + elevation_diff**2)
+            effective_distance = horizontal_distance * math.cos(shooting_angle_rad)
+
+            # Bearing
+            lat1, lon1 = math.radians(shooter_lat), math.radians(shooter_lon)
+            lat2, lon2 = math.radians(target_lat), math.radians(target_lon)
+            dlon = lon2 - lon1
+            x = math.sin(dlon) * math.cos(lat2)
+            y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+            bearing = math.degrees(math.atan2(x, y))
+            bearing = (bearing + 360) % 360
+
+            drop_cm = self.ballistics_calc.calculate_drop(velocity, bc, horizontal_distance, 100, "G1")
+            drop_moa = self.ballistics_calc.cm_to_moa(drop_cm, horizontal_distance)
+            drop_mrad = self.ballistics_calc.cm_to_mrad(drop_cm, horizontal_distance)
+
+            if shooting_angle_deg > 0:
+                angle_text = f"<span style='color: blue;'>↗ {shooting_angle_deg:.1f}° OPPOVER</span>"
+                correction_note = "Hold LAVERE enn flat-range drop (kulen påvirkes mindre av gravity)"
+            elif shooting_angle_deg < 0:
+                angle_text = f"<span style='color: red;'>↘ {abs(shooting_angle_deg):.1f}° NEDOVER</span>"
+                correction_note = "Hold LAVERE enn flat-range drop (kulen påvirkes mindre av gravity)"
+            else:
+                angle_text = "→ 0° (FLAT)"
+                correction_note = "Ingen vinkelkorreksjon nødvendig"
+
+            # Plot
+            distances = list(range(0, int(max(100, horizontal_distance)) + 1, 10))
+            drops = [self.ballistics_calc.calculate_drop(velocity, bc, d, 100, "G1") for d in distances]
+            fig, ax = plt.subplots(figsize=(6, 3))
+            ax.plot(distances, drops, label="Kulebane (cm)", color="navy")
+            ax.set_xlabel("Avstand (m)")
+            ax.set_ylabel("Drop (cm)")
+            ax.set_title("Ballistisk kulebane")
+            ax.grid(True)
+            ax.legend()
+            buf = io.BytesIO()
+            plt.tight_layout()
+            fig.savefig(buf, format="png")
+            plt.close(fig)
+            img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+            img_html = f'<img src="data:image/png;base64,{img_b64}" style="max-width:100%;border-radius:8px;box-shadow:0 2px 8px #888;" />'
+
+            # Klikktabell
+            table_html = "<table style='width:100%;border-collapse:collapse;margin-top:10px;'>"
+            table_html += "<tr style='background:#f7f7f7;'><th>Avstand (m)</th><th>Drop (cm)</th><th>MOA</th><th>MRAD</th></tr>"
+            for d in range(0, int(horizontal_distance) + 1, 50):
+                drop = self.ballistics_calc.calculate_drop(velocity, bc, d, 100, "G1")
+                moa = self.ballistics_calc.cm_to_moa(drop, d)
+                mrad = self.ballistics_calc.cm_to_mrad(drop, d)
+                table_html += f"<tr><td>{d}</td><td>{drop:.1f}</td><td>{moa:.2f}</td><td>{mrad:.2f}</td></tr>"
+            table_html += "</table>"
+
+            results_html = f"""
+    <h2>🎯 Shooting Analysis</h2>
+    <h3>📍 Posisjon</h3>
+    <table style='width: 100%;'>
+    <tr><td><b>Skytter:</b></td><td>{shooter_lat:.5f}, {shooter_lon:.5f}</td></tr>
+    <tr><td><b>Elevation:</b></td><td>{shooter_elev:.1f} m</td></tr>
+    <tr><td><b>Mål:</b></td><td>{target_lat:.5f}, {target_lon:.5f}</td></tr>
+    <tr><td><b>Elevation:</b></td><td>{target_elev:.1f} m</td></tr>
+    </table>
+    <h3>📏 Distanse & Terreng</h3>
+    <table style='width: 100%;'>
+    <tr><td><b>Horisontal distanse:</b></td><td>{horizontal_distance:.1f} m</td></tr>
+    <tr><td><b>Line-of-sight:</b></td><td>{los_distance:.1f} m</td></tr>
+    <tr><td><b>Høydeforskjell:</b></td><td>{elevation_diff:+.1f} m</td></tr>
+    <tr><td><b>Skytvinkel:</b></td><td>{angle_text}</td></tr>
+    <tr><td><b>Bearing:</b></td><td>{bearing:.0f}°</td></tr>
+    </table>
+    <h3>🎯 Ballistikk</h3>
+    <table style='width: 100%;'>
+    <tr><td><b>Ammunisjon:</b></td><td>{ammo_name} ({caliber})</td></tr>
+    <tr><td><b>Hastighet:</b></td><td>{velocity} fps</td></tr>
+    <tr><td><b>BC (G1):</b></td><td>{bc}</td></tr>
+    <tr><td><b>Drop (flat range):</b></td><td>{drop_cm:.1f} cm | {drop_moa:.1f} MOA | {drop_mrad:.2f} MRAD</td></tr>
+    <tr><td><b>Effektiv distanse:</b></td><td>{effective_distance:.1f} m (for holdover)</td></tr>
+    </table>
+    <h3>📈 Kulebane-grafikk</h3>
+    {img_html}
+    <h3>🔢 Klikktabell</h3>
+    {table_html}
+    <h3>⚠️ Terrengkorreksjon</h3>
+    <p style='background-color: #fff3cd; padding: 10px; border-radius: 5px;'>
+    <b>Rifleman's Rule:</b><br>
+    {correction_note}
+    </p>
+    <p><i>Tips: Bruk horisontal distanse ({horizontal_distance:.0f}m) for å beregne drop, ikke line-of-sight.</i></p>
+    """
+
+            return {"html": results_html}
+        except Exception as e:
+            return {"error": str(e)}
+
+    def _on_analyze_finished(self, result, task):
+        try:
+            if hasattr(self, '_active_workers'):
+                self._active_workers = [w for w in self._active_workers if w.isRunning()]
+        except Exception:
+            pass
+
+        if task != 'analyze':
+            return
+
+        if not result:
+            self.results_text.setText("Feil under analyse.")
+            return
+
+        if isinstance(result, dict) and result.get('error'):
+            self.results_text.setText(f"Feil: {result.get('error')}")
+            return
+
+        html = result.get('html') if isinstance(result, dict) else None
+        if html:
+            self.results_text.setHtml(html)
+        else:
+            self.results_text.setText('Analyse fullført, men ingen resultat-HTML ble returnert.')
+    
+    def save_location(self):
+        """Lagrer lokasjon til database"""
+        if not self.shooter_pos or not self.target_pos:
+            QMessageBox.warning(self, "Ingen data", "Sett posisjoner først!")
+            return
+        
+        # Dialog for navn
+        from PyQt6.QtWidgets import QInputDialog
+        name, ok = QInputDialog.getText(self, "Lagre lokasjon", "Navn på lokasjon:")
+        
+        if not ok or not name:
+            return
+        
+        # Lagre til database (krever ny tabell - se nedenfor)
+        # TODO: Implementer database-lagring
+        
+        QMessageBox.information(
+            self, "Lagret",
+            f"Lokasjon '{name}' lagret!\n\n(Database-integrasjon kommer i neste versjon)"
+        )
+    
+    def load_location(self):
+        """Laster lagret lokasjon"""
+        QMessageBox.information(
+            self, "Under utvikling",
+            "Denne funksjonen kommer i neste versjon!"
+        )
+    
+    def add_jaktpost(self, lat, lon, navn, bruker_id=None, rifle_id=None, ammo_id=None):
+        """Legg til jaktpost på kartet, koblet til bruker, våpen og ammunisjon fra databasen"""
+        jaktpost = {
+            'lat': lat,
+            'lon': lon,
+            'navn': navn,
+            'bruker_id': bruker_id,
+            'rifle_id': rifle_id,
+            'ammo_id': ammo_id,
+            'status': 'ledig',
+            'observasjoner': [],
+        }
+        # Lagre til database eller intern liste
+        if not hasattr(self, 'jaktposter'):
+            self.jaktposter = []
+        self.jaktposter.append(jaktpost)
+        # Marker på kartet (folium)
+        if self.current_map:
+            _safe_add_marker(self.current_map, [lat, lon], popup=f"Jaktpost: {navn}", color='blue', icon='info-sign')
+            self.update_map_view()
+
+    def update_map_view(self):
+        """Oppdaterer kartvisning etter endringer"""
+        if self.current_map and self.map_view:
+            map_html = self.current_map._repr_html_()
+            self.map_view.setHtml(map_html)
+    
+    def fetch_weather_data(self, lat, lon):
+        """Henter live værdata fra Yr/Met.no for gitt posisjon"""
+        url = f"https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={lat}&lon={lon}"
+        headers = {
+            "User-Agent": "HjemmeladingApp/1.0 kontakt@example.com"  # Endre til din kontaktinfo
+        }
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            data = response.json()
+            timeseries = data.get('properties', {}).get('timeseries', [])
+            if not timeseries:
+                return None
+            # Ta første tidspunkt (nærmest nå)
+            entry = timeseries[0]
+            details = entry['data']['instant']['details']
+            weather = {
+                'vind': details.get('wind_speed', None),
+                'vind_retning': details.get('wind_from_direction', None),
+                'temp': details.get('air_temperature', None),
+                'trykk': details.get('air_pressure_at_sea_level', None),
+                'fukt': details.get('relative_humidity', None),
+                'beskrivelse': 'Yr/Met.no prognose',
+            }
+            return weather
+        except Exception as e:
+            logger.error("Yr værdata-feil: %s", e)
+            return None
+
+    def show_weather_on_map(self, lat, lon):
+        """Viser værdata som popup på kartet"""
+        weather = self.fetch_weather_data(lat, lon)
+        if weather and self.current_map:
+            popup_text = (
+                f"<b>Værdata:</b><br>"
+                f"Vind: {weather['vind']} m/s ({weather['vind_retning']}°)<br>"
+                f"Temp: {weather['temp']}°C<br>"
+                f"Trykk: {weather['trykk']} hPa<br>"
+                f"Fukt: {weather['fukt']}%<br>"
+                f"{weather['beskrivelse']}"
+            )
+            _safe_add_marker(self.current_map, [lat, lon], popup=popup_text, color='cadetblue', icon='cloud')
+            # Vis vindretning med pil
+            if weather['vind_retning'] is not None:
+                _safe_add_polyline(self.current_map, [
+                    [lat, lon],
+                    [lat + 0.002 * math.cos(math.radians(weather['vind_retning'])),
+                     lon + 0.002 * math.sin(math.radians(weather['vind_retning']))]
+                ], color='blue', weight=4, opacity=0.8)
+            self.update_map_view()
+
+    def analyze_terrain_profile(self, start_lat, start_lon, end_lat, end_lon):
+        """Asynchronously fetch and analyze elevation profile between two points."""
+        worker = NetworkWorker(self._analyze_terrain_profile_task, args=(start_lat, start_lon, end_lat, end_lon), task='terrain_profile')
+        worker.finished.connect(self._on_terrain_profile_finished)
+        worker.error.connect(self._on_worker_error)
+        if not hasattr(self, '_active_workers'):
+            self._active_workers = []
+        self._active_workers.append(worker)
+        worker.start()
+
+    def _analyze_terrain_profile_task(self, start_lat, start_lon, end_lat, end_lon):
+        url = f"https://api.open-elevation.com/api/v1/lookup?locations={start_lat},{start_lon}|{end_lat},{end_lon}"
+        try:
+            response = requests.get(url, timeout=10)
+            data = response.json()
+            elev_start = data['results'][0]['elevation']
+            elev_end = data['results'][1]['elevation']
+            vinkel = math.degrees(math.atan2(elev_end - elev_start, self.calc_distance(start_lat, start_lon, end_lat, end_lon)))
+            return {'start': elev_start, 'end': elev_end, 'vinkel': vinkel}
+        except Exception as e:
+            logger.error("Terrenganalyse-feil: %s", e)
+            return {'error': str(e)}
+
+    def _on_terrain_profile_finished(self, result, task):
+        try:
+            if hasattr(self, '_active_workers'):
+                self._active_workers = [w for w in self._active_workers if w.isRunning()]
+        except Exception:
+            pass
+
+        if task != 'terrain_profile':
+            return
+
+        if not result or result.get('error'):
+            logger.debug('Terrain profile failed: %s', result)
+            return
+
+        elev_start = result.get('start')
+        elev_end = result.get('end')
+        vinkel = result.get('vinkel')
+        logger.debug("Høyde skytter: %s m, mål: %s m, vinkel: %.2f°", elev_start, elev_end, vinkel)
+
+    def calc_distance(self, lat1, lon1, lat2, lon2):
+        """Beregner avstand mellom to koordinater (haversine)"""
+        R = 6371000  # meter
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lon2 - lon1)
+        a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+        c = 2*math.atan2(math.sqrt(a), math.sqrt(1-a))
+        return R * c
+
+    def change_language(self):
+        """Oppdaterer valgt språk for hele programmet"""
+        self.current_language = self.language_combo.currentData()
+        # Her kan du utvide med å oppdatere alle UI-tekster, tooltips, og AI-coach språk
+        # Eksempel: Oppdater AI-coach prompt
+
+    def ask_ai_coach(self):
+        question = self.ai_input.text().strip()
+        if not question:
+            self.ai_output.setText(tr("type_question", self.current_language))
+            return
+        try:
+            from src.utils.ai_coach import get_ai_coach_response
+            response = get_ai_coach_response(question, lang=self.current_language)
+            self.ai_output.setHtml(f"<b>{tr('ai_coach', self.current_language)}:</b> {response}")
+        except Exception as e:
+            self.ai_output.setText(tr("error", self.current_language) + f": {str(e)}")
+
+    def show_purpose_dialog(self):
+        dlg = PurposeSelectionDialog(self)
+        if dlg.exec() == QDialog.Accepted:
+            self.selected_purpose = dlg.get_purpose()
+            self.init_mode()
+    
+    def init_mode(self):
+        if self.selected_purpose == "range":
+            self.mode_label.setText("Modus: Skytebane")
+            # Aktiver skytebanesøk, standplass/målmarkering
+        elif self.selected_purpose == "hunting":
+            self.mode_label.setText("Modus: Jaktområde")
+            # Aktiver jaktområdesøk, fri markering av poster/mål
+        else:
+            self.mode_label.setText("Modus: Fri analyse")
+            # Fri bruk av kart og analyse
+    
+    def init_ui(self):
+        """Initialiserer brukergrensesnittet"""
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        # Tittel
+        title = QLabel(tr("title", self.current_language))
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        layout.addWidget(title)
+        
+        subtitle = QLabel(tr("subtitle", self.current_language))
+        subtitle.setStyleSheet("color: gray; font-size: 11pt;")
+        layout.addWidget(subtitle)
+        
+        # Språkvalg
+        self.language_combo = QComboBox()
+        self.language_combo.addItem("Norsk", "no")
+        self.language_combo.addItem("Engelsk", "en")
+        self.language_combo.currentIndexChanged.connect(self.change_language)
+        layout.addWidget(QLabel("Velg språk:"))
+        layout.addWidget(self.language_combo)
+        self.current_language = "no"
+        
+        # Hovedlayout: Kart til venstre, kontroller til høyre
+        main_layout = QHBoxLayout()
+        layout.addLayout(main_layout)
+        
+        # Venstre: Kart
+        map_group = self.create_map_section()
+        main_layout.addWidget(map_group, 3)
+        
+        # Høyre: Kontroller og resultater
+        control_group = self.create_control_section()
+        main_layout.addWidget(control_group, 1)
+        
+        # Nederst: Analyse-resultater
+        results_group = self.create_results_section()
+        layout.addWidget(results_group)
+        
+        # Modus-label
+        self.mode_label = QLabel("Modus: Ikke valgt")
+        self.mode_label.setStyleSheet("font-size: 13pt; color: #2980b9; font-weight: bold;")
+        layout.addWidget(self.mode_label)
+        
+        # Visningsvalgmodul
+        self.display_options = {
+            "Ballistisk kurve": QCheckBox("Ballistisk kurve"),
+            "Klikktabell": QCheckBox("Klikktabell"),
+            "Vindavdrift": QCheckBox("Vindavdrift"),
+            "Energi": QCheckBox("Energi"),
+            "Hastighet": QCheckBox("Hastighet")
+        }
+        for cb in self.display_options.values():
+            cb.setChecked(True)
+            layout.addWidget(cb)
+        
+        self.update_display_btn = QPushButton("Oppdater visning")
+        self.update_display_btn.clicked.connect(self.update_display)
+        layout.addWidget(self.update_display_btn)
+        
+        # Analyseresultater (dummy innhold, må erstattes med faktisk resultatvisning)
+        self.results_view = QTextEdit("Analyseresultater vises her")
+        self.results_view.setReadOnly(True)
+        layout.addWidget(self.results_view)
+        
+        # Knapper for handling
+        btn_layout = QHBoxLayout()
+        
+        analyze_btn = QPushButton("Analyser")
+        analyze_btn.clicked.connect(self.analyze)
+        btn_layout.addWidget(analyze_btn)
+        
+        clear_btn = QPushButton("Nullstill")
+        clear_btn.clicked.connect(self.clear_results)
+        btn_layout.addWidget(clear_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        # Last default map
+        try:
+            self.load_default_map()
+        except Exception as e:
+            QMessageBox.warning(self, "Kart-advarsel", 
+                f"Kunne ikke laste terrengkart:\n{str(e)}\n\nDu kan fortsatt bruke manuelle koordinater.")
+            print(f"Map loading error: {e}")
+        
+        # Vis formål-dialog ved oppstart
+        self.show_purpose_dialog()
+    
+    def toggle_simple_mode(self):
+        simple = self.simple_mode.isChecked()
+        for cb in self.display_options.values():
+            cb.setVisible(not simple)
+        self.update_display_btn.setVisible(not simple)
+        # Skjul avanserte grafer og data hvis enkel modus er valgt
+        if simple:
+            # Vis kun grunnleggende kart og ballistikk
+            pass
+        else:
+            self.update_display()
+    
+    def update_display(self):
+        # Oppdater kart og visning basert på brukerens valg
+        pass
+    
+    def analyze(self):
+        """Utfører analyse basert på nåværende kartdata og innstillinger"""
+        # (her må du legge inn riktig analysekode, avhengig av hva som skal gjøres)
+        self.results_view.setPlainText("Analyse utført:\n• Ballistiske data\n• Terrenganalyse\n• Værdata")
+    
+    def clear_results(self):
+        """Fjerner nåværende resultater og tilbakestiller visning"""
+        self.results_view.clear()
+        self.display_options.reset_options()

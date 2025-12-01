@@ -4,28 +4,58 @@ Real-time graphs med interactive updates
 """
 
 import numpy as np
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
-# matplotlib.pyplot is used for some patches; import safely
+# Guard matplotlib imports — plotting backend may be unavailable in some environments
 try:
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+    from matplotlib.figure import Figure
     import matplotlib.pyplot as plt
+    _HAS_MPL = True
 except Exception:
+    FigureCanvasQTAgg = None
+    Figure = None
     plt = None
+    _HAS_MPL = False
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from typing import List, Tuple, Optional
 
+# Provide a safe BaseCanvas when matplotlib/qtagg backend is missing
+if _HAS_MPL:
+    BaseCanvas = FigureCanvasQTAgg
+else:
+    class BaseCanvas(QWidget):
+        def __init__(self, *args, **kwargs):
+            # Accept either parent or a Figure object; keep API small
+            parent = None
+            if args:
+                # If parent passed positionally, use it
+                parent = args[0]
+            parent = kwargs.get('parent', parent)
+            super().__init__(parent)
+            layout = QVBoxLayout()
+            label = QLabel("Plotting unavailable in this environment")
+            layout.addWidget(label)
+            self.setLayout(layout)
+        def draw(self):
+            return
 
-class LiveVelocityGraph(FigureCanvasQTAgg):
+
+class LiveVelocityGraph(BaseCanvas):
     """
     Live velocity graph for Ladder Tests
     Updates in real-time etter hvert shot
     """
     
     def __init__(self, parent=None, width=8, height=5, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#ecf0f1')
-        self.ax = self.fig.add_subplot(111)
-        super().__init__(self.fig)
+        if _HAS_MPL:
+            self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#ecf0f1')
+            self.ax = self.fig.add_subplot(111)
+            super().__init__(self.fig)
+        else:
+            # fallback canvas
+            self.fig = None
+            self.ax = None
+            super().__init__(parent)
         
         self.data_x = []  # Powder charge
         self.data_y = []  # Velocity
@@ -34,10 +64,13 @@ class LiveVelocityGraph(FigureCanvasQTAgg):
     
     def _setup_plot(self):
         """Setup initial plot"""
+        if self.ax is None:
+            return
         self.ax.clear()
         self.ax.set_xlabel('Powder Charge (gr)', fontsize=12, fontweight='bold')
         self.ax.set_ylabel('Velocity (fps)', fontsize=12, fontweight='bold')
-        self.ax.set_title('📊 Live Velocity Ladder', fontsize=14, fontweight='bold', pad=20)
+        # Avoid emoji in matplotlib title to prevent missing-glyph warnings
+        self.ax.set_title('Live Velocity Ladder', fontsize=14, fontweight='bold', pad=20)
         self.ax.grid(True, alpha=0.3, linestyle='--')
         
         # Styling
@@ -57,6 +90,8 @@ class LiveVelocityGraph(FigureCanvasQTAgg):
     
     def _update_plot(self):
         """Update plot with new data"""
+        if self.ax is None:
+            return
         self.ax.clear()
         
         # Scatter plot
@@ -86,7 +121,7 @@ class LiveVelocityGraph(FigureCanvasQTAgg):
         # Labels and styling
         self.ax.set_xlabel('Powder Charge (gr)', fontsize=12, fontweight='bold')
         self.ax.set_ylabel('Velocity (fps)', fontsize=12, fontweight='bold')
-        self.ax.set_title('📊 Live Velocity Ladder', fontsize=14, fontweight='bold', pad=20)
+        self.ax.set_title('Live Velocity Ladder', fontsize=14, fontweight='bold', pad=20)
         self.ax.grid(True, alpha=0.3, linestyle='--')
         self.ax.legend(loc='upper left', framealpha=0.9)
         
@@ -132,16 +167,21 @@ class LiveVelocityGraph(FigureCanvasQTAgg):
         self._setup_plot()
 
 
-class LiveGroupOverlay(FigureCanvasQTAgg):
+class LiveGroupOverlay(BaseCanvas):
     """
     Live group overlay for OCW tests
     Shows all shots accumulating
     """
     
     def __init__(self, parent=None, width=7, height=7, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#ecf0f1')
-        self.ax = self.fig.add_subplot(111)
-        super().__init__(self.fig)
+        if _HAS_MPL:
+            self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#ecf0f1')
+            self.ax = self.fig.add_subplot(111)
+            super().__init__(self.fig)
+        else:
+            self.fig = None
+            self.ax = None
+            super().__init__(parent)
         
         self.groups = {}  # {charge: [(x, y), ...]}
         self.colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
@@ -151,17 +191,20 @@ class LiveGroupOverlay(FigureCanvasQTAgg):
     
     def _setup_plot(self):
         """Setup target overlay"""
+        if self.ax is None:
+            return
         self.ax.clear()
         self.ax.set_xlim(-3, 3)
         self.ax.set_ylim(-3, 3)
         self.ax.set_aspect('equal')
         self.ax.set_xlabel('Horizontal (inches)', fontsize=10)
         self.ax.set_ylabel('Vertical (inches)', fontsize=10)
-        self.ax.set_title('🎯 Live Group Overlay', fontsize=14, fontweight='bold', pad=15)
+        # Use plain text title to avoid emoji glyph warnings
+        self.ax.set_title('Live Group Overlay', fontsize=14, fontweight='bold', pad=15)
         
         # Draw target circles
         for radius in [1, 2, 3]:
-            if plt is not None:
+            if plt is not None and self.ax is not None:
                 try:
                     circle = plt.Circle((0, 0), radius, fill=False, color='gray',
                                       linestyle='--', linewidth=1, alpha=0.5)
@@ -174,8 +217,9 @@ class LiveGroupOverlay(FigureCanvasQTAgg):
         self.ax.axvline(0, color='gray', linestyle='-', linewidth=0.5, alpha=0.3)
         
         self.ax.grid(True, alpha=0.2)
-        self.fig.tight_layout()
-        self.draw()
+        if _HAS_MPL:
+            self.fig.tight_layout()
+            self.draw()
     
     def add_shot(self, charge: float, x: float, y: float):
         """Add shot to group"""
@@ -348,16 +392,21 @@ class LiveStatisticsDisplay(QWidget):
         self.label_count.findChild(QLabel, "Shots_value").setText("0")
 
 
-class LiveHistogram(FigureCanvasQTAgg):
+class LiveHistogram(BaseCanvas):
     """
     Live histogram for Batch QC
     Shows distribution as measurements come in
     """
     
     def __init__(self, parent=None, width=8, height=5, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#ecf0f1')
-        self.ax = self.fig.add_subplot(111)
-        super().__init__(self.fig)
+        if _HAS_MPL:
+            self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#ecf0f1')
+            self.ax = self.fig.add_subplot(111)
+            super().__init__(self.fig)
+        else:
+            self.fig = None
+            self.ax = None
+            super().__init__(parent)
         
         self.data = []
         self.target = None
@@ -368,18 +417,17 @@ class LiveHistogram(FigureCanvasQTAgg):
     
     def _setup_plot(self):
         """Setup histogram"""
+        if self.ax is None:
+            return
         self.ax.clear()
         self.ax.set_xlabel('Value', fontsize=12, fontweight='bold')
         self.ax.set_ylabel('Frequency', fontsize=12, fontweight='bold')
-        # Avoid using emoji in the matplotlib title because many fonts
-        # (including DejaVu Sans) do not include emoji glyphs which
-        # triggers UserWarning messages during headless tests. Use plain
-        # text for a clean, cross-platform appearance.
         self.ax.set_title('Live Distribution', fontsize=14, fontweight='bold', pad=20)
         self.ax.grid(True, alpha=0.3, axis='y')
         
-        self.fig.tight_layout()
-        self.draw()
+        if _HAS_MPL:
+            self.fig.tight_layout()
+            self.draw()
     
     def set_target(self, target: float, tolerance: float, unit: str):
         """Set target and tolerance"""

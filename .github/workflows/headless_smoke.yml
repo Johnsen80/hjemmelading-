@@ -1,0 +1,63 @@
+name: Headless Smoke Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  smoke-windows:
+    name: Headless smoke test (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Cache pip (Windows)
+        uses: actions/cache@v4
+        with:
+          path: |
+            %USERPROFILE%\\AppData\\Local\\pip\\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-${{ matrix.python-version }}
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyQt6 matplotlib pillow pytest
+      - name: Run headless smoke test
+        run: |
+          python tools/headless_smoke_test.py
+      - name: Run import tests
+        run: |
+          python -m pytest -q tests/test_imports.py
+
+  smoke-ubuntu:
+    name: Headless smoke test (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Cache pip (Linux)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-${{ matrix.python-version }}
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyQt6 matplotlib pillow pytest
+      - name: Run headless smoke test
+        run: |
+          python tools/headless_smoke_test.py
+      - name: Run import tests
+        run: |
+          python -m pytest -q tests/test_imports.py

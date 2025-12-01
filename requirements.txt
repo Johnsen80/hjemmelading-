@@ -1,0 +1,42 @@
+PyQt6==6.10.0
+# Reloading Workshop Manager - Dependencies
+
+# GUI Framework
+PyQt6>=6.6.0
+PyQt6-Qt6>=6.6.0
+
+# Data Analysis and Visualization
+matplotlib>=3.8.0
+numpy>=1.24.0
+pandas>=2.1.0
+
+# Image Processing
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# Database (built-in with Python, no install needed)
+# sqlite3
+
+# Scientific Computing
+scipy>=1.11.0
+
+# Plotting
+plotly>=5.18.0
+
+# PDF Generation (for reports)
+reportlab>=4.0.0
+
+# Web Components (for terrain map)
+PyQt6-WebEngine>=6.6.0
+
+# Geospatial Libraries
+folium>=0.15.0
+geopy>=2.4.0
+requests>=2.31.0
+
+# Web Scraping (for AI rifle lookup)
+beautifulsoup4>=4.12.0
+
+# Future: AI/ML capabilities
+# tensorflow>=2.15.0
+# torch>=2.1.0
