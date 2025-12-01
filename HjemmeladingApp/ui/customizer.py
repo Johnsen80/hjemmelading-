@@ -1,4 +1,11 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QColorDialog, QFileDialog
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QColorDialog,
+    QFileDialog,
+)
 from PyQt6.QtGui import QPalette, QColor
 import logging
 from HjemmeladingApp.utils.backgrounds import get_background_preview
@@ -7,13 +14,14 @@ from HjemmeladingApp.utils.safe_logger import append_exception
 logger = logging.getLogger(__name__)
 try:
     from PyQt6.QtGui import QPixmap
+
     _HAS_QPIXMAP = True
 except Exception:
     QPixmap = None
     _HAS_QPIXMAP = False
 
+
 class AppearanceCustomizer(QWidget):
-    
 
     def __init__(self, main_window):
         super().__init__()
@@ -36,7 +44,9 @@ class AppearanceCustomizer(QWidget):
             self.setLayout(layout)
         except Exception as _init_err:
             try:
-                append_exception(f"AppearanceCustomizer init failed: {_init_err}", _init_err)
+                append_exception(
+                    f"AppearanceCustomizer init failed: {_init_err}", _init_err
+                )
             except Exception:
                 pass
             logger.exception("AppearanceCustomizer init failed")
@@ -50,7 +60,9 @@ class AppearanceCustomizer(QWidget):
 
     def choose_bg(self):
         try:
-            file, _ = QFileDialog.getOpenFileName(self, "Velg bilde", "", "Bilder (*.png *.jpg *.jpeg *.bmp)")
+            file, _ = QFileDialog.getOpenFileName(
+                self, "Velg bilde", "", "Bilder (*.png *.jpg *.jpeg *.bmp)"
+            )
             if not file:
                 return
             # Try to get a safe preview pixmap (may return None)
@@ -74,12 +86,14 @@ class AppearanceCustomizer(QWidget):
                     palette.setBrush(QPalette.ColorRole.Window, pixmap)
                 else:
                     # Fallback: set a neutral background color if image fails
-                    palette.setColor(QPalette.ColorRole.Window, QColor('#f0f0f0'))
+                    palette.setColor(QPalette.ColorRole.Window, QColor("#f0f0f0"))
                 self.main_window.setPalette(palette)
                 self.main_window.setAutoFillBackground(True)
             except Exception as _pal_err:
                 try:
-                    append_exception(f"Applying background failed: {_pal_err}", _pal_err)
+                    append_exception(
+                        f"Applying background failed: {_pal_err}", _pal_err
+                    )
                 except Exception:
                     pass
                 logger.exception("Applying background failed")

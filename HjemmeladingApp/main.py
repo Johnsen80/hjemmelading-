@@ -27,6 +27,7 @@ except Exception:
 try:
     from HjemmeladingApp.utils.safe_logger import append_exception, append_message
 except Exception:
+
     def append_exception(msg, exc=None):
         return None
 
@@ -36,13 +37,13 @@ except Exception:
 
 def _global_excepthook(exc_type, exc_value, exc_tb):
     try:
-        tb = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         try:
-            append_exception('Uncaught exception (HjemmeladingApp): ' + tb, exc_value)
+            append_exception("Uncaught exception (HjemmeladingApp): " + tb, exc_value)
         except Exception:
             pass
         try:
-            with open('hjemmeladingapp_error.log', 'w', encoding='utf-8') as f:
+            with open("hjemmeladingapp_error.log", "w", encoding="utf-8") as f:
                 f.write(tb)
         except Exception:
             pass
@@ -82,7 +83,9 @@ class MainWindow(QMainWindow):
         for lang in ["Norsk", "Engelsk", "Tysk"]:
             lang_action = QAction(lang, self)
             # capture default arg to avoid late-binding
-            lang_action.triggered.connect(lambda checked, lang_choice=lang: self.set_language(lang_choice))
+            lang_action.triggered.connect(
+                lambda checked, lang_choice=lang: self.set_language(lang_choice)
+            )
             language_menu.addAction(lang_action)
 
         # Simple central area with welcome message
@@ -106,19 +109,25 @@ class MainWindow(QMainWindow):
                 self.profile_editor.show()
             except Exception as e:
                 try:
-                    append_exception('ProfileEditor creation failed: ' + str(e), e)
+                    append_exception("ProfileEditor creation failed: " + str(e), e)
                 except Exception:
                     pass
-                QMessageBox.warning(self, "Feil", "Kunne ikke åpne profilredigerer (feil ved opprettelse).")
+                QMessageBox.warning(
+                    self,
+                    "Feil",
+                    "Kunne ikke åpne profilredigerer (feil ved opprettelse).",
+                )
         except Exception:
-            QMessageBox.warning(self, "Feil", "Kunne ikke åpne profilredigerer (mangler modul).")
+            QMessageBox.warning(
+                self, "Feil", "Kunne ikke åpne profilredigerer (mangler modul)."
+            )
 
     def set_language(self, lang):
         QMessageBox.information(self, "Språkvalg", f"Språk satt til: {lang}")
 
     def open_settings_dialog(self):
         try:
-            append_message('User invoked Open Settings')
+            append_message("User invoked Open Settings")
         except Exception:
             pass
         try:
@@ -128,10 +137,12 @@ class MainWindow(QMainWindow):
                 self._settings_dialog = SettingsDialog(self)
             except Exception as e:
                 try:
-                    append_exception('SettingsDialog creation failed: ' + str(e), e)
+                    append_exception("SettingsDialog creation failed: " + str(e), e)
                 except Exception:
                     pass
-                QMessageBox.warning(self, "Feil", f"Kunne ikke opprette innstillingsdialog: {e}")
+                QMessageBox.warning(
+                    self, "Feil", f"Kunne ikke opprette innstillingsdialog: {e}"
+                )
                 return
 
             try:
@@ -145,7 +156,9 @@ class MainWindow(QMainWindow):
                 try:
                     import traceback as _tb
 
-                    append_exception('SettingsDialog.exec/show failed: ' + _tb.format_exc(), e)
+                    append_exception(
+                        "SettingsDialog.exec/show failed: " + _tb.format_exc(), e
+                    )
                 except Exception:
                     pass
                 try:
@@ -157,11 +170,19 @@ class MainWindow(QMainWindow):
                 import datetime
                 import traceback as _tb
 
-                append_exception(f"\n--- {datetime.datetime.utcnow().isoformat()}Z ---\n" + _tb.format_exc(), e)
+                append_exception(
+                    f"\n--- {datetime.datetime.utcnow().isoformat()}Z ---\n"
+                    + _tb.format_exc(),
+                    e,
+                )
             except Exception:
                 pass
             try:
-                QMessageBox.warning(self, "Feil", f"Kunne ikke åpne innstillinger: {e}\nSe per-user logg for detaljer.")
+                QMessageBox.warning(
+                    self,
+                    "Feil",
+                    f"Kunne ikke åpne innstillinger: {e}\nSe per-user logg for detaljer.",
+                )
             except Exception:
                 pass
 
@@ -169,7 +190,9 @@ class MainWindow(QMainWindow):
 def main():
     try:
         try:
-            QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+            QCoreApplication.setAttribute(
+                Qt.ApplicationAttribute.AA_ShareOpenGLContexts
+            )
         except Exception:
             pass
         app = QApplication(sys.argv)
@@ -199,7 +222,11 @@ def main():
         with open("error.log", "w", encoding="utf-8") as f:
             f.write(tb)
         app = QApplication([])
-        QMessageBox.critical(None, "Feil ved oppstart", f"Det oppstod en feil:\n{e}\nSe error.log for detaljer.")
+        QMessageBox.critical(
+            None,
+            "Feil ved oppstart",
+            f"Det oppstod en feil:\n{e}\nSe error.log for detaljer.",
+        )
         sys.exit(1)
 
 

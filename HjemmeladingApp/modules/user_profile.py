@@ -2,7 +2,9 @@
 import os
 from HjemmeladingApp.utils.safe_logger import append_exception
 
-PROFILE_PATH = os.path.join(os.path.expanduser("~"), "HjemmeladingApp_user_profile.json")
+PROFILE_PATH = os.path.join(
+    os.path.expanduser("~"), "HjemmeladingApp_user_profile.json"
+)
 
 
 class UserProfile:
@@ -12,7 +14,7 @@ class UserProfile:
             "theme": "Standard",
             "background": "",
             "button_style": "Standard",
-            "other_settings": {}
+            "other_settings": {},
         }
         self.load()
 
@@ -61,4 +63,3 @@ class UserProfile:
             except Exception:
                 pass
             return False
-

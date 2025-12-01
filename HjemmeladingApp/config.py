@@ -9,7 +9,11 @@ APP_NAME = "Hjemmelading"
 
 def get_config_dir() -> Path:
     """Return platform-appropriate config directory for the app."""
-    local = os.getenv("LOCALAPPDATA") or os.getenv("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    local = (
+        os.getenv("LOCALAPPDATA")
+        or os.getenv("XDG_CONFIG_HOME")
+        or str(Path.home() / ".config")
+    )
     return Path(local) / APP_NAME
 
 

@@ -6,11 +6,14 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from ..settings import settings
 from ..utils import backgrounds, safe_logger
+
 # Prefer the project's logging config when present, otherwise None
 _logger = None
 
 
-DEFAULT_LOGO_PATH = Path(r"C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\Logo")
+DEFAULT_LOGO_PATH = Path(
+    r"C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\Logo"
+)
 
 
 class SettingsDialog(QtWidgets.QDialog):
@@ -23,7 +26,9 @@ class SettingsDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
 
         # Top: logo
-        self.logo_label = QtWidgets.QLabel(alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.logo_label = QtWidgets.QLabel(
+            alignment=QtCore.Qt.AlignmentFlag.AlignCenter
+        )
         self.logo_label.setFixedHeight(100)
         layout.addWidget(self.logo_label)
         try:
@@ -95,7 +100,9 @@ class SettingsDialog(QtWidgets.QDialog):
         self.bg_mode.addItems(["fill", "fit", "center", "stretch"])
         # Set from settings if present
         try:
-            self.bg_mode.setCurrentText(settings.get().get("background", {}).get("mode", "fill"))
+            self.bg_mode.setCurrentText(
+                settings.get().get("background", {}).get("mode", "fill")
+            )
         except Exception:
             self.bg_mode.setCurrentText("fill")
         app_layout.addRow("Bakgrunnsmodus:", self.bg_mode)
@@ -107,13 +114,18 @@ class SettingsDialog(QtWidgets.QDialog):
         self.unit_global = QtWidgets.QComboBox()
         self.unit_global.addItems(["metric", "imperial"])
         try:
-            self.unit_global.setCurrentText(settings.get().get("units", {}).get("global", "metric"))
+            self.unit_global.setCurrentText(
+                settings.get().get("units", {}).get("global", "metric")
+            )
         except Exception:
             self.unit_global.setCurrentText("metric")
         u_layout.addRow("Globalt system:", self.unit_global)
 
         # Buttons
-        btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Save | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        btns = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Save
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        )
         layout.addWidget(btns)
 
         # Preview area
@@ -140,7 +152,9 @@ class SettingsDialog(QtWidgets.QDialog):
             self._apply_preview()
         except Exception:
             if _logger:
-                _logger.exception("Failed initial preview application in SettingsDialog")
+                _logger.exception(
+                    "Failed initial preview application in SettingsDialog"
+                )
             # Continue; preview isn't critical
             pass
         except Exception as e:
@@ -167,7 +181,9 @@ class SettingsDialog(QtWidgets.QDialog):
                 self.setWindowTitle("Innstillinger — Feil")
                 self.resize(400, 120)
                 err_layout = QtWidgets.QVBoxLayout(self)
-                lbl = QtWidgets.QLabel("En feil oppstod ved åpning av innstillinger. Se debug_err.log for detaljer.")
+                lbl = QtWidgets.QLabel(
+                    "En feil oppstod ved åpning av innstillinger. Se debug_err.log for detaljer."
+                )
                 err_layout.addWidget(lbl)
                 btn = QtWidgets.QPushButton("Lukk")
                 btn.clicked.connect(self.reject)
@@ -213,7 +229,11 @@ class SettingsDialog(QtWidgets.QDialog):
                             pix = QtGui.QPixmap(str(found[0]))
                             break
             if pix and not pix.isNull():
-                self.logo_label.setPixmap(pix.scaledToHeight(96, QtCore.Qt.TransformationMode.SmoothTransformation))
+                self.logo_label.setPixmap(
+                    pix.scaledToHeight(
+                        96, QtCore.Qt.TransformationMode.SmoothTransformation
+                    )
+                )
             else:
                 self.logo_label.setText("HJEMMELADING")
         except Exception:
@@ -229,7 +249,12 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def _choose_background(self) -> None:
         try:
-            fn, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Velg bakgrunnsbilde", str(Path.home()), "Images (*.png *.jpg *.jpeg *.bmp)")
+            fn, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self,
+                "Velg bakgrunnsbilde",
+                str(Path.home()),
+                "Images (*.png *.jpg *.jpeg *.bmp)",
+            )
             if fn:
                 self.bg_path_edit.setText(fn)
         except Exception:
@@ -262,7 +287,9 @@ class SettingsDialog(QtWidgets.QDialog):
             text_color = QtGui.QColor(20, 20, 20)
         elif theme == "dark":
             # Make a properly dark window background and light text
-            window_color = QtGui.QColor(28, 28, 30) if r + g + b < 200 else base_color.darker(180)
+            window_color = (
+                QtGui.QColor(28, 28, 30) if r + g + b < 200 else base_color.darker(180)
+            )
             text_color = QtGui.QColor(235, 235, 235)
         else:  # high-contrast
             window_color = QtGui.QColor(0, 0, 0)
@@ -319,10 +346,14 @@ QTabWidget::pane {{ background: {win_hex}; }}
             try:
                 saved = backgrounds.save_background(bg_path)
             except ValueError as e:
-                QtWidgets.QMessageBox.warning(self, "Ugyldig bakgrunn", f"Kan ikke bruke valgt bilde: {e}")
+                QtWidgets.QMessageBox.warning(
+                    self, "Ugyldig bakgrunn", f"Kan ikke bruke valgt bilde: {e}"
+                )
                 return
             except OSError as e:
-                QtWidgets.QMessageBox.critical(self, "Feil ved lagring", f"Kunne ikke lagre bakgrunn: {e}")
+                QtWidgets.QMessageBox.critical(
+                    self, "Feil ved lagring", f"Kunne ikke lagre bakgrunn: {e}"
+                )
                 if _logger:
                     _logger.exception("Failed to save background")
                 return
@@ -337,7 +368,9 @@ QTabWidget::pane {{ background: {win_hex}; }}
             except Exception:
                 try:
                     if _logger:
-                        _logger.exception("Failed to import config in SettingsDialog._on_save")
+                        _logger.exception(
+                            "Failed to import config in SettingsDialog._on_save"
+                        )
                 except Exception:
                     pass
             try:
@@ -345,18 +378,24 @@ QTabWidget::pane {{ background: {win_hex}; }}
             except Exception:
                 try:
                     if _logger:
-                        _logger.exception("Failed to save settings in SettingsDialog._on_save")
+                        _logger.exception(
+                            "Failed to save settings in SettingsDialog._on_save"
+                        )
                 except Exception:
                     pass
             self.accept()
         except Exception as e:
             # Last-resort: log and notify user but don't crash app
             try:
-                self._safe_log_exception("Unhandled error during SettingsDialog save", e)
+                self._safe_log_exception(
+                    "Unhandled error during SettingsDialog save", e
+                )
             except Exception:
                 pass
             try:
-                QtWidgets.QMessageBox.critical(self, "Feil", f"Kunne ikke lagre innstillinger: {e}")
+                QtWidgets.QMessageBox.critical(
+                    self, "Feil", f"Kunne ikke lagre innstillinger: {e}"
+                )
             except Exception:
                 pass
 
@@ -370,13 +409,33 @@ QTabWidget::pane {{ background: {win_hex}; }}
             w = self.preview_label.width() or 200
             h = self.preview_label.height() or 120
             if mode == "fill":
-                scaled = pix.scaled(w, h, QtCore.Qt.AspectRatioMode.KeepAspectRatioByExpanding, QtCore.Qt.TransformationMode.SmoothTransformation)
+                scaled = pix.scaled(
+                    w,
+                    h,
+                    QtCore.Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                    QtCore.Qt.TransformationMode.SmoothTransformation,
+                )
             elif mode == "fit":
-                scaled = pix.scaled(w, h, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+                scaled = pix.scaled(
+                    w,
+                    h,
+                    QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                    QtCore.Qt.TransformationMode.SmoothTransformation,
+                )
             elif mode == "stretch":
-                scaled = pix.scaled(w, h, QtCore.Qt.AspectRatioMode.IgnoreAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+                scaled = pix.scaled(
+                    w,
+                    h,
+                    QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
+                    QtCore.Qt.TransformationMode.SmoothTransformation,
+                )
             else:  # center
-                scaled = pix.scaled(w, h, QtCore.Qt.AspectRatioMode.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+                scaled = pix.scaled(
+                    w,
+                    h,
+                    QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                    QtCore.Qt.TransformationMode.SmoothTransformation,
+                )
             self.preview_label.setPixmap(scaled)
         except Exception:
             # on preview failure, log and continue

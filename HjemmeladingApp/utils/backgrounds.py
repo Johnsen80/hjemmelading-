@@ -9,6 +9,7 @@ import logging
 # Optional GUI/image libraries for runtime previews
 try:
     from PyQt6.QtGui import QPixmap
+
     _HAS_QT = True
 except Exception:
     QPixmap = None
@@ -16,6 +17,7 @@ except Exception:
 
 try:
     from PIL import Image
+
     _HAS_PIL = True
 except Exception:
     Image = None
@@ -68,7 +70,7 @@ def validate_image(path: str) -> tuple[bool, str]:
         kind = None
     # fall back to simple extension check if imghdr fails
     if not kind:
-        ext = p.suffix.lower().lstrip('.')
+        ext = p.suffix.lower().lstrip(".")
         if ext in ALLOWED_TYPES:
             kind = ext
         else:

@@ -1,6 +1,16 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QComboBox, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QComboBox,
+    QFileDialog,
+    QMessageBox,
+)
 import logging
 from HjemmeladingApp.utils.safe_logger import append_exception
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -15,13 +25,17 @@ except Exception:
             append_exception(f"UserProfile import failed: {_up_err}", _up_err)
         except Exception:
             pass
+
         class UserProfile:
             def __init__(self):
                 self.data = {}
+
             def save(self):
                 return False
+
             def export(self, path):
                 return False
+
             def import_profile(self, path):
                 return False
 
@@ -35,7 +49,9 @@ class ProfileEditor(QWidget):
             self.setMinimumSize(400, 350)
             self.profile = UserProfile()
             # Ensure profile has a data dict
-            if not hasattr(self.profile, 'data') or not isinstance(self.profile.data, dict):
+            if not hasattr(self.profile, "data") or not isinstance(
+                self.profile.data, dict
+            ):
                 self.profile.data = {}
 
             layout = QVBoxLayout()
@@ -51,8 +67,12 @@ class ProfileEditor(QWidget):
             layout.addWidget(self.theme_combo)
 
             self.button_combo = QComboBox()
-            self.button_combo.addItems(["Standard", "Rund", "Fargerik", "Flat", "Glass"])
-            self.button_combo.setCurrentText(self.profile.data.get("button_style", "Standard"))
+            self.button_combo.addItems(
+                ["Standard", "Rund", "Fargerik", "Flat", "Glass"]
+            )
+            self.button_combo.setCurrentText(
+                self.profile.data.get("button_style", "Standard")
+            )
             layout.addWidget(QLabel("Knappestil:"))
             layout.addWidget(self.button_combo)
 
@@ -84,19 +104,23 @@ class ProfileEditor(QWidget):
                 pass
             logger.exception("ProfileEditor init failed")
             fallback_layout = QVBoxLayout()
-            fallback_layout.addWidget(QLabel("Profilredigering er midlertidig utilgjengelig."))
+            fallback_layout.addWidget(
+                QLabel("Profilredigering er midlertidig utilgjengelig.")
+            )
             close_btn = QPushButton("Lukk")
             close_btn.clicked.connect(self.close)
             fallback_layout.addWidget(close_btn)
             self.setLayout(fallback_layout)
             # Ensure attributes exist to avoid attribute errors elsewhere
             self.profile = UserProfile()
-            if not hasattr(self.profile, 'data'):
+            if not hasattr(self.profile, "data"):
                 self.profile.data = {}
 
     def choose_bg(self):
         try:
-            file, _ = QFileDialog.getOpenFileName(self, "Velg bilde", "", "Bilder (*.png *.jpg *.jpeg *.bmp)")
+            file, _ = QFileDialog.getOpenFileName(
+                self, "Velg bilde", "", "Bilder (*.png *.jpg *.jpeg *.bmp)"
+            )
             if file:
                 self.bg_edit.setText(file)
         except Exception as _bg_err:
@@ -114,7 +138,7 @@ class ProfileEditor(QWidget):
             self.profile.data["background"] = self.bg_edit.text()
             ok = False
             try:
-                ok = bool(getattr(self.profile, 'save', lambda: False)())
+                ok = bool(getattr(self.profile, "save", lambda: False)())
             except Exception as _save_err:
                 try:
                     append_exception(f"Profile save failed: {_save_err}", _save_err)
@@ -141,11 +165,13 @@ class ProfileEditor(QWidget):
 
     def export(self):
         try:
-            file, _ = QFileDialog.getSaveFileName(self, "Eksporter profil", "", "JSON (*.json)")
+            file, _ = QFileDialog.getSaveFileName(
+                self, "Eksporter profil", "", "JSON (*.json)"
+            )
             if file:
                 ok = False
                 try:
-                    ok = bool(getattr(self.profile, 'export', lambda p: False)(file))
+                    ok = bool(getattr(self.profile, "export", lambda p: False)(file))
                 except Exception as _exp_err:
                     try:
                         append_exception(f"Profile export failed: {_exp_err}", _exp_err)
@@ -154,7 +180,9 @@ class ProfileEditor(QWidget):
                     logger.exception("Profile export failed")
                 if ok:
                     try:
-                        QMessageBox.information(self, "Eksportert", "Profil eksportert!")
+                        QMessageBox.information(
+                            self, "Eksportert", "Profil eksportert!"
+                        )
                     except Exception:
                         logger.info("Profile exported (no UI notification)")
                 else:
@@ -171,11 +199,15 @@ class ProfileEditor(QWidget):
 
     def import_profile(self):
         try:
-            file, _ = QFileDialog.getOpenFileName(self, "Importer profil", "", "JSON (*.json)")
+            file, _ = QFileDialog.getOpenFileName(
+                self, "Importer profil", "", "JSON (*.json)"
+            )
             if file:
                 ok = False
                 try:
-                    ok = bool(getattr(self.profile, 'import_profile', lambda p: False)(file))
+                    ok = bool(
+                        getattr(self.profile, "import_profile", lambda p: False)(file)
+                    )
                 except Exception as _imp_err:
                     try:
                         append_exception(f"Profile import failed: {_imp_err}", _imp_err)
@@ -189,9 +221,15 @@ class ProfileEditor(QWidget):
                         logger.info("Profile imported (no UI notification)")
                     # Update UI fields safely
                     try:
-                        self.username_edit.setText(self.profile.data.get("username", ""))
-                        self.theme_combo.setCurrentText(self.profile.data.get("theme", "Standard"))
-                        self.button_combo.setCurrentText(self.profile.data.get("button_style", "Standard"))
+                        self.username_edit.setText(
+                            self.profile.data.get("username", "")
+                        )
+                        self.theme_combo.setCurrentText(
+                            self.profile.data.get("theme", "Standard")
+                        )
+                        self.button_combo.setCurrentText(
+                            self.profile.data.get("button_style", "Standard")
+                        )
                         self.bg_edit.setText(self.profile.data.get("background", ""))
                     except Exception:
                         logger.exception("Failed to update profile fields after import")
