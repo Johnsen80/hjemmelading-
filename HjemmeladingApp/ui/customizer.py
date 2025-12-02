@@ -47,7 +47,7 @@ class AppearanceCustomizer(QWidget):
                 append_exception(
                     f"AppearanceCustomizer init failed: {_init_err}", _init_err
                 )
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("AppearanceCustomizer init failed")
             # Fallback minimal UI
@@ -72,7 +72,7 @@ class AppearanceCustomizer(QWidget):
             except Exception as _gerr:
                 try:
                     append_exception(f"get_background_preview failed: {_gerr}", _gerr)
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
             if pixmap is None and _HAS_QPIXMAP:
                 try:
@@ -94,13 +94,13 @@ class AppearanceCustomizer(QWidget):
                     append_exception(
                         f"Applying background failed: {_pal_err}", _pal_err
                     )
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
                 logger.exception("Applying background failed")
         except Exception as _err:
             try:
                 append_exception(f"choose_bg exception: {_err}", _err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("choose_bg exception")
 
@@ -116,12 +116,12 @@ class AppearanceCustomizer(QWidget):
                 except (AttributeError, TypeError, RuntimeError) as _pal_err:
                     try:
                         append_exception(f"Applying color failed: {_pal_err}", _pal_err)
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
                     logger.exception("Applying color failed")
         except Exception as _err:
             try:
                 append_exception(f"choose_color exception: {_err}", _err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("choose_color exception")

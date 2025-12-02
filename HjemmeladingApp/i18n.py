@@ -25,10 +25,10 @@ def set_language(lang_code: str) -> None:
 
             qs = QSettings("ReloadingWorkshop", "ReloadingManager")
             qs.setValue("language", "Norsk" if lang_code == "no" else "English")
-        except Exception:
+        except Exception as _suppressed_exc:
             # If Qt isn't available in this environment, swallow the error
             pass
-    except Exception:
+    except Exception as _suppressed_exc:
         log.exception("Failed to set language preference")
 
 

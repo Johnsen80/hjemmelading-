@@ -36,7 +36,7 @@ class UserProfile:
             # Invalid JSON or I/O problems — record and log
             try:
                 append_exception(f"Failed to load profile from {PROFILE_PATH}", exc)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
     def save(self) -> None:
@@ -45,7 +45,7 @@ class UserProfile:
         except OSError as exc:
             try:
                 append_exception(f"Failed to save profile to {PROFILE_PATH}", exc)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
     def export(self, export_path: str) -> bool:
@@ -55,7 +55,7 @@ class UserProfile:
         except OSError as exc:
             try:
                 append_exception(f"Failed to export profile to {export_path}", exc)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             return False
 
@@ -70,12 +70,12 @@ class UserProfile:
                         append_exception(
                             f"Imported profile validation failed: {_val_err}", _val_err
                         )
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
                     # expose validation message for UI
                     try:
                         self.last_error = str(_val_err)
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
                     return False
                 self.data = cleaned
@@ -83,17 +83,17 @@ class UserProfile:
                 # clear any previous error
                 try:
                     self.last_error = None
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
                 return True
             return False
         except (ValueError, OSError) as exc:
             try:
                 append_exception(f"Failed to import profile from {import_path}", exc)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             try:
                 self.last_error = str(exc)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             return False

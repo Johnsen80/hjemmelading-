@@ -23,15 +23,15 @@ class _SimpleSignal:
     def connect(self, fn):
         try:
             self._callbacks.append(fn)
-        except Exception:
-            log.exception("Failed to connect signal callback")
+        except Exception as e:
+            log.exception("Failed to connect signal callback: %s", e)
 
     def emit(self, *args, **kwargs):
         for cb in list(self._callbacks):
             try:
                 cb(*args, **kwargs)
-            except Exception:
-                log.exception("Error in signal callback")
+            except Exception as e:
+                log.exception("Error in signal callback: %s", e)
 
 
 class UserModeManager:
@@ -53,8 +53,8 @@ class UserModeManager:
         self._mode = mode
         try:
             self.mode_changed.emit(mode)
-        except Exception:
-            log.exception("Failed to emit mode_changed")
+        except Exception as e:
+            log.exception("Failed to emit mode_changed: %s", e)
 
 
 __all__ = ["UserMode", "UserModeManager"]

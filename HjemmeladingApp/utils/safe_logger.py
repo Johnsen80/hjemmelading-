@@ -20,7 +20,7 @@ def _get_log_dir(app_name: str = "Hjemmelading") -> Path:
         p = Path(_gld(app_name))
         p.mkdir(parents=True, exist_ok=True)
         return p
-    except Exception:
+    except Exception as _suppressed_exc:
         # Fall back to LOCALAPPDATA or cwd
         try:
             local = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_STATE_HOME")
@@ -28,13 +28,13 @@ def _get_log_dir(app_name: str = "Hjemmelading") -> Path:
                 p = Path(local) / app_name / "logs"
                 p.mkdir(parents=True, exist_ok=True)
                 return p
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
     try:
         cwd = Path.cwd() / "logs"
         cwd.mkdir(parents=True, exist_ok=True)
         return cwd
-    except Exception:
+    except Exception as _suppressed_exc:
         return Path(".")
 
 
@@ -59,14 +59,14 @@ def append_exception(
                 )
             else:
                 fh.write(msg + "\n")
-    except Exception:
+    except Exception as _suppressed_exc:
         # Intentionally swallow all exceptions; logging must not raise
         try:
             # As a very last resort, write to stderr if available
             import sys
 
             sys.stderr.write(f"{msg}\n")
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
 
 
@@ -78,5 +78,5 @@ def append_message(msg: str, app_name: str = "Hjemmelading") -> None:
 
             fh.write(f"\n--- {datetime.utcnow().isoformat()}Z ---\n")
             fh.write(msg + "\n")
-    except Exception:
+    except Exception as _suppressed_exc:
         pass

@@ -26,7 +26,7 @@ for m in modules:
     try:
         importlib.import_module(m)
         results[m] = ("OK", "")
-    except Exception:
+    except Exception as _suppressed_exc:
         results[m] = ("ERROR", traceback.format_exc())
 
 print("Import check results:")

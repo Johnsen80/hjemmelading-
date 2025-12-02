@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from HjemmeladingApp.modules.user_profile import UserProfile
-except Exception:
+except Exception as _suppressed_exc:
     try:
         # backwards-compatible import if running from package root
         from HjemmeladingApp.modules.user_profile import UserProfile  # type: ignore
@@ -23,7 +23,7 @@ except Exception:
         # Provide a lightweight stub so the UI doesn't crash when module missing
         try:
             append_exception(f"UserProfile import failed: {_up_err}", _up_err)
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
 
         class UserProfile:
@@ -100,7 +100,7 @@ class ProfileEditor(QWidget):
             # If constructing full UI fails, provide a minimal fallback so app continues
             try:
                 append_exception(f"ProfileEditor init failed: {_init_err}", _init_err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("ProfileEditor init failed")
             fallback_layout = QVBoxLayout()
@@ -126,7 +126,7 @@ class ProfileEditor(QWidget):
         except Exception as _bg_err:
             try:
                 append_exception(f"choose_bg failed: {_bg_err}", _bg_err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("choose_bg failed")
 
@@ -142,24 +142,24 @@ class ProfileEditor(QWidget):
             except Exception as _save_err:
                 try:
                     append_exception(f"Profile save failed: {_save_err}", _save_err)
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
                 logger.exception("Profile save failed")
             if ok:
                 try:
                     QMessageBox.information(self, "Lagret", "Innstillinger lagret!")
-                except Exception:
+                except Exception as _suppressed_exc:
                     # non-blocking fallback when running headless
                     logger.info("Settings saved (no UI notification available)")
             else:
                 try:
                     QMessageBox.warning(self, "Feil", "Kunne ikke lagre innstillinger.")
-                except Exception:
+                except Exception as _suppressed_exc:
                     logger.warning("Could not show save warning messagebox")
         except Exception as _err:
             try:
                 append_exception(f"save handler exception: {_err}", _err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("save handler exception")
 
@@ -175,7 +175,7 @@ class ProfileEditor(QWidget):
                 except Exception as _exp_err:
                     try:
                         append_exception(f"Profile export failed: {_exp_err}", _exp_err)
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
                     logger.exception("Profile export failed")
                 if ok:
@@ -183,17 +183,17 @@ class ProfileEditor(QWidget):
                         QMessageBox.information(
                             self, "Eksportert", "Profil eksportert!"
                         )
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         logger.info("Profile exported (no UI notification)")
                 else:
                     try:
                         QMessageBox.warning(self, "Feil", "Eksport feilet!")
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         logger.warning("Could not show export warning messagebox")
         except Exception as _err:
             try:
                 append_exception(f"export handler exception: {_err}", _err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("export handler exception")
 
@@ -211,13 +211,13 @@ class ProfileEditor(QWidget):
                 except Exception as _imp_err:
                     try:
                         append_exception(f"Profile import failed: {_imp_err}", _imp_err)
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
                     logger.exception("Profile import failed")
                 if ok:
                     try:
                         QMessageBox.information(self, "Importert", "Profil importert!")
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         logger.info("Profile imported (no UI notification)")
                     # Update UI fields safely
                     try:
@@ -231,7 +231,7 @@ class ProfileEditor(QWidget):
                             self.profile.data.get("button_style", "Standard")
                         )
                         self.bg_edit.setText(self.profile.data.get("background", ""))
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         logger.exception("Failed to update profile fields after import")
                 else:
                     # If the profile object recorded a detailed error, show it to the user
@@ -247,11 +247,11 @@ class ProfileEditor(QWidget):
                             mb.exec()
                         else:
                             QMessageBox.warning(self, "Feil", "Import feilet!")
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         logger.exception("Could not show import warning messagebox")
         except Exception as _err:
             try:
                 append_exception(f"import handler exception: {_err}", _err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             logger.exception("import handler exception")

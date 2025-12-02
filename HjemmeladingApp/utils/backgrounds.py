@@ -142,7 +142,7 @@ def load_background_pixmap(path: str):
         except (RuntimeError, TypeError) as _qt_err:
             try:
                 logger.debug("QPixmap load failed: %s", _qt_err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
     # If Qt pixmap not available or failed, attempt a lightweight PIL verify
@@ -154,7 +154,7 @@ def load_background_pixmap(path: str):
         except (OSError, ValueError) as _pil_err:
             try:
                 logger.debug("PIL verify failed for %s: %s", path, _pil_err)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             return None
 
@@ -171,6 +171,6 @@ def get_background_preview(path: str):
     except Exception as _err:
         try:
             logger.exception("get_background_preview failed: %s", _err)
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
         return None

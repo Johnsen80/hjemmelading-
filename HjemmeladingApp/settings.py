@@ -32,7 +32,7 @@ class SettingsManager:
         for fn in list(self._listeners):
             try:
                 fn(self._cfg)
-            except Exception:
+            except Exception as _suppressed_exc:
                 # listeners should handle their own errors
                 pass
 

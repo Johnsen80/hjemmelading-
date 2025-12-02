@@ -41,5 +41,5 @@ def safe_parse_float(value: Optional[object], default: float = 0.0) -> float:
     """Try to parse a value to float; return `default` on failure."""
     try:
         return float(value)
-    except Exception:
+    except Exception as _e:
         return float(default)

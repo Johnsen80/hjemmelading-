@@ -20,14 +20,13 @@ try:
     proj_root_str = str(proj_root)
     if proj_root_str not in sys.path:
         sys.path.insert(0, proj_root_str)
-except Exception:
+except Exception as _suppressed_exc:
     pass
 
 # Import safe logger (provide lightweight fallbacks)
 try:
     from HjemmeladingApp.utils.safe_logger import append_exception, append_message
-except Exception:
-
+except Exception as _suppressed_exc:
     def append_exception(msg, exc=None):
         return None
 
@@ -40,20 +39,20 @@ def _global_excepthook(exc_type, exc_value, exc_tb):
         tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         try:
             append_exception("Uncaught exception (HjemmeladingApp): " + tb, exc_value)
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
         try:
             with open("hjemmeladingapp_error.log", "w", encoding="utf-8") as f:
                 f.write(tb)
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
-    except Exception:
+    except Exception as _suppressed_exc:
         pass
 
 
 try:
     sys.excepthook = _global_excepthook
-except Exception:
+except Exception as _suppressed_exc:
     pass
 
 
@@ -114,14 +113,14 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 try:
                     append_exception("ProfileEditor creation failed: " + str(e), e)
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
                 QMessageBox.warning(
                     self,
                     "Feil",
                     "Kunne ikke åpne profilredigerer (feil ved opprettelse).",
                 )
-        except Exception:
+        except Exception as _suppressed_exc:
             QMessageBox.warning(
                 self, "Feil", "Kunne ikke åpne profilredigerer (mangler modul)."
             )
@@ -132,7 +131,7 @@ class MainWindow(QMainWindow):
     def open_settings_dialog(self):
         try:
             append_message("User invoked Open Settings")
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
         try:
             from HjemmeladingApp.ui.settings_dialog import SettingsDialog
@@ -142,7 +141,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 try:
                     append_exception("SettingsDialog creation failed: " + str(e), e)
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
                 QMessageBox.warning(
                     self, "Feil", f"Kunne ikke opprette innstillingsdialog: {e}"
@@ -163,11 +162,11 @@ class MainWindow(QMainWindow):
                     append_exception(
                         "SettingsDialog.exec/show failed: " + _tb.format_exc(), e
                     )
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
                 try:
                     self._settings_dialog.show()
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
         except Exception as e:
             try:
@@ -179,7 +178,7 @@ class MainWindow(QMainWindow):
                     + _tb.format_exc(),
                     e,
                 )
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             try:
                 QMessageBox.warning(
@@ -187,7 +186,7 @@ class MainWindow(QMainWindow):
                     "Feil",
                     f"Kunne ikke åpne innstillinger: {e}\nSe per-user logg for detaljer.",
                 )
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
 
@@ -197,24 +196,24 @@ def main():
             QCoreApplication.setAttribute(
                 Qt.ApplicationAttribute.AA_ShareOpenGLContexts
             )
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
         app = QApplication(sys.argv)
         try:
             try:
                 from HjemmeladingApp.utils.fonts import register_bundled_fonts
-            except Exception:
+            except Exception as _suppressed_exc:
                 register_bundled_fonts = None
             if register_bundled_fonts:
                 try:
                     n = register_bundled_fonts()
                     try:
                         append_message(f"Registered {n} bundled fonts at startup")
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
         win = MainWindow()
         win.show()

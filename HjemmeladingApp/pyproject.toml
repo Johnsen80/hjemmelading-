@@ -1,0 +1,5 @@
+[tool.ruff]
+exclude = ["tools", "artifacts", "__pycache__", "venv", ".venv"]
+
+# If you need additional ruff settings, add them under [tool.ruff]
+# Example: select = ["E", "F", "I"]

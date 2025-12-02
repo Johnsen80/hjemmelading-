@@ -27,14 +27,14 @@ def main() -> int:
     # Non-blocking dialogs
     try:
         QFileDialog.getOpenFileName = lambda *a, **k: (test_path, "")
-    except Exception:
+    except Exception as _suppressed_exc:
         pass
 
     try:
         QMessageBox.information = lambda *a, **k: None
         QMessageBox.warning = lambda *a, **k: None
         QMessageBox.exec = lambda *a, **k: None
-    except Exception:
+    except Exception as _suppressed_exc:
         pass
 
     # Ensure imports work from tools/ runner
@@ -78,7 +78,7 @@ def main() -> int:
     finally:
         try:
             os.unlink(test_path)
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
 
 
@@ -120,7 +120,7 @@ def main():
     # Monkeypatch file dialogs and message boxes so the UI flow is non-blocking
     try:
         QFileDialog.getOpenFileName = lambda *a, **k: (test_path, "")
-    except Exception:
+    except Exception as _suppressed_exc:
         import os
         import sys
         import tempfile
@@ -150,14 +150,14 @@ def main():
             # Monkeypatch file dialogs and message boxes so the UI flow is non-blocking
             try:
                 QFileDialog.getOpenFileName = lambda *a, **k: (test_path, "")
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
             try:
                 QMessageBox.information = lambda *a, **k: None
                 QMessageBox.warning = lambda *a, **k: None
                 QMessageBox.exec = lambda *a, **k: None
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
             # Ensure package/project import resolution works when running from tools/
@@ -203,7 +203,7 @@ def main():
             finally:
                 try:
                     os.unlink(test_path)
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
 
 

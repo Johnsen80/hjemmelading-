@@ -14,7 +14,8 @@ def register_bundled_fonts() -> int:
     """
     try:
         fonts_dir = Path(__file__).resolve().parent.parent / "resources" / "fonts"
-    except Exception:
+    except Exception as e:
+        log.debug("Could not resolve fonts directory: %s", e)
         return 0
 
     if not fonts_dir.exists():
@@ -24,12 +25,14 @@ def register_bundled_fonts() -> int:
     # Lazy imports so this module can be imported in non-Qt environments
     try:
         from PyQt6.QtGui import QFontDatabase
-    except Exception:
+    except Exception as e:
+        log.debug("PyQt6.QtGui.QFontDatabase import failed: %s", e)
         QFontDatabase = None  # type: ignore
 
     try:
         import matplotlib.font_manager as mf
-    except Exception:
+    except Exception as e:
+        log.debug("matplotlib.font_manager import failed: %s", e)
         mf = None
 
     for f in sorted(fonts_dir.glob("*.ttf")):
@@ -43,26 +46,26 @@ def register_bundled_fonts() -> int:
                         log.debug("QFontDatabase failed to add %s", f)
                     else:
                         log.debug("QFontDatabase added %s -> id %s", f, res)
-                except Exception:
-                    log.exception("QFontDatabase.addApplicationFont failed for %s", f)
+                except Exception as e:
+                    log.exception("QFontDatabase.addApplicationFont failed for %s: %s", f, e)
             # Matplotlib registration (if available)
             if mf is not None:
                 try:
                     mf.fontManager.addfont(str(f))
-                except Exception:
-                    log.exception("matplotlib.font_manager.addfont failed for %s", f)
+                except Exception as e:
+                    log.exception("matplotlib.font_manager.addfont failed for %s: %s", f, e)
             added += 1
-        except Exception:
-            log.exception("Failed to register font %s", f)
+        except Exception as e:
+            log.exception("Failed to register font %s: %s", f, e)
     # Rebuild matplotlib font cache if possible
     try:
         if mf is not None:
             try:
                 mf._rebuild()
-            except Exception:
+            except Exception as e:
                 # If private API not present, ignore
-                pass
-    except Exception:
-        pass
+                log.debug("matplotlib _rebuild skipped: %s", e)
+    except Exception as e:
+        log.debug("Error while attempting matplotlib rebuild: %s", e)
 
     return added

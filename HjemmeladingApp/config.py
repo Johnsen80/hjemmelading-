@@ -48,12 +48,12 @@ def load_config() -> Dict[str, Any]:
     try:
         with p.open("r", encoding="utf-8") as fh:
             return json.load(fh)
-    except Exception:
+    except Exception as _suppressed_exc:
         # If the config is corrupted, move it aside and recreate default
         bad = p.with_suffix(".broken.json")
         try:
             p.replace(bad)
-        except Exception:
+        except Exception as _suppressed_exc:
             pass
         cfg = get_default_config()
         save_config(cfg)

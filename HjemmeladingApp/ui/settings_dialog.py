@@ -32,7 +32,7 @@ class SettingsDialog(QtWidgets.QDialog):
         layout.addWidget(self.logo_label)
         try:
             self._load_logo()
-        except Exception:
+        except Exception as _suppressed_exc:
             # _load_logo already logs; continue safely
             pass
 
@@ -157,17 +157,17 @@ class SettingsDialog(QtWidgets.QDialog):
                     _logger.exception(
                         "Failed initial preview application in SettingsDialog: %s", e
                     )
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             try:
                 safe_logger.append_exception("SettingsDialog.__init__ failed", e)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             # Build a minimal error dialog UI so dialog remains usable
             try:
                 try:
                     super().__init__(parent)
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
                 self.setWindowTitle("Innstillinger — Feil")
                 self.resize(400, 120)
@@ -179,7 +179,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 btn = QtWidgets.QPushButton("Lukk")
                 btn.clicked.connect(self.reject)
                 err_layout.addWidget(btn)
-            except Exception:
+            except Exception as _suppressed_exc:
                 # If even fallback UI fails, swallow to avoid crashing the app
                 pass
 
@@ -189,19 +189,19 @@ class SettingsDialog(QtWidgets.QDialog):
                 if exc:
                     try:
                         _logger.exception(msg or "Exception in SettingsDialog")
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
                 else:
                     try:
                         _logger.error(msg)
-                    except Exception:
+                    except Exception as _suppressed_exc:
                         pass
             # Use the centralized safe_logger to append to per-user debug file
             try:
                 safe_logger.append_exception(msg or "SettingsDialog exception", exc)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
-        except Exception:
+        except Exception as _suppressed_exc:
             # Intentionally swallow all errors during logging
             pass
 
@@ -231,11 +231,11 @@ class SettingsDialog(QtWidgets.QDialog):
             try:
                 if _logger:
                     _logger.exception("Failed to load settings dialog logo")
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             try:
                 self.logo_label.setText("HJEMMELADING")
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
     def _choose_background(self) -> None:
@@ -252,7 +252,7 @@ class SettingsDialog(QtWidgets.QDialog):
             try:
                 if _logger:
                     _logger.exception("Failed during background selection dialog")
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
     def _on_rgb_change(self) -> None:
@@ -343,7 +343,7 @@ class SettingsDialog(QtWidgets.QDialog):
             try:
                 if _logger:
                     _logger.exception("Error updating background preview")
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
     def _on_save(self) -> None:
@@ -381,7 +381,7 @@ class SettingsDialog(QtWidgets.QDialog):
                         _logger.exception(
                             "Failed to import config in SettingsDialog._on_save"
                         )
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
             try:
                 settings.save()
@@ -391,7 +391,7 @@ class SettingsDialog(QtWidgets.QDialog):
                         _logger.exception(
                             "Failed to save settings in SettingsDialog._on_save"
                         )
-                except Exception:
+                except Exception as _suppressed_exc:
                     pass
             self.accept()
         except Exception as e:
@@ -400,13 +400,13 @@ class SettingsDialog(QtWidgets.QDialog):
                 self._safe_log_exception(
                     "Unhandled error during SettingsDialog save", e
                 )
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
             try:
                 QtWidgets.QMessageBox.critical(
                     self, "Feil", f"Kunne ikke lagre innstillinger: {e}"
                 )
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
     def _update_bg_preview(self, path: str, mode: str) -> None:
@@ -447,12 +447,12 @@ class SettingsDialog(QtWidgets.QDialog):
                     QtCore.Qt.TransformationMode.SmoothTransformation,
                 )
             self.preview_label.setPixmap(scaled)
-        except Exception:
+        except Exception as _suppressed_exc:
             # on preview failure, log and continue
             try:
                 if _logger:
                     _logger.exception("Preview image update failed for %s", path)
-            except Exception:
+            except Exception as _suppressed_exc:
                 pass
 
 
