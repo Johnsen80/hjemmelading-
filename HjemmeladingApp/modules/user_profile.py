@@ -38,35 +38,15 @@ class UserProfile:
                 append_exception(f"Failed to load profile from {PROFILE_PATH}", exc)
             except Exception as _suppressed_exc:
                 try:
-                    _mod_logger = globals().get('_logger') or globals().get('logger')
-                    if _mod_logger:
-                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get('append_exception')
-                    if _append:
-                        _append("user_profile.py suppressed exception", _suppressed_exc)
-                    else:
-                        _safe = globals().get('safe_logger')
-                        if _safe:
-                            try:
-                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
-                            except Exception:
-                                pass
+                    from HjemmeladingApp.utils import safe_logger as _safe_logger
+                    _safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                 except Exception:
                     try:
                         import sys
-                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                        sys.stderr.write("user_profile.py suppressed exception: " + str(_suppressed_exc) + "\n")
                     except Exception:
                         pass
-                pass
+            pass
 
     def save(self) -> None:
         try:
@@ -76,35 +56,15 @@ class UserProfile:
                 append_exception(f"Failed to save profile to {PROFILE_PATH}", exc)
             except Exception as _suppressed_exc:
                 try:
-                    _mod_logger = globals().get('_logger') or globals().get('logger')
-                    if _mod_logger:
-                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get('append_exception')
-                    if _append:
-                        _append("user_profile.py suppressed exception", _suppressed_exc)
-                    else:
-                        _safe = globals().get('safe_logger')
-                        if _safe:
-                            try:
-                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
-                            except Exception:
-                                pass
+                    from HjemmeladingApp.utils import safe_logger as _safe_logger
+                    _safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                 except Exception:
                     try:
                         import sys
-                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                        sys.stderr.write("user_profile.py suppressed exception: " + str(_suppressed_exc) + "\n")
                     except Exception:
                         pass
-                pass
+            pass
 
     def export(self, export_path: str) -> bool:
         try:
@@ -115,35 +75,15 @@ class UserProfile:
                 append_exception(f"Failed to export profile to {export_path}", exc)
             except Exception as _suppressed_exc:
                 try:
-                    _mod_logger = globals().get('_logger') or globals().get('logger')
-                    if _mod_logger:
-                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get('append_exception')
-                    if _append:
-                        _append("user_profile.py suppressed exception", _suppressed_exc)
-                    else:
-                        _safe = globals().get('safe_logger')
-                        if _safe:
-                            try:
-                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
-                            except Exception:
-                                pass
+                    from HjemmeladingApp.utils import safe_logger as _safe_logger
+                    _safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                 except Exception:
                     try:
                         import sys
-                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                        sys.stderr.write("user_profile.py suppressed exception: " + str(_suppressed_exc) + "\n")
                     except Exception:
                         pass
-                pass
+            return False
             return False
 
     def import_profile(self, import_path: str) -> bool:
@@ -154,74 +94,31 @@ class UserProfile:
                     cleaned = validate_profile(loaded)
                 except ValueError as _val_err:
                     try:
-                        append_exception(
-                            f"Imported profile validation failed: {_val_err}", _val_err
-                        )
+                        append_exception(f"Imported profile validation failed: {_val_err}", _val_err)
                     except Exception as _suppressed_exc:
                         try:
-                            _mod_logger = globals().get('_logger') or globals().get('logger')
-                            if _mod_logger:
-                                _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
-                        except Exception:
-                            pass
-                        try:
-                            _append = globals().get('append_exception')
-                            if _append:
-                                _append("user_profile.py suppressed exception", _suppressed_exc)
-                            else:
-                                _safe = globals().get('safe_logger')
-                                if _safe:
-                                    try:
-                                        _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
-                                    except Exception:
-                                        pass
-                                else:
-                                    try:
-                                        import sys
-                                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
-                                    except Exception:
-                                        pass
+                            from HjemmeladingApp.utils import safe_logger as _safe_logger
+                            _safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                         except Exception:
                             try:
                                 import sys
-                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                                sys.stderr.write("user_profile.py suppressed exception: " + str(_suppressed_exc) + "\n")
                             except Exception:
                                 pass
-                        pass
+                    # expose validation message for UI
                     # expose validation message for UI
                     try:
                         self.last_error = str(_val_err)
                     except Exception as _suppressed_exc:
                         try:
-                            _mod_logger = globals().get('_logger') or globals().get('logger')
-                            if _mod_logger:
-                                _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
-                        except Exception:
-                            pass
-                        try:
-                            _append = globals().get('append_exception')
-                            if _append:
-                                _append("user_profile.py suppressed exception", _suppressed_exc)
-                            else:
-                                _safe = globals().get('safe_logger')
-                                if _safe:
-                                    try:
-                                        _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
-                                    except Exception:
-                                        pass
-                                else:
-                                    try:
-                                        import sys
-                                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
-                                    except Exception:
-                                        pass
+                            from HjemmeladingApp.utils import safe_logger as _safe_logger
+                            _safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                         except Exception:
                             try:
                                 import sys
-                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                                sys.stderr.write("user_profile.py suppressed exception: " + str(_suppressed_exc) + "\n")
                             except Exception:
                                 pass
-                        pass
                     return False
                 self.data = cleaned
                 self.save()

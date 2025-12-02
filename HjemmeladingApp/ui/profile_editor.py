@@ -17,32 +17,12 @@ try:
     from HjemmeladingApp.modules.user_profile import UserProfile
 except Exception as _suppressed_exc:
     try:
-        _mod_logger = globals().get('_logger') or globals().get('logger')
-        if _mod_logger:
-            _mod_logger.exception("Unhandled exception in profile_editor.py: %s", _suppressed_exc)
-    except Exception:
-        pass
-    try:
-        _append = globals().get('append_exception')
-        if _append:
-            _append("profile_editor.py suppressed exception", _suppressed_exc)
-        else:
-            _safe = globals().get('safe_logger')
-            if _safe:
-                try:
-                    _safe.append_exception("profile_editor.py suppressed exception", _suppressed_exc)
-                except Exception:
-                    pass
-            else:
-                try:
-                    import sys
-                    sys.stderr.write(f"profile_editor.py suppressed exception: {_suppressed_exc}\n")
-                except Exception:
-                    pass
+        from HjemmeladingApp.utils import safe_logger as _safe_logger
+        _safe_logger.handle_suppressed(_suppressed_exc, "ui/profile_editor.py")
     except Exception:
         try:
             import sys
-            sys.stderr.write(f"profile_editor.py suppressed exception: {_suppressed_exc}\n")
+            sys.stderr.write("profile_editor.py suppressed exception: " + str(_suppressed_exc) + "\n")
         except Exception:
             pass
     try:
