@@ -37,6 +37,35 @@ class UserProfile:
             try:
                 append_exception(f"Failed to load profile from {PROFILE_PATH}", exc)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("user_profile.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
     def save(self) -> None:
@@ -46,6 +75,35 @@ class UserProfile:
             try:
                 append_exception(f"Failed to save profile to {PROFILE_PATH}", exc)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("user_profile.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
     def export(self, export_path: str) -> bool:
@@ -56,6 +114,35 @@ class UserProfile:
             try:
                 append_exception(f"Failed to export profile to {export_path}", exc)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("user_profile.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             return False
 
@@ -71,11 +158,69 @@ class UserProfile:
                             f"Imported profile validation failed: {_val_err}", _val_err
                         )
                     except Exception as _suppressed_exc:
+                        try:
+                            _mod_logger = globals().get('_logger') or globals().get('logger')
+                            if _mod_logger:
+                                _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                        except Exception:
+                            pass
+                        try:
+                            _append = globals().get('append_exception')
+                            if _append:
+                                _append("user_profile.py suppressed exception", _suppressed_exc)
+                            else:
+                                _safe = globals().get('safe_logger')
+                                if _safe:
+                                    try:
+                                        _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                                    except Exception:
+                                        pass
+                                else:
+                                    try:
+                                        import sys
+                                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            try:
+                                import sys
+                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
                         pass
                     # expose validation message for UI
                     try:
                         self.last_error = str(_val_err)
                     except Exception as _suppressed_exc:
+                        try:
+                            _mod_logger = globals().get('_logger') or globals().get('logger')
+                            if _mod_logger:
+                                _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                        except Exception:
+                            pass
+                        try:
+                            _append = globals().get('append_exception')
+                            if _append:
+                                _append("user_profile.py suppressed exception", _suppressed_exc)
+                            else:
+                                _safe = globals().get('safe_logger')
+                                if _safe:
+                                    try:
+                                        _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                                    except Exception:
+                                        pass
+                                else:
+                                    try:
+                                        import sys
+                                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            try:
+                                import sys
+                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
                         pass
                     return False
                 self.data = cleaned
@@ -84,6 +229,35 @@ class UserProfile:
                 try:
                     self.last_error = None
                 except Exception as _suppressed_exc:
+                    try:
+                        _mod_logger = globals().get('_logger') or globals().get('logger')
+                        if _mod_logger:
+                            _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                    except Exception:
+                        pass
+                    try:
+                        _append = globals().get('append_exception')
+                        if _append:
+                            _append("user_profile.py suppressed exception", _suppressed_exc)
+                        else:
+                            _safe = globals().get('safe_logger')
+                            if _safe:
+                                try:
+                                    _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    import sys
+                                    sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                                except Exception:
+                                    pass
+                    except Exception:
+                        try:
+                            import sys
+                            sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
                     pass
                 return True
             return False
@@ -91,9 +265,67 @@ class UserProfile:
             try:
                 append_exception(f"Failed to import profile from {import_path}", exc)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("user_profile.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             try:
                 self.last_error = str(exc)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in user_profile.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("user_profile.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("user_profile.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"user_profile.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             return False

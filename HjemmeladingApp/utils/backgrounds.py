@@ -143,6 +143,35 @@ def load_background_pixmap(path: str):
             try:
                 logger.debug("QPixmap load failed: %s", _qt_err)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in backgrounds.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("backgrounds.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("backgrounds.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"backgrounds.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"backgrounds.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
     # If Qt pixmap not available or failed, attempt a lightweight PIL verify
@@ -155,6 +184,35 @@ def load_background_pixmap(path: str):
             try:
                 logger.debug("PIL verify failed for %s: %s", path, _pil_err)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in backgrounds.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("backgrounds.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("backgrounds.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"backgrounds.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"backgrounds.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             return None
 
@@ -172,5 +230,34 @@ def get_background_preview(path: str):
         try:
             logger.exception("get_background_preview failed: %s", _err)
         except Exception as _suppressed_exc:
+            try:
+                _mod_logger = globals().get('_logger') or globals().get('logger')
+                if _mod_logger:
+                    _mod_logger.exception("Unhandled exception in backgrounds.py: %s", _suppressed_exc)
+            except Exception:
+                pass
+            try:
+                _append = globals().get('append_exception')
+                if _append:
+                    _append("backgrounds.py suppressed exception", _suppressed_exc)
+                else:
+                    _safe = globals().get('safe_logger')
+                    if _safe:
+                        try:
+                            _safe.append_exception("backgrounds.py suppressed exception", _suppressed_exc)
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            import sys
+                            sys.stderr.write(f"backgrounds.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
+            except Exception:
+                try:
+                    import sys
+                    sys.stderr.write(f"backgrounds.py suppressed exception: {_suppressed_exc}\n")
+                except Exception:
+                    pass
             pass
         return None

@@ -48,6 +48,35 @@ class AppearanceCustomizer(QWidget):
                     f"AppearanceCustomizer init failed: {_init_err}", _init_err
                 )
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in customizer.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("customizer.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("customizer.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             logger.exception("AppearanceCustomizer init failed")
             # Fallback minimal UI
@@ -73,6 +102,35 @@ class AppearanceCustomizer(QWidget):
                 try:
                     append_exception(f"get_background_preview failed: {_gerr}", _gerr)
                 except Exception as _suppressed_exc:
+                    try:
+                        _mod_logger = globals().get('_logger') or globals().get('logger')
+                        if _mod_logger:
+                            _mod_logger.exception("Unhandled exception in customizer.py: %s", _suppressed_exc)
+                    except Exception:
+                        pass
+                    try:
+                        _append = globals().get('append_exception')
+                        if _append:
+                            _append("customizer.py suppressed exception", _suppressed_exc)
+                        else:
+                            _safe = globals().get('safe_logger')
+                            if _safe:
+                                try:
+                                    _safe.append_exception("customizer.py suppressed exception", _suppressed_exc)
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    import sys
+                                    sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                                except Exception:
+                                    pass
+                    except Exception:
+                        try:
+                            import sys
+                            sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
                     pass
             if pixmap is None and _HAS_QPIXMAP:
                 try:
@@ -95,12 +153,70 @@ class AppearanceCustomizer(QWidget):
                         f"Applying background failed: {_pal_err}", _pal_err
                     )
                 except Exception as _suppressed_exc:
+                    try:
+                        _mod_logger = globals().get('_logger') or globals().get('logger')
+                        if _mod_logger:
+                            _mod_logger.exception("Unhandled exception in customizer.py: %s", _suppressed_exc)
+                    except Exception:
+                        pass
+                    try:
+                        _append = globals().get('append_exception')
+                        if _append:
+                            _append("customizer.py suppressed exception", _suppressed_exc)
+                        else:
+                            _safe = globals().get('safe_logger')
+                            if _safe:
+                                try:
+                                    _safe.append_exception("customizer.py suppressed exception", _suppressed_exc)
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    import sys
+                                    sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                                except Exception:
+                                    pass
+                    except Exception:
+                        try:
+                            import sys
+                            sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
                     pass
                 logger.exception("Applying background failed")
         except Exception as _err:
             try:
                 append_exception(f"choose_bg exception: {_err}", _err)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in customizer.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("customizer.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("customizer.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             logger.exception("choose_bg exception")
 
@@ -117,11 +233,69 @@ class AppearanceCustomizer(QWidget):
                     try:
                         append_exception(f"Applying color failed: {_pal_err}", _pal_err)
                     except Exception as _suppressed_exc:
+                        try:
+                            _mod_logger = globals().get('_logger') or globals().get('logger')
+                            if _mod_logger:
+                                _mod_logger.exception("Unhandled exception in customizer.py: %s", _suppressed_exc)
+                        except Exception:
+                            pass
+                        try:
+                            _append = globals().get('append_exception')
+                            if _append:
+                                _append("customizer.py suppressed exception", _suppressed_exc)
+                            else:
+                                _safe = globals().get('safe_logger')
+                                if _safe:
+                                    try:
+                                        _safe.append_exception("customizer.py suppressed exception", _suppressed_exc)
+                                    except Exception:
+                                        pass
+                                else:
+                                    try:
+                                        import sys
+                                        sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            try:
+                                import sys
+                                sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
                         pass
                     logger.exception("Applying color failed")
         except Exception as _err:
             try:
                 append_exception(f"choose_color exception: {_err}", _err)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in customizer.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("customizer.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("customizer.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"customizer.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             logger.exception("choose_color exception")

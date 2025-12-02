@@ -33,6 +33,35 @@ class SettingsDialog(QtWidgets.QDialog):
         try:
             self._load_logo()
         except Exception as _suppressed_exc:
+            try:
+                _mod_logger = globals().get('_logger') or globals().get('logger')
+                if _mod_logger:
+                    _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+            except Exception:
+                pass
+            try:
+                _append = globals().get('append_exception')
+                if _append:
+                    _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                else:
+                    _safe = globals().get('safe_logger')
+                    if _safe:
+                        try:
+                            _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            import sys
+                            sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
+            except Exception:
+                try:
+                    import sys
+                    sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                except Exception:
+                    pass
             # _load_logo already logs; continue safely
             pass
 
@@ -158,16 +187,103 @@ class SettingsDialog(QtWidgets.QDialog):
                         "Failed initial preview application in SettingsDialog: %s", e
                     )
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             try:
                 safe_logger.append_exception("SettingsDialog.__init__ failed", e)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             # Build a minimal error dialog UI so dialog remains usable
             try:
                 try:
                     super().__init__(parent)
                 except Exception as _suppressed_exc:
+                    try:
+                        _mod_logger = globals().get('_logger') or globals().get('logger')
+                        if _mod_logger:
+                            _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                    except Exception:
+                        pass
+                    try:
+                        _append = globals().get('append_exception')
+                        if _append:
+                            _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                        else:
+                            _safe = globals().get('safe_logger')
+                            if _safe:
+                                try:
+                                    _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    import sys
+                                    sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                                except Exception:
+                                    pass
+                    except Exception:
+                        try:
+                            import sys
+                            sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
                     pass
                 self.setWindowTitle("Innstillinger — Feil")
                 self.resize(400, 120)
@@ -180,6 +296,35 @@ class SettingsDialog(QtWidgets.QDialog):
                 btn.clicked.connect(self.reject)
                 err_layout.addWidget(btn)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 # If even fallback UI fails, swallow to avoid crashing the app
                 pass
 
@@ -190,18 +335,134 @@ class SettingsDialog(QtWidgets.QDialog):
                     try:
                         _logger.exception(msg or "Exception in SettingsDialog")
                     except Exception as _suppressed_exc:
+                        try:
+                            _mod_logger = globals().get('_logger') or globals().get('logger')
+                            if _mod_logger:
+                                _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                        except Exception:
+                            pass
+                        try:
+                            _append = globals().get('append_exception')
+                            if _append:
+                                _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                            else:
+                                _safe = globals().get('safe_logger')
+                                if _safe:
+                                    try:
+                                        _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                                    except Exception:
+                                        pass
+                                else:
+                                    try:
+                                        import sys
+                                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
                         pass
                 else:
                     try:
                         _logger.error(msg)
                     except Exception as _suppressed_exc:
+                        try:
+                            _mod_logger = globals().get('_logger') or globals().get('logger')
+                            if _mod_logger:
+                                _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                        except Exception:
+                            pass
+                        try:
+                            _append = globals().get('append_exception')
+                            if _append:
+                                _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                            else:
+                                _safe = globals().get('safe_logger')
+                                if _safe:
+                                    try:
+                                        _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                                    except Exception:
+                                        pass
+                                else:
+                                    try:
+                                        import sys
+                                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
                         pass
             # Use the centralized safe_logger to append to per-user debug file
             try:
                 safe_logger.append_exception(msg or "SettingsDialog exception", exc)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
         except Exception as _suppressed_exc:
+            try:
+                _mod_logger = globals().get('_logger') or globals().get('logger')
+                if _mod_logger:
+                    _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+            except Exception:
+                pass
+            try:
+                _append = globals().get('append_exception')
+                if _append:
+                    _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                else:
+                    _safe = globals().get('safe_logger')
+                    if _safe:
+                        try:
+                            _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            import sys
+                            sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
+            except Exception:
+                try:
+                    import sys
+                    sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                except Exception:
+                    pass
             # Intentionally swallow all errors during logging
             pass
 
@@ -232,10 +493,68 @@ class SettingsDialog(QtWidgets.QDialog):
                 if _logger:
                     _logger.exception("Failed to load settings dialog logo")
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             try:
                 self.logo_label.setText("HJEMMELADING")
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
     def _choose_background(self) -> None:
@@ -253,6 +572,35 @@ class SettingsDialog(QtWidgets.QDialog):
                 if _logger:
                     _logger.exception("Failed during background selection dialog")
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
     def _on_rgb_change(self) -> None:
@@ -344,6 +692,35 @@ class SettingsDialog(QtWidgets.QDialog):
                 if _logger:
                     _logger.exception("Error updating background preview")
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
     def _on_save(self) -> None:
@@ -382,6 +759,35 @@ class SettingsDialog(QtWidgets.QDialog):
                             "Failed to import config in SettingsDialog._on_save"
                         )
                 except Exception as _suppressed_exc:
+                    try:
+                        _mod_logger = globals().get('_logger') or globals().get('logger')
+                        if _mod_logger:
+                            _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                    except Exception:
+                        pass
+                    try:
+                        _append = globals().get('append_exception')
+                        if _append:
+                            _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                        else:
+                            _safe = globals().get('safe_logger')
+                            if _safe:
+                                try:
+                                    _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    import sys
+                                    sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                                except Exception:
+                                    pass
+                    except Exception:
+                        try:
+                            import sys
+                            sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
                     pass
             try:
                 settings.save()
@@ -392,6 +798,35 @@ class SettingsDialog(QtWidgets.QDialog):
                             "Failed to save settings in SettingsDialog._on_save"
                         )
                 except Exception as _suppressed_exc:
+                    try:
+                        _mod_logger = globals().get('_logger') or globals().get('logger')
+                        if _mod_logger:
+                            _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                    except Exception:
+                        pass
+                    try:
+                        _append = globals().get('append_exception')
+                        if _append:
+                            _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                        else:
+                            _safe = globals().get('safe_logger')
+                            if _safe:
+                                try:
+                                    _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    import sys
+                                    sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                                except Exception:
+                                    pass
+                    except Exception:
+                        try:
+                            import sys
+                            sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
                     pass
             self.accept()
         except Exception as e:
@@ -401,12 +836,70 @@ class SettingsDialog(QtWidgets.QDialog):
                     "Unhandled error during SettingsDialog save", e
                 )
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
             try:
                 QtWidgets.QMessageBox.critical(
                     self, "Feil", f"Kunne ikke lagre innstillinger: {e}"
                 )
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
     def _update_bg_preview(self, path: str, mode: str) -> None:
@@ -448,11 +941,69 @@ class SettingsDialog(QtWidgets.QDialog):
                 )
             self.preview_label.setPixmap(scaled)
         except Exception as _suppressed_exc:
+            try:
+                _mod_logger = globals().get('_logger') or globals().get('logger')
+                if _mod_logger:
+                    _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+            except Exception:
+                pass
+            try:
+                _append = globals().get('append_exception')
+                if _append:
+                    _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                else:
+                    _safe = globals().get('safe_logger')
+                    if _safe:
+                        try:
+                            _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            import sys
+                            sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                        except Exception:
+                            pass
+            except Exception:
+                try:
+                    import sys
+                    sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                except Exception:
+                    pass
             # on preview failure, log and continue
             try:
                 if _logger:
                     _logger.exception("Preview image update failed for %s", path)
             except Exception as _suppressed_exc:
+                try:
+                    _mod_logger = globals().get('_logger') or globals().get('logger')
+                    if _mod_logger:
+                        _mod_logger.exception("Unhandled exception in settings_dialog.py: %s", _suppressed_exc)
+                except Exception:
+                    pass
+                try:
+                    _append = globals().get('append_exception')
+                    if _append:
+                        _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    else:
+                        _safe = globals().get('safe_logger')
+                        if _safe:
+                            try:
+                                _safe.append_exception("settings_dialog.py suppressed exception", _suppressed_exc)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                import sys
+                                sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        import sys
+                        sys.stderr.write(f"settings_dialog.py suppressed exception: {_suppressed_exc}\n")
+                    except Exception:
+                        pass
                 pass
 
 
