@@ -1,0 +1,33 @@
+{
+  "weapons": [],
+  "bullets": [
+    {
+      "name": "MatchKing",
+      "caliber": "6.5mm",
+      "id": "mioh3jzhzd08xm",
+      "weight": "140gr",
+      "_merged": true
+    },
+    {
+      "name": "Sierra MatchKing",
+      "caliber": ".308",
+      "id": "mioh7gg8720snq"
+    }
+  ],
+  "powders": [
+    {
+      "name": "IMR 4064",
+      "vendor": "IMR",
+      "notes": "Test powder",
+      "id": "mioh3jz3uih99e",
+      "_merged": true
+    },
+    {
+      "name": "Varget",
+      "vendor": "Hodgdon",
+      "id": "mioh7gfsmi9i0y"
+    }
+  ],
+  "cases": [],
+  "manufacturers": []
+}

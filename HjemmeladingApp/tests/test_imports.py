@@ -12,11 +12,11 @@ def test_core_imports():
         sys.path.insert(0, parent)
 
     modules = [
-        'HjemmeladingApp.main',
-        'HjemmeladingApp.modules.user_profile',
-        'HjemmeladingApp.ui.settings_dialog',
-        'HjemmeladingApp.ui.customizer',
-        'HjemmeladingApp.utils.safe_logger',
+        "HjemmeladingApp.main",
+        "HjemmeladingApp.modules.user_profile",
+        "HjemmeladingApp.ui.settings_dialog",
+        "HjemmeladingApp.ui.customizer",
+        "HjemmeladingApp.utils.safe_logger",
     ]
 
     for m in modules:

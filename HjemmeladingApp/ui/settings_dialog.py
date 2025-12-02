@@ -26,9 +26,8 @@ class SettingsDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
 
         # Top: logo
-        self.logo_label = QtWidgets.QLabel(
-            alignment=QtCore.Qt.AlignmentFlag.AlignCenter
-        )
+        self.logo_label = QtWidgets.QLabel()
+        self.logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.logo_label.setFixedHeight(100)
         layout.addWidget(self.logo_label)
         try:
@@ -51,7 +50,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.theme_combo.addItems(["light", "dark", "high-contrast"])
         try:
             self.theme_combo.setCurrentText(settings.get().get("theme", "light"))
-        except Exception:
+        except (AttributeError, TypeError, KeyError):
             self.theme_combo.setCurrentText("light")
         app_layout.addRow("Tema:", self.theme_combo)
 
@@ -68,7 +67,7 @@ class SettingsDialog(QtWidgets.QDialog):
             s.setTickPosition(QtWidgets.QSlider.TickPosition.TicksRight)
             try:
                 s.setValue(settings.get().get("rgb", {}).get(comp, 128))
-            except Exception:
+            except (AttributeError, TypeError, KeyError, ValueError):
                 s.setValue(128)
             v.addWidget(lbl)
             v.addWidget(s)
@@ -81,7 +80,7 @@ class SettingsDialog(QtWidgets.QDialog):
         self.btn_style.addItems(["filled", "outlined", "flat"])
         try:
             self.btn_style.setCurrentText(settings.get().get("button_style", "filled"))
-        except Exception:
+        except (AttributeError, TypeError, KeyError):
             self.btn_style.setCurrentText("filled")
         app_layout.addRow("Knappestil:", self.btn_style)
 
@@ -103,7 +102,7 @@ class SettingsDialog(QtWidgets.QDialog):
             self.bg_mode.setCurrentText(
                 settings.get().get("background", {}).get("mode", "fill")
             )
-        except Exception:
+        except (AttributeError, TypeError, KeyError):
             self.bg_mode.setCurrentText("fill")
         app_layout.addRow("Bakgrunnsmodus:", self.bg_mode)
 
@@ -117,7 +116,7 @@ class SettingsDialog(QtWidgets.QDialog):
             self.unit_global.setCurrentText(
                 settings.get().get("units", {}).get("global", "metric")
             )
-        except Exception:
+        except (AttributeError, TypeError, KeyError):
             self.unit_global.setCurrentText("metric")
         u_layout.addRow("Globalt system:", self.unit_global)
 
@@ -150,30 +149,22 @@ class SettingsDialog(QtWidgets.QDialog):
         # Initialize preview style
         try:
             self._apply_preview()
-        except Exception:
-            if _logger:
-                _logger.exception(
-                    "Failed initial preview application in SettingsDialog"
-                )
-            # Continue; preview isn't critical
-            pass
         except Exception as e:
-            # Last-resort safety: ensure that any exception during construction
-            # doesn't bubble out and close the main window. Log to central
-            # safe_logger and show a minimal fallback UI so the user can
-            # continue using the app and inspect logs.
+            # Log the preview failure and record in safe logger. Provide a
+            # minimal fallback UI so the user can continue using the app.
             try:
                 if _logger:
-                    _logger.exception("SettingsDialog.__init__ failed: %s", e)
+                    _logger.exception(
+                        "Failed initial preview application in SettingsDialog: %s", e
+                    )
             except Exception:
                 pass
             try:
                 safe_logger.append_exception("SettingsDialog.__init__ failed", e)
             except Exception:
                 pass
-            # Build a minimal error dialog UI
+            # Build a minimal error dialog UI so dialog remains usable
             try:
-                # Ensure the dialog is at least usable
                 try:
                     super().__init__(parent)
                 except Exception:
@@ -236,7 +227,7 @@ class SettingsDialog(QtWidgets.QDialog):
                 )
             else:
                 self.logo_label.setText("HJEMMELADING")
-        except Exception:
+        except (OSError, RuntimeError, TypeError):
             try:
                 if _logger:
                     _logger.exception("Failed to load settings dialog logo")
@@ -257,7 +248,7 @@ class SettingsDialog(QtWidgets.QDialog):
             )
             if fn:
                 self.bg_path_edit.setText(fn)
-        except Exception:
+        except (OSError, RuntimeError):
             try:
                 if _logger:
                     _logger.exception("Failed during background selection dialog")
@@ -348,7 +339,7 @@ class SettingsDialog(QtWidgets.QDialog):
             cur_bg = self.bg_path_edit.text()
             if cur_bg:
                 self._update_bg_preview(cur_bg, self.bg_mode.currentText())
-        except Exception:
+        except (OSError, RuntimeError, AttributeError):
             try:
                 if _logger:
                     _logger.exception("Error updating background preview")
@@ -384,7 +375,7 @@ class SettingsDialog(QtWidgets.QDialog):
             cfg.setdefault("units", {})["global"] = self.unit_global.currentText()
             try:
                 settings.import_config(cfg)
-            except Exception:
+            except (ValueError, TypeError):
                 try:
                     if _logger:
                         _logger.exception(
@@ -394,7 +385,7 @@ class SettingsDialog(QtWidgets.QDialog):
                     pass
             try:
                 settings.save()
-            except Exception:
+            except OSError:
                 try:
                     if _logger:
                         _logger.exception(

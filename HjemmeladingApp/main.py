@@ -76,6 +76,10 @@ class MainWindow(QMainWindow):
         # Innstillinger-meny
         settings_menu = QMenu("Innstillinger", self)
         menubar.addMenu(settings_menu)
+        # Legg til rask tilgang for å åpne innstillinger
+        settings_action = QAction("Åpne innstillinger", self)
+        settings_action.triggered.connect(self.open_settings_dialog)
+        settings_menu.addAction(settings_action)
 
         # Språk-meny
         language_menu = QMenu("Språk", self)

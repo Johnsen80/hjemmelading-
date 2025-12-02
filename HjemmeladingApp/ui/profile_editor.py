@@ -234,10 +234,21 @@ class ProfileEditor(QWidget):
                     except Exception:
                         logger.exception("Failed to update profile fields after import")
                 else:
+                    # If the profile object recorded a detailed error, show it to the user
                     try:
-                        QMessageBox.warning(self, "Feil", "Import feilet!")
+                        last_err = getattr(self.profile, "last_error", None)
+                        if last_err:
+                            mb = QMessageBox(self)
+                            mb.setIcon(QMessageBox.Icon.Warning)
+                            mb.setWindowTitle("Import feilet")
+                            mb.setText("Import av profil feilet.")
+                            mb.setInformativeText("Se detaljer for mer informasjon.")
+                            mb.setDetailedText(str(last_err))
+                            mb.exec()
+                        else:
+                            QMessageBox.warning(self, "Feil", "Import feilet!")
                     except Exception:
-                        logger.warning("Could not show import warning messagebox")
+                        logger.exception("Could not show import warning messagebox")
         except Exception as _err:
             try:
                 append_exception(f"import handler exception: {_err}", _err)

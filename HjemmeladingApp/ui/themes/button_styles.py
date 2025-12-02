@@ -1,8 +1,6 @@
 BUTTON_STYLES = {
     "Standard": "",
-    "Rund": (
-        "QPushButton { border-radius: 20px; padding: 8px 24px; }"
-    ),
+    "Rund": ("QPushButton { border-radius: 20px; padding: 8px 24px; }"),
     "Fargerik": (
         "QPushButton { background-color: #4caf50; color: white; "
         "font-weight: bold; } "

@@ -822,6 +822,17 @@ python main.py
    - Legg inn gruppestørrelser og hastigheter
    - La programmet finne optimale ladninger
 
+## Security / audit notes:
+- After `npm install` run `npm audit` and `npm audit fix` to automatically fix low- and moderate-level issues.
+- To attempt to fix all issues (may introduce breaking changes), run:
+
+```powershell
+npm audit fix --force
+```
+
+- I've upgraded `multer` to v2 and switched to `@electron/packager` to reduce known deprecation warnings. Some warnings are transitive (from sub-dependencies) and require upstream updates.
+- If you see many remaining warnings or vulnerabilities, run `npm audit` and paste the output here — I will propose the safest package updates.
+
 ## Sikkerhet
 
 ⚠️ **VIKTIG**: Dette programmet er et hjelpemiddel, ikke en erstatning for erfaring og sikkerhetshensyn.

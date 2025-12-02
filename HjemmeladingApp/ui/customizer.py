@@ -16,7 +16,7 @@ try:
     from PyQt6.QtGui import QPixmap
 
     _HAS_QPIXMAP = True
-except Exception:
+except ImportError:
     QPixmap = None
     _HAS_QPIXMAP = False
 
@@ -42,7 +42,7 @@ class AppearanceCustomizer(QWidget):
             layout.addWidget(self.color_label)
             layout.addWidget(self.color_btn)
             self.setLayout(layout)
-        except Exception as _init_err:
+        except (OSError, RuntimeError, TypeError) as _init_err:
             try:
                 append_exception(
                     f"AppearanceCustomizer init failed: {_init_err}", _init_err
@@ -77,7 +77,7 @@ class AppearanceCustomizer(QWidget):
             if pixmap is None and _HAS_QPIXMAP:
                 try:
                     pixmap = QPixmap(file)
-                except Exception:
+                except (OSError, TypeError, RuntimeError):
                     pixmap = None
 
             try:
@@ -89,7 +89,7 @@ class AppearanceCustomizer(QWidget):
                     palette.setColor(QPalette.ColorRole.Window, QColor("#f0f0f0"))
                 self.main_window.setPalette(palette)
                 self.main_window.setAutoFillBackground(True)
-            except Exception as _pal_err:
+            except (AttributeError, TypeError, RuntimeError) as _pal_err:
                 try:
                     append_exception(
                         f"Applying background failed: {_pal_err}", _pal_err
@@ -113,7 +113,7 @@ class AppearanceCustomizer(QWidget):
                     palette.setColor(QPalette.ColorRole.Window, color)
                     self.main_window.setPalette(palette)
                     self.main_window.setAutoFillBackground(True)
-                except Exception as _pal_err:
+                except (AttributeError, TypeError, RuntimeError) as _pal_err:
                     try:
                         append_exception(f"Applying color failed: {_pal_err}", _pal_err)
                     except Exception:

@@ -12,31 +12,31 @@ if PARENT not in sys.path:
 
 # Use fully-qualified package names (module files expect package `HjemmeladingApp`)
 modules = [
-    'HjemmeladingApp.modules.user_profile',
-    'HjemmeladingApp.ui.settings_dialog',
-    'HjemmeladingApp.ui.profile_editor',
-    'HjemmeladingApp.ui.customizer',
-    'HjemmeladingApp.utils.safe_logger',
-    'HjemmeladingApp.utils.backgrounds',
-    'HjemmeladingApp.main',
+    "HjemmeladingApp.modules.user_profile",
+    "HjemmeladingApp.ui.settings_dialog",
+    "HjemmeladingApp.ui.profile_editor",
+    "HjemmeladingApp.ui.customizer",
+    "HjemmeladingApp.utils.safe_logger",
+    "HjemmeladingApp.utils.backgrounds",
+    "HjemmeladingApp.main",
 ]
 
 results = {}
 for m in modules:
     try:
         importlib.import_module(m)
-        results[m] = ('OK', '')
+        results[m] = ("OK", "")
     except Exception:
-        results[m] = ('ERROR', traceback.format_exc())
+        results[m] = ("ERROR", traceback.format_exc())
 
-print('Import check results:')
+print("Import check results:")
 for m, (status, tb) in results.items():
-    print(f'- {m}: {status}')
-    if status == 'ERROR':
+    print(f"- {m}: {status}")
+    if status == "ERROR":
         print(tb)
 
 # Exit with non-zero if any failures
-if any(status == 'ERROR' for status, _ in results.values()):
+if any(status == "ERROR" for status, _ in results.values()):
     sys.exit(1)
 else:
     sys.exit(0)

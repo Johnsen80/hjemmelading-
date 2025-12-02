@@ -1,0 +1,28 @@
+{
+  "name": "hjemmelading",
+  "version": "0.1.0",
+  "description": "Desktop reloading manager with optional server mode",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start-server": "node server.js",
+    "dev": "concurrently \"npm:watch-main\" \"npm:watch-renderer\"",
+    "watch-main": "nodemon --watch main.js --exec \"electron .\"",
+    "package-win": "electron-packager . Hjemmelading --platform=win32 --arch=ia32,x64 --out=dist --overwrite"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^39.2.4",
+    "electron-packager": "^17.1.2",
+    "nodemon": "^3.1.11"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "lowdb": "^6.0.1",
+    "multer": "^1.4.5-lts.1"
+  }
+}

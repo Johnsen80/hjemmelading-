@@ -2,7 +2,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import shutil
-import imghdr
 import uuid
 import logging
 
@@ -11,7 +10,7 @@ try:
     from PyQt6.QtGui import QPixmap
 
     _HAS_QT = True
-except Exception:
+except ImportError:
     QPixmap = None
     _HAS_QT = False
 
@@ -19,7 +18,7 @@ try:
     from PIL import Image
 
     _HAS_PIL = True
-except Exception:
+except ImportError:
     Image = None
     _HAS_PIL = False
 
@@ -42,13 +41,13 @@ def ensure_backgrounds_dir() -> Path:
     try:
         d.mkdir(parents=True, exist_ok=True)
         return d
-    except Exception:
+    except OSError:
         # Fall back to a local 'backgrounds' directory if AppData is unavailable
         try:
             fallback = Path.cwd() / "backgrounds"
             fallback.mkdir(parents=True, exist_ok=True)
             return fallback
-        except Exception:
+        except OSError:
             # As a last resort, return the intended path object even if we couldn't create it.
             return d
 
@@ -58,25 +57,33 @@ def validate_image(path: str) -> tuple[bool, str]:
     try:
         if not p.exists() or not p.is_file():
             return False, "File does not exist"
-    except Exception:
+    except OSError:
         return False, "Unable to access file"
     size = p.stat().st_size
     if size > MAX_SIZE_BYTES:
         return False, f"File too large ({size} bytes > {MAX_SIZE_BYTES} bytes)"
-    # imghdr may return 'jpeg' for jpg
-    try:
-        kind = imghdr.what(str(p))
-    except Exception:
-        kind = None
-    # fall back to simple extension check if imghdr fails
+    # Prefer Pillow for robust format detection when available.
+    kind = None
+    if _HAS_PIL:
+        try:
+            with Image.open(str(p)) as im:
+                fmt = im.format
+            if fmt:
+                kind = fmt.lower()
+        except (OSError, ValueError):
+            kind = None
+
+    # fall back to simple extension check if Pillow not present or detection failed
     if not kind:
         ext = p.suffix.lower().lstrip(".")
         if ext in ALLOWED_TYPES:
             kind = ext
         else:
             return False, "Unknown or unsupported image format"
+
     if kind.lower() not in ALLOWED_TYPES:
         return False, f"Image type '{kind}' is not supported"
+
     return True, kind
 
 
@@ -108,8 +115,8 @@ def save_background(src_path: str) -> str:
         raise OSError(f"Permission denied while copying background: {e}") from e
     except FileNotFoundError as e:
         raise OSError(f"Destination path not found: {e}") from e
-    except Exception as e:
-        # Bubble up as OSError for the callers to handle uniformly
+    except OSError as e:
+        # Bubble up OSError for the callers to handle uniformly
         raise OSError(f"Failed to save background: {e}") from e
 
 
@@ -124,7 +131,7 @@ def load_background_pixmap(path: str):
             return None
         if not os.path.exists(path):
             return None
-    except Exception:
+    except OSError:
         return None
 
     if _HAS_QT:
@@ -132,7 +139,7 @@ def load_background_pixmap(path: str):
             pix = QPixmap(path)
             if pix and not pix.isNull():
                 return pix
-        except Exception as _qt_err:
+        except (RuntimeError, TypeError) as _qt_err:
             try:
                 logger.debug("QPixmap load failed: %s", _qt_err)
             except Exception:
@@ -144,7 +151,7 @@ def load_background_pixmap(path: str):
             with Image.open(path) as im:
                 im.verify()
             return None
-        except Exception as _pil_err:
+        except (OSError, ValueError) as _pil_err:
             try:
                 logger.debug("PIL verify failed for %s: %s", path, _pil_err)
             except Exception:
