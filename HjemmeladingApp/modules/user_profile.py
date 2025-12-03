@@ -1,8 +1,7 @@
 ﻿import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
-from HjemmeladingApp.utils.safe_logger import append_exception
-from .. import utils as _pkg_utils
+from ..utils import safe_logger
 
 from modules.hjemmelading.storage import load_profile, save_profile
 from modules.hjemmelading.validation import validate_profile
@@ -22,6 +21,7 @@ class UserProfile:
             "button_style": "Standard",
             "other_settings": {},
         }
+        self.last_error: "Optional[str]" = None
         self.load()
 
     def load(self) -> None:
@@ -36,10 +36,10 @@ class UserProfile:
         except (ValueError, OSError) as exc:
             # Invalid JSON or I/O problems — record and log
             try:
-                append_exception(f"Failed to load profile from {PROFILE_PATH}", exc)
+                safe_logger.append_exception(f"Failed to load profile from {PROFILE_PATH}", exc)
             except Exception as _suppressed_exc:
                 try:
-                    _pkg_utils.safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
+                    safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                 except Exception:
                     try:
                         import sys
@@ -53,10 +53,10 @@ class UserProfile:
             save_profile(self.data, PROFILE_PATH)
         except OSError as exc:
             try:
-                append_exception(f"Failed to save profile to {PROFILE_PATH}", exc)
+                safe_logger.append_exception(f"Failed to save profile to {PROFILE_PATH}", exc)
             except Exception as _suppressed_exc:
                 try:
-                    _pkg_utils.safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
+                    safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                 except Exception:
                     try:
                         import sys
@@ -71,10 +71,10 @@ class UserProfile:
             return True
         except OSError as exc:
             try:
-                append_exception(f"Failed to export profile to {export_path}", exc)
+                safe_logger.append_exception(f"Failed to export profile to {export_path}", exc)
             except Exception as _suppressed_exc:
                 try:
-                    _pkg_utils.safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
+                    safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                 except Exception:
                     try:
                         import sys
@@ -92,10 +92,10 @@ class UserProfile:
                     cleaned = validate_profile(loaded)
                 except ValueError as _val_err:
                     try:
-                        append_exception(f"Imported profile validation failed: {_val_err}", _val_err)
+                        safe_logger.append_exception(f"Imported profile validation failed: {_val_err}", _val_err)
                     except Exception as _suppressed_exc:
                         try:
-                            _pkg_utils.safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
+                            safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                         except Exception:
                             try:
                                 import sys
@@ -108,8 +108,7 @@ class UserProfile:
                         self.last_error = str(_val_err)
                     except Exception as _suppressed_exc:
                         try:
-                            from HjemmeladingApp.utils import safe_logger as _safe_logger
-                            _safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
+                            safe_logger.handle_suppressed(_suppressed_exc, "modules/user_profile.py")
                         except Exception:
                             try:
                                 import sys
@@ -156,7 +155,7 @@ class UserProfile:
             return False
         except (ValueError, OSError) as exc:
             try:
-                append_exception(f"Failed to import profile from {import_path}", exc)
+                safe_logger.append_exception(f"Failed to import profile from {import_path}", exc)
             except Exception as _suppressed_exc:
                 try:
                     _mod_logger = globals().get('_logger') or globals().get('logger')

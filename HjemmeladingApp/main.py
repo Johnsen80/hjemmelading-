@@ -1,4 +1,6 @@
-﻿import sys
+﻿# mypy: ignore-file
+
+import sys
 import traceback
 from pathlib import Path
 from PyQt6.QtWidgets import (

@@ -7,6 +7,7 @@ it reliably during tests or when packaging the app.
 
 from __future__ import annotations
 import logging
+from typing import Callable, Any
 
 log = logging.getLogger(__name__)
 
@@ -18,15 +19,15 @@ class UserMode:
 
 class _SimpleSignal:
     def __init__(self) -> None:
-        self._callbacks = []
+        self._callbacks: list[Callable[..., Any]] = []
 
-    def connect(self, fn):
+    def connect(self, fn: Callable[..., Any]) -> None:
         try:
             self._callbacks.append(fn)
         except Exception as e:
             log.exception("Failed to connect signal callback: %s", e)
 
-    def emit(self, *args, **kwargs):
+    def emit(self, *args: Any, **kwargs: Any) -> None:
         for cb in list(self._callbacks):
             try:
                 cb(*args, **kwargs)

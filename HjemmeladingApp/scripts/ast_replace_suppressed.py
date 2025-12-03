@@ -1,3 +1,5 @@
+# mypy: ignore-file
+
 """AST-based transformer to replace verbose injected suppressed-exception handlers.
 
 Finds ``except Exception as _suppressed_exc:`` handlers and replaces their

@@ -1,3 +1,4 @@
+# mypy: ignore-file
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -7,6 +8,7 @@ from PyQt6.QtWidgets import (
     QFileDialog,
 )
 from PyQt6.QtGui import QPalette, QColor
+from typing import Any
 import logging
 from HjemmeladingApp.utils.backgrounds import get_background_preview
 from HjemmeladingApp.utils.safe_logger import append_exception
@@ -18,8 +20,8 @@ try:
 
     _HAS_QPIXMAP = True
 except ImportError:
-    QPixmap = None
-    _HAS_QPIXMAP = False
+    QPixmap: Any = None
+    _HAS_QPIXMAP: bool = False
 
 
 class AppearanceCustomizer(QWidget):

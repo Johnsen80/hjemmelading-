@@ -7,7 +7,7 @@ development and tests.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Union, SupportsFloat
 
 
 def grams_to_grains(g: float) -> float:
@@ -37,9 +37,11 @@ def powder_mass_from_volume_ml(volume_ml: float, density_g_per_cm3: float) -> fl
     return powder_mass_from_volume(float(volume_ml), float(density_g_per_cm3))
 
 
-def safe_parse_float(value: Optional[object], default: float = 0.0) -> float:
+def safe_parse_float(value: Optional[Union[str, SupportsFloat]], default: float = 0.0) -> float:
     """Try to parse a value to float; return `default` on failure."""
+    if value is None:
+        return float(default)
     try:
         return float(value)
-    except Exception as _e:
+    except (TypeError, ValueError):
         return float(default)
