@@ -1,11 +1,11 @@
-# mypy: ignore-file
+# NOTE: removed top-level mypy file-ignore to allow targeted checks
 from __future__ import annotations
 import os
 from pathlib import Path
 import shutil
 import uuid
 import logging
-from . import safe_logger
+from HjemmeladingApp.utils import safe_logger
 from typing import Any
 
 

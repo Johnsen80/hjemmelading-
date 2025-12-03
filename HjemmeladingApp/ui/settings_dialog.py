@@ -6,6 +6,11 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from ..settings import settings
 from ..utils import backgrounds, safe_logger
+# Expose common safe_logger callables at module scope so language servers
+# and existing fallback code can resolve the symbol names. This keeps
+# the behaviour identical while making static analysis happier.
+_append_exception = getattr(safe_logger, "append_exception", None)
+_handle_suppressed = getattr(safe_logger, "handle_suppressed", None)
 
 # Prefer the project's logging config when present, otherwise None
 _logger = None
