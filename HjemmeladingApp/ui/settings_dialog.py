@@ -34,11 +34,12 @@ class SettingsDialog(QtWidgets.QDialog):
             self._load_logo()
         except Exception as _suppressed_exc:
             try:
-                from HjemmeladingApp.utils import safe_logger as _safe_logger
-                _safe_logger.handle_suppressed(_suppressed_exc, "ui/settings_dialog.py")
+                # bruk `safe_logger`-modulen slik språkserveren finner funksjonen
+                safe_logger.handle_suppressed(_suppressed_exc, "ui/settings_dialog.py")
             except Exception:
                 try:
                     import sys
+
                     sys.stderr.write("ui/settings_dialog.py suppressed exception: " + str(_suppressed_exc) + "\n")
                 except Exception:
                     pass

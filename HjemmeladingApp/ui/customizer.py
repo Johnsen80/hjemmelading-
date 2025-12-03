@@ -10,6 +10,7 @@ from PyQt6.QtGui import QPalette, QColor
 import logging
 from HjemmeladingApp.utils.backgrounds import get_background_preview
 from HjemmeladingApp.utils.safe_logger import append_exception
+from ..utils import safe_logger
 
 logger = logging.getLogger(__name__)
 try:
@@ -47,11 +48,11 @@ class AppearanceCustomizer(QWidget):
                 append_exception(f"AppearanceCustomizer init failed: {_init_err}", _init_err)
             except Exception as _suppressed_exc:
                 try:
-                    from HjemmeladingApp.utils import safe_logger as _safe_logger
-                    _safe_logger.handle_suppressed(_suppressed_exc, "ui/customizer.py")
+                    safe_logger.handle_suppressed(_suppressed_exc, "ui/customizer.py")
                 except Exception:
                     try:
                         import sys
+
                         sys.stderr.write("customizer.py suppressed exception: " + str(_suppressed_exc) + "\n")
                     except Exception:
                         pass

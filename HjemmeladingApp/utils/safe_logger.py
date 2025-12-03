@@ -13,6 +13,10 @@ from typing import Optional
 
 
 def _get_log_dir(app_name: str = "Hjemmelading") -> Path:
+    """Return a directory to store per-user logs.
+
+    Attempts several fallbacks and never raises.
+    """
     try:
         # Prefer the project's logging_config if available
         from src.logging_config import get_log_dir as _gld
@@ -20,108 +24,25 @@ def _get_log_dir(app_name: str = "Hjemmelading") -> Path:
         p = Path(_gld(app_name))
         p.mkdir(parents=True, exist_ok=True)
         return p
-    except Exception as _suppressed_exc:
-        try:
-            _mod_logger = globals().get('_logger') or globals().get('logger')
-            if _mod_logger:
-                _mod_logger.exception("Unhandled exception in safe_logger.py: %s", _suppressed_exc)
-        except Exception:
-            pass
-        try:
-            _append = globals().get('append_exception')
-            if _append:
-                _append("safe_logger.py suppressed exception", _suppressed_exc)
-            else:
-                _safe = globals().get('safe_logger')
-                if _safe:
-                    try:
-                        _safe.append_exception("safe_logger.py suppressed exception", _suppressed_exc)
-                    except Exception:
-                        pass
-                else:
-                    try:
-                        import sys
-                        sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                    except Exception:
-                        pass
-        except Exception:
-            try:
-                import sys
-                sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-            except Exception:
-                pass
-        # Fall back to LOCALAPPDATA or cwd
-        try:
-            local = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_STATE_HOME")
-            if local:
-                p = Path(local) / app_name / "logs"
-                p.mkdir(parents=True, exist_ok=True)
-                return p
-        except Exception as _suppressed_exc:
-            try:
-                _mod_logger = globals().get('_logger') or globals().get('logger')
-                if _mod_logger:
-                    _mod_logger.exception("Unhandled exception in safe_logger.py: %s", _suppressed_exc)
-            except Exception:
-                pass
-            try:
-                _append = globals().get('append_exception')
-                if _append:
-                    _append("safe_logger.py suppressed exception", _suppressed_exc)
-                else:
-                    _safe = globals().get('safe_logger')
-                    if _safe:
-                        try:
-                            _safe.append_exception("safe_logger.py suppressed exception", _suppressed_exc)
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            import sys
-                            sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                        except Exception:
-                            pass
-            except Exception:
-                try:
-                    import sys
-                    sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                except Exception:
-                    pass
-            pass
+    except Exception:
+        pass
+
+    # Try common OS locations
+    try:
+        local = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_STATE_HOME")
+        if local:
+            p = Path(local) / app_name / "logs"
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+    except Exception:
+        pass
+
+    # Final fallback: a logs/ directory in cwd
     try:
         cwd = Path.cwd() / "logs"
         cwd.mkdir(parents=True, exist_ok=True)
         return cwd
-    except Exception as _suppressed_exc:
-        try:
-            _mod_logger = globals().get('_logger') or globals().get('logger')
-            if _mod_logger:
-                _mod_logger.exception("Unhandled exception in safe_logger.py: %s", _suppressed_exc)
-        except Exception:
-            pass
-        try:
-            _append = globals().get('append_exception')
-            if _append:
-                _append("safe_logger.py suppressed exception", _suppressed_exc)
-            else:
-                _safe = globals().get('safe_logger')
-                if _safe:
-                    try:
-                        _safe.append_exception("safe_logger.py suppressed exception", _suppressed_exc)
-                    except Exception:
-                        pass
-                else:
-                    try:
-                        import sys
-                        sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                    except Exception:
-                        pass
-        except Exception:
-            try:
-                import sys
-                sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-            except Exception:
-                pass
+    except Exception:
         return Path(".")
 
 
@@ -132,6 +53,7 @@ def get_debug_log_path(app_name: str = "Hjemmelading") -> Path:
 def append_exception(
     msg: str = "", exc: Optional[BaseException] = None, app_name: str = "Hjemmelading"
 ) -> None:
+    """Append an exception + message to the per-user debug log. Never raises."""
     try:
         p = get_debug_log_path(app_name)
         with p.open("a", encoding="utf-8") as fh:
@@ -146,76 +68,18 @@ def append_exception(
                 )
             else:
                 fh.write(msg + "\n")
-    except Exception as _suppressed_exc:
+    except Exception:
+        # Best-effort fallback to stderr; do not raise
         try:
-            _mod_logger = globals().get('_logger') or globals().get('logger')
-            if _mod_logger:
-                _mod_logger.exception("Unhandled exception in safe_logger.py: %s", _suppressed_exc)
-        except Exception:
-            pass
-        try:
-            _append = globals().get('append_exception')
-            if _append:
-                _append("safe_logger.py suppressed exception", _suppressed_exc)
-            else:
-                _safe = globals().get('safe_logger')
-                if _safe:
-                    try:
-                        _safe.append_exception("safe_logger.py suppressed exception", _suppressed_exc)
-                    except Exception:
-                        pass
-                else:
-                    try:
-                        import sys
-                        sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                    except Exception:
-                        pass
-        except Exception:
-            try:
-                import sys
-                sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-            except Exception:
-                pass
-        # Intentionally swallow all exceptions; logging must not raise
-        try:
-            # As a very last resort, write to stderr if available
             import sys
 
             sys.stderr.write(f"{msg}\n")
-        except Exception as _suppressed_exc:
-            try:
-                _mod_logger = globals().get('_logger') or globals().get('logger')
-                if _mod_logger:
-                    _mod_logger.exception("Unhandled exception in safe_logger.py: %s", _suppressed_exc)
-            except Exception:
-                pass
-            try:
-                _append = globals().get('append_exception')
-                if _append:
-                    _append("safe_logger.py suppressed exception", _suppressed_exc)
-                else:
-                    _safe = globals().get('safe_logger')
-                    if _safe:
-                        try:
-                            _safe.append_exception("safe_logger.py suppressed exception", _suppressed_exc)
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            import sys
-                            sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                        except Exception:
-                            pass
-            except Exception:
-                try:
-                    import sys
-                    sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                except Exception:
-                    pass
+        except Exception:
             pass
 
 
 def append_message(msg: str, app_name: str = "Hjemmelading") -> None:
+    """Append a plain message to the per-user debug log. Never raises."""
     try:
         p = get_debug_log_path(app_name)
         with p.open("a", encoding="utf-8") as fh:
@@ -223,34 +87,38 @@ def append_message(msg: str, app_name: str = "Hjemmelading") -> None:
 
             fh.write(f"\n--- {datetime.utcnow().isoformat()}Z ---\n")
             fh.write(msg + "\n")
-    except Exception as _suppressed_exc:
+    except Exception:
         try:
-            _mod_logger = globals().get('_logger') or globals().get('logger')
-            if _mod_logger:
-                _mod_logger.exception("Unhandled exception in safe_logger.py: %s", _suppressed_exc)
+            import sys
+
+            sys.stderr.write(f"{msg}\n")
         except Exception:
             pass
+
+
+def handle_suppressed(exc: Exception, source: str = "<unknown>", app_name: str = "Hjemmelading") -> None:
+    """Central helper for modules to report suppressed exceptions safely.
+
+    Tries `append_exception` and falls back to stderr; never raises.
+    """
+    try:
+        append_exception(f"{source} suppressed exception", exc, app_name=app_name)
+    except Exception:
         try:
-            _append = globals().get('append_exception')
-            if _append:
-                _append("safe_logger.py suppressed exception", _suppressed_exc)
-            else:
-                _safe = globals().get('safe_logger')
-                if _safe:
-                    try:
-                        _safe.append_exception("safe_logger.py suppressed exception", _suppressed_exc)
-                    except Exception:
-                        pass
-                else:
-                    try:
-                        import sys
-                        sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
-                    except Exception:
-                        pass
-        except Exception:
+            import sys
+
             try:
-                import sys
-                sys.stderr.write(f"safe_logger.py suppressed exception: {_suppressed_exc}\n")
+                sys.stderr.write(f"{source} suppressed exception: {exc}\n")
             except Exception:
                 pass
-        pass
+        except Exception:
+            pass
+
+
+# Public API names
+__all__ = [
+    "get_debug_log_path",
+    "append_exception",
+    "append_message",
+    "handle_suppressed",
+]

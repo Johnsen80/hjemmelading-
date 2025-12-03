@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
 )
 import logging
 from HjemmeladingApp.utils.safe_logger import append_exception
+from ..utils import safe_logger
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +18,11 @@ try:
     from HjemmeladingApp.modules.user_profile import UserProfile
 except Exception as _suppressed_exc:
     try:
-        from HjemmeladingApp.utils import safe_logger as _safe_logger
-        _safe_logger.handle_suppressed(_suppressed_exc, "ui/profile_editor.py")
+        safe_logger.handle_suppressed(_suppressed_exc, "ui/profile_editor.py")
     except Exception:
         try:
             import sys
+
             sys.stderr.write("profile_editor.py suppressed exception: " + str(_suppressed_exc) + "\n")
         except Exception:
             pass

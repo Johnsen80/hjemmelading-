@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import uuid
 import logging
+from . import safe_logger
 
 # Optional GUI/image libraries for runtime previews
 try:
@@ -144,11 +145,11 @@ def load_background_pixmap(path: str):
                 logger.debug("QPixmap load failed: %s", _qt_err)
             except Exception as _suppressed_exc:
                 try:
-                    from HjemmeladingApp.utils import safe_logger as _safe_logger
-                    _safe_logger.handle_suppressed(_suppressed_exc, "utils/backgrounds.py")
+                    safe_logger.handle_suppressed(_suppressed_exc, "utils/backgrounds.py")
                 except Exception:
                     try:
                         import sys
+
                         sys.stderr.write("backgrounds.py suppressed exception: " + str(_suppressed_exc) + "\n")
                     except Exception:
                         pass
@@ -165,11 +166,11 @@ def load_background_pixmap(path: str):
                 logger.debug("PIL verify failed for %s: %s", path, _pil_err)
             except Exception as _suppressed_exc:
                 try:
-                    from HjemmeladingApp.utils import safe_logger as _safe_logger
-                    _safe_logger.handle_suppressed(_suppressed_exc, "utils/backgrounds.py")
+                    safe_logger.handle_suppressed(_suppressed_exc, "utils/backgrounds.py")
                 except Exception:
                     try:
                         import sys
+
                         sys.stderr.write("backgrounds.py suppressed exception: " + str(_suppressed_exc) + "\n")
                     except Exception:
                         pass
@@ -191,8 +192,7 @@ def get_background_preview(path: str):
             logger.exception("get_background_preview failed: %s", _err)
         except Exception as _suppressed_exc:
             try:
-                from HjemmeladingApp.utils import safe_logger as _safe_logger
-                _safe_logger.handle_suppressed(_suppressed_exc, "utils/backgrounds.py")
+                safe_logger.handle_suppressed(_suppressed_exc, "utils/backgrounds.py")
             except Exception:
                 try:
                     import sys
