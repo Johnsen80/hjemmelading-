@@ -1,3 +1,10 @@
+PyQt6
+matplotlib
+Pillow
+numpy
+pandas
+requests
+SQLAlchemy
 PyQt6==6.10.0
 # Reloading Workshop Manager - Dependencies
 
