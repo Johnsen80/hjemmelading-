@@ -1,10 +1,18 @@
 PyQt6
+PyQt6-WebEngine
 matplotlib
-Pillow
+pillow
 numpy
 pandas
 requests
 SQLAlchemy
+
+# Dev tools (optional)
+# black
+# ruff
+# isort
+# mypy
+# pytest
 PyQt6==6.10.0
 # Reloading Workshop Manager - Dependencies
 

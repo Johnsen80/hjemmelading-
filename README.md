@@ -1,3 +1,40 @@
+# Hjemmelading — Rask oppstart
+
+Dette repoet inneholder en PyQt6-basert applikasjon. Her er enkle steg for å komme i gang på Windows (PowerShell).
+
+1) Opprett og aktiver en virtuell miljø:
+
+```pwsh
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+2) Installer runtime-avhengigheter:
+
+```pwsh
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Merk: Hvis du trenger Qt WebEngine-støtte, sørg for at `PyQt6-WebEngine` installeres (listet i `requirements.txt`).
+
+3) Kjør headless smoke-test (som CI gjør):
+
+```pwsh
+python tools/headless_smoke_test.py
+python -m pytest -q tests/test_imports.py
+```
+
+4) Hvordan håndtere store filer:
+
+- Dette repoet sporer `data/GRT_reference.db` med Git LFS (hvis du vil gjøre lokal LFS-setup):
+
+```pwsh
+git lfs install
+git lfs pull
+```
+
+Hvis du vil at jeg skal kjøre smoke-test lokalt eller hjelpe med å sette opp GitHub Actions/CI, si ifra.
 Hjemmelading — quick developer notes
 
 Overview
