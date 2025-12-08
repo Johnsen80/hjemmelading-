@@ -1,0 +1,1152 @@
+From 8b41b045938c10194de45d870080817c306f48d4 Mon Sep 17 00:00:00 2001
+From: Your Name <you@example.com>
+Date: Tue, 2 Dec 2025 20:40:06 +0100
+Subject: [PATCH] lint: capture bare excepts as _suppressed_exc (conservative
+ first pass)
+
+---
+ HjemmeladingApp/.ruff.toml                    |  8 --
+ HjemmeladingApp/config.py                     |  4 +-
+ HjemmeladingApp/i18n.py                       |  4 +-
+ HjemmeladingApp/main.py                       | 39 ++++----
+ .../modules/hjemmelading/__init__.py          |  2 +-
+ HjemmeladingApp/modules/user_profile.py       | 16 ++--
+ HjemmeladingApp/pyproject.toml                |  5 +
+ .../scripts/convert_bare_excepts.py           | 64 +++++++++++++
+ .../scripts/convert_bare_to_suppressed.py     | 39 ++++++++
+ .../scripts/create_github_repo_and_push.ps1   | 95 +++++++++++++++++++
+ HjemmeladingApp/settings.py                   |  2 +-
+ HjemmeladingApp/tools/_import_check.py        |  2 +-
+ HjemmeladingApp/tools/run_settings_smoke.py   | 14 +--
+ HjemmeladingApp/ui/customizer.py              | 12 +--
+ HjemmeladingApp/ui/profile_editor.py          | 34 +++----
+ HjemmeladingApp/ui/settings_dialog.py         | 38 ++++----
+ HjemmeladingApp/utils/backgrounds.py          |  6 +-
+ HjemmeladingApp/utils/fonts.py                | 29 +++---
+ HjemmeladingApp/utils/mode_manager.py         | 12 +--
+ HjemmeladingApp/utils/safe_logger.py          | 12 +--
+ 20 files changed, 317 insertions(+), 120 deletions(-)
+ delete mode 100644 HjemmeladingApp/.ruff.toml
+ create mode 100644 HjemmeladingApp/pyproject.toml
+ create mode 100644 HjemmeladingApp/scripts/convert_bare_excepts.py
+ create mode 100644 HjemmeladingApp/scripts/convert_bare_to_suppressed.py
+ create mode 100644 HjemmeladingApp/scripts/create_github_repo_and_push.ps1
+
+diff --git a/HjemmeladingApp/.ruff.toml b/HjemmeladingApp/.ruff.toml
+deleted file mode 100644
+index 948dd47..0000000
+--- a/HjemmeladingApp/.ruff.toml
++++ /dev/null
+@@ -1,8 +0,0 @@
+-[tool.ruff]
+-extend-ignore = [
+-]
+-exclude = [
+-  "tools/*",
+-  "artifacts/*",
+-  "node_modules/*",
+-]
+diff --git a/HjemmeladingApp/config.py b/HjemmeladingApp/config.py
+index 35b06e1..c6a0db1 100644
+--- a/HjemmeladingApp/config.py
++++ b/HjemmeladingApp/config.py
+@@ -48,12 +48,12 @@ def load_config() -> Dict[str, Any]:
+     try:
+         with p.open("r", encoding="utf-8") as fh:
+             return json.load(fh)
+-    except Exception:
++    except Exception as _suppressed_exc:
+         # If the config is corrupted, move it aside and recreate default
+         bad = p.with_suffix(".broken.json")
+         try:
+             p.replace(bad)
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+         cfg = get_default_config()
+         save_config(cfg)
+diff --git a/HjemmeladingApp/i18n.py b/HjemmeladingApp/i18n.py
+index cc331a1..1728286 100644
+--- a/HjemmeladingApp/i18n.py
++++ b/HjemmeladingApp/i18n.py
+@@ -25,10 +25,10 @@ def set_language(lang_code: str) -> None:
+ 
+             qs = QSettings("ReloadingWorkshop", "ReloadingManager")
+             qs.setValue("language", "Norsk" if lang_code == "no" else "English")
+-        except Exception:
++        except Exception as _suppressed_exc:
+             # If Qt isn't available in this environment, swallow the error
+             pass
+-    except Exception:
++    except Exception as _suppressed_exc:
+         log.exception("Failed to set language preference")
+ 
+ 
+diff --git a/HjemmeladingApp/main.py b/HjemmeladingApp/main.py
+index 8206076..1678a7d 100644
+--- a/HjemmeladingApp/main.py
++++ b/HjemmeladingApp/main.py
+@@ -20,14 +20,13 @@ try:
+     proj_root_str = str(proj_root)
+     if proj_root_str not in sys.path:
+         sys.path.insert(0, proj_root_str)
+-except Exception:
++except Exception as _suppressed_exc:
+     pass
+ 
+ # Import safe logger (provide lightweight fallbacks)
+ try:
+     from HjemmeladingApp.utils.safe_logger import append_exception, append_message
+-except Exception:
+-
++except Exception as _suppressed_exc:
+     def append_exception(msg, exc=None):
+         return None
+ 
+@@ -40,20 +39,20 @@ def _global_excepthook(exc_type, exc_value, exc_tb):
+         tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+         try:
+             append_exception("Uncaught exception (HjemmeladingApp): " + tb, exc_value)
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+         try:
+             with open("hjemmeladingapp_error.log", "w", encoding="utf-8") as f:
+                 f.write(tb)
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+-    except Exception:
++    except Exception as _suppressed_exc:
+         pass
+ 
+ 
+ try:
+     sys.excepthook = _global_excepthook
+-except Exception:
++except Exception as _suppressed_exc:
+     pass
+ 
+ 
+@@ -114,14 +113,14 @@ class MainWindow(QMainWindow):
+             except Exception as e:
+                 try:
+                     append_exception("ProfileEditor creation failed: " + str(e), e)
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+                 QMessageBox.warning(
+                     self,
+                     "Feil",
+                     "Kunne ikke åpne profilredigerer (feil ved opprettelse).",
+                 )
+-        except Exception:
++        except Exception as _suppressed_exc:
+             QMessageBox.warning(
+                 self, "Feil", "Kunne ikke åpne profilredigerer (mangler modul)."
+             )
+@@ -132,7 +131,7 @@ class MainWindow(QMainWindow):
+     def open_settings_dialog(self):
+         try:
+             append_message("User invoked Open Settings")
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+         try:
+             from HjemmeladingApp.ui.settings_dialog import SettingsDialog
+@@ -142,7 +141,7 @@ class MainWindow(QMainWindow):
+             except Exception as e:
+                 try:
+                     append_exception("SettingsDialog creation failed: " + str(e), e)
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+                 QMessageBox.warning(
+                     self, "Feil", f"Kunne ikke opprette innstillingsdialog: {e}"
+@@ -163,11 +162,11 @@ class MainWindow(QMainWindow):
+                     append_exception(
+                         "SettingsDialog.exec/show failed: " + _tb.format_exc(), e
+                     )
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+                 try:
+                     self._settings_dialog.show()
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+         except Exception as e:
+             try:
+@@ -179,7 +178,7 @@ class MainWindow(QMainWindow):
+                     + _tb.format_exc(),
+                     e,
+                 )
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             try:
+                 QMessageBox.warning(
+@@ -187,7 +186,7 @@ class MainWindow(QMainWindow):
+                     "Feil",
+                     f"Kunne ikke åpne innstillinger: {e}\nSe per-user logg for detaljer.",
+                 )
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+ 
+@@ -197,24 +196,24 @@ def main():
+             QCoreApplication.setAttribute(
+                 Qt.ApplicationAttribute.AA_ShareOpenGLContexts
+             )
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+         app = QApplication(sys.argv)
+         try:
+             try:
+                 from HjemmeladingApp.utils.fonts import register_bundled_fonts
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 register_bundled_fonts = None
+             if register_bundled_fonts:
+                 try:
+                     n = register_bundled_fonts()
+                     try:
+                         append_message(f"Registered {n} bundled fonts at startup")
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+         win = MainWindow()
+         win.show()
+diff --git a/HjemmeladingApp/modules/hjemmelading/__init__.py b/HjemmeladingApp/modules/hjemmelading/__init__.py
+index a28698b..e346ab6 100644
+--- a/HjemmeladingApp/modules/hjemmelading/__init__.py
++++ b/HjemmeladingApp/modules/hjemmelading/__init__.py
+@@ -41,5 +41,5 @@ def safe_parse_float(value: Optional[object], default: float = 0.0) -> float:
+     """Try to parse a value to float; return `default` on failure."""
+     try:
+         return float(value)
+-    except Exception:
++    except Exception as _e:
+         return float(default)
+diff --git a/HjemmeladingApp/modules/user_profile.py b/HjemmeladingApp/modules/user_profile.py
+index bbc721e..ecebf35 100644
+--- a/HjemmeladingApp/modules/user_profile.py
++++ b/HjemmeladingApp/modules/user_profile.py
+@@ -36,7 +36,7 @@ class UserProfile:
+             # Invalid JSON or I/O problems — record and log
+             try:
+                 append_exception(f"Failed to load profile from {PROFILE_PATH}", exc)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+     def save(self) -> None:
+@@ -45,7 +45,7 @@ class UserProfile:
+         except OSError as exc:
+             try:
+                 append_exception(f"Failed to save profile to {PROFILE_PATH}", exc)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+     def export(self, export_path: str) -> bool:
+@@ -55,7 +55,7 @@ class UserProfile:
+         except OSError as exc:
+             try:
+                 append_exception(f"Failed to export profile to {export_path}", exc)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             return False
+ 
+@@ -70,12 +70,12 @@ class UserProfile:
+                         append_exception(
+                             f"Imported profile validation failed: {_val_err}", _val_err
+                         )
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+                     # expose validation message for UI
+                     try:
+                         self.last_error = str(_val_err)
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+                     return False
+                 self.data = cleaned
+@@ -83,17 +83,17 @@ class UserProfile:
+                 # clear any previous error
+                 try:
+                     self.last_error = None
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+                 return True
+             return False
+         except (ValueError, OSError) as exc:
+             try:
+                 append_exception(f"Failed to import profile from {import_path}", exc)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             try:
+                 self.last_error = str(exc)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             return False
+diff --git a/HjemmeladingApp/pyproject.toml b/HjemmeladingApp/pyproject.toml
+new file mode 100644
+index 0000000..a01ac5b
+--- /dev/null
++++ b/HjemmeladingApp/pyproject.toml
+@@ -0,0 +1,5 @@
++[tool.ruff]
++exclude = ["tools", "artifacts", "__pycache__", "venv", ".venv"]
++
++# If you need additional ruff settings, add them under [tool.ruff]
++# Example: select = ["E", "F", "I"]
+\ No newline at end of file
+diff --git a/HjemmeladingApp/scripts/convert_bare_excepts.py b/HjemmeladingApp/scripts/convert_bare_excepts.py
+new file mode 100644
+index 0000000..92315af
+--- /dev/null
++++ b/HjemmeladingApp/scripts/convert_bare_excepts.py
+@@ -0,0 +1,64 @@
++"""Convert bare `except Exception:` to `except Exception as e:` and add best-effort logging.
++
++This script updates Python files in-place. It matches only bare
++`except Exception:` (no `as`) and replaces each with a block that captures
++the exception as `e` and writes a best-effort log using `_logger` if present
++and an `stderr` fallback. Changes are conservative to avoid altering other
++exception forms.
++
++Run from repository root.
++"""
++import re
++from pathlib import Path
++
++
++BASE = Path(__file__).resolve().parents[1]
++PY_FILES = [p for p in BASE.rglob("*.py") if "__pycache__" not in p.parts]
++
++PATTERN = re.compile(r"^(?P<indent>[ \t]*)except\s+Exception\s*:\s*$", re.MULTILINE)
++
++REPLACEMENT = (
++    "except Exception as e:\n"
++    "{indent}    try:\n"
++    "{indent}        if _logger:\n"
++    "{indent}            _logger.exception(\"Unhandled exception in {file}: %s\", e)\n"
++    "{indent}    except Exception:\n"
++    "{indent}        pass\n"
++    "{indent}    try:\n"
++    "{indent}        import sys\n"
++    "{indent}        sys.stderr.write(f\"Unhandled exception in {file}: {{e}}\\n\")\n"
++    "{indent}    except Exception:\n"
++    "{indent}        pass\n"
++)
++
++
++def process_file(path: Path) -> int:
++    text = path.read_text(encoding="utf-8")
++    changed = 0
++
++    def repl(m: re.Match) -> str:
++        nonlocal changed
++        indent = m.group("indent")
++        changed += 1
++        return REPLACEMENT.format(indent=indent, file=path.name)
++
++    new_text = PATTERN.sub(repl, text)
++    if changed:
++        path.write_text(new_text, encoding="utf-8")
++    return changed
++
++
++def main() -> None:
++    total = 0
++    files_changed = 0
++    for p in PY_FILES:
++        c = process_file(p)
++        if c:
++            print(f"Updated {p} ({c} replacements)")
++            total += c
++            files_changed += 1
++    print(f"Files changed: {files_changed}, total replacements: {total}")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/HjemmeladingApp/scripts/convert_bare_to_suppressed.py b/HjemmeladingApp/scripts/convert_bare_to_suppressed.py
+new file mode 100644
+index 0000000..59ec1f1
+--- /dev/null
++++ b/HjemmeladingApp/scripts/convert_bare_to_suppressed.py
+@@ -0,0 +1,39 @@
++"""Safely convert bare `except Exception:` to `except Exception as _suppressed_exc:`.
++
++This is a low-risk first pass: it captures the exception into a named
++variable prefixed with an underscore to avoid F841 warnings while not
++adding logging or changing control flow. Run this first, then add
++targeted logging in a second pass.
++"""
++import re
++from pathlib import Path
++
++
++BASE = Path(__file__).resolve().parents[1]
++PY_FILES = [p for p in BASE.rglob("*.py") if "__pycache__" not in p.parts]
++
++PAT = re.compile(r"^(?P<indent>[ \t]*)except\s+Exception\s*:\s*$", re.MULTILINE)
++
++
++def process(path: Path) -> int:
++    text = path.read_text(encoding="utf-8")
++    new_text, n = PAT.subn(lambda m: f"{m.group('indent')}except Exception as _suppressed_exc:", text)
++    if n:
++        path.write_text(new_text, encoding="utf-8")
++    return n
++
++
++def main():
++    total = 0
++    files_changed = 0
++    for p in PY_FILES:
++        n = process(p)
++        if n:
++            print(f"Patched {p} ({n} replacements)")
++            total += n
++            files_changed += 1
++    print(f"Files changed: {files_changed}, total replacements: {total}")
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/HjemmeladingApp/scripts/create_github_repo_and_push.ps1 b/HjemmeladingApp/scripts/create_github_repo_and_push.ps1
+new file mode 100644
+index 0000000..8c1f04e
+--- /dev/null
++++ b/HjemmeladingApp/scripts/create_github_repo_and_push.ps1
+@@ -0,0 +1,95 @@
++<#
++.SYNOPSIS
++  Create a GitHub repository and push the current branch.
++
++.DESCRIPTION
++  This helper tries to create a repository using the GitHub CLI (`gh`) if available.
++  If `gh` is not installed, it can call the GitHub REST API using a Personal Access Token
++  supplied via the environment variable `GITHUB_TOKEN`.
++
++.PARAMETER Owner
++  GitHub account or organization to create the repo under. Default: your authenticated user.
++
++.PARAMETER RepoName
++  Repository name to create. Default: HjemmeladingApp
++
++.PARAMETER Private
++  Create repository as private when present.
++
++USAGE
++  # Using gh (recommended)
++  .\create_github_repo_and_push.ps1 -Owner Johnsen80 -RepoName HjemmeladingApp
++
++  # Using PAT (set GITHUB_TOKEN env var first)
++  $env:GITHUB_TOKEN = "ghp_..."
++  .\create_github_repo_and_push.ps1 -Owner <your-username> -RepoName HjemmeladingApp
++#>
++
++param(
++    [string]$Owner = '',
++    [string]$RepoName = 'HjemmeladingApp',
++    [switch]$Private
++)
++
++function Write-ErrAndExit($msg){ Write-Host "ERROR: $msg" -ForegroundColor Red; exit 1 }
++
++Push-Location -Path (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent) | Out-Null
++Pop-Location | Out-Null
++
++# Ensure we're in repo root (assumes script in scripts/)
++$repoRoot = Resolve-Path ".." -Relative
++Set-Location -Path (Join-Path -Path (Get-Location) -ChildPath '..')
++
++$currentBranch = (git rev-parse --abbrev-ref HEAD) 2>$null
++if (-not $currentBranch) { Write-ErrAndExit 'Not a git repository or git not available.' }
++Write-Host "Current branch: $currentBranch"
++
++if ($Owner -ne '') { $fullName = "$Owner/$RepoName" } else { $fullName = $RepoName }
++
++if (Get-Command gh -ErrorAction SilentlyContinue) {
++    Write-Host 'Found GitHub CLI `gh` — using it to create repo.'
++    $privacy = $Private.IsPresent ? '--private' : '--public'
++    # `--source . --remote origin --push` will add remote and push current branch
++    $args = @('repo','create',$fullName,$privacy,'--source','.', '--remote','origin','--push','--confirm')
++    Write-Host "Running: gh $($args -join ' ')"
++    gh @args
++    if ($LASTEXITCODE -ne 0) { Write-ErrAndExit 'gh failed to create/push the repo.' }
++    Write-Host 'Repository created and branch pushed using gh.'
++    exit 0
++}
++
++if (-not $env:GITHUB_TOKEN) {
++    Write-Host "GitHub CLI not found and no GITHUB_TOKEN set."
++    Write-Host "Options:"; Write-Host "  - Install gh (https://cli.github.com/) and run again, or"; Write-Host "  - Create a Personal Access Token (repo scope) and set it in environment variable GITHUB_TOKEN, then run this script again."
++    Write-ErrAndExit 'No available method to create repo.'
++}
++
++Write-Host 'Using GITHUB_TOKEN to call GitHub REST API to create repo.'
++$body = @{
++    name = $RepoName
++    private = $Private.IsPresent
++}
++$json = $body | ConvertTo-Json
++
++$headers = @{ Authorization = "token $($env:GITHUB_TOKEN)"; 'User-Agent' = 'create-script' }
++
++if ($Owner -eq '') {
++    # create under authenticated user
++    $url = 'https://api.github.com/user/repos'
++} else {
++    # create under org
++    $url = "https://api.github.com/orgs/$Owner/repos"
++}
++
++Write-Host "Creating repo via API: $url"
++$resp = Invoke-RestMethod -Method Post -Uri $url -Headers $headers -Body $json -ContentType 'application/json' -ErrorAction Stop
++if (-not $resp) { Write-ErrAndExit 'API did not return a response.' }
++
++Write-Host 'Repository created. Now set origin and push branch.'
++$remoteUrl = $resp.clone_url
++git remote remove origin 2>$null
++git remote add origin $remoteUrl
++git push -u origin $currentBranch
++if ($LASTEXITCODE -ne 0) { Write-ErrAndExit 'git push failed.' }
++
++Write-Host "Pushed branch $currentBranch to $remoteUrl"
+diff --git a/HjemmeladingApp/settings.py b/HjemmeladingApp/settings.py
+index dbac6f0..bd5d8de 100644
+--- a/HjemmeladingApp/settings.py
++++ b/HjemmeladingApp/settings.py
+@@ -32,7 +32,7 @@ class SettingsManager:
+         for fn in list(self._listeners):
+             try:
+                 fn(self._cfg)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 # listeners should handle their own errors
+                 pass
+ 
+diff --git a/HjemmeladingApp/tools/_import_check.py b/HjemmeladingApp/tools/_import_check.py
+index 2cb18fe..7d85aff 100644
+--- a/HjemmeladingApp/tools/_import_check.py
++++ b/HjemmeladingApp/tools/_import_check.py
+@@ -26,7 +26,7 @@ for m in modules:
+     try:
+         importlib.import_module(m)
+         results[m] = ("OK", "")
+-    except Exception:
++    except Exception as _suppressed_exc:
+         results[m] = ("ERROR", traceback.format_exc())
+ 
+ print("Import check results:")
+diff --git a/HjemmeladingApp/tools/run_settings_smoke.py b/HjemmeladingApp/tools/run_settings_smoke.py
+index 4fa3695..03c701b 100644
+--- a/HjemmeladingApp/tools/run_settings_smoke.py
++++ b/HjemmeladingApp/tools/run_settings_smoke.py
+@@ -27,14 +27,14 @@ def main() -> int:
+     # Non-blocking dialogs
+     try:
+         QFileDialog.getOpenFileName = lambda *a, **k: (test_path, "")
+-    except Exception:
++    except Exception as _suppressed_exc:
+         pass
+ 
+     try:
+         QMessageBox.information = lambda *a, **k: None
+         QMessageBox.warning = lambda *a, **k: None
+         QMessageBox.exec = lambda *a, **k: None
+-    except Exception:
++    except Exception as _suppressed_exc:
+         pass
+ 
+     # Ensure imports work from tools/ runner
+@@ -78,7 +78,7 @@ def main() -> int:
+     finally:
+         try:
+             os.unlink(test_path)
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+ 
+ 
+@@ -120,7 +120,7 @@ def main():
+     # Monkeypatch file dialogs and message boxes so the UI flow is non-blocking
+     try:
+         QFileDialog.getOpenFileName = lambda *a, **k: (test_path, "")
+-    except Exception:
++    except Exception as _suppressed_exc:
+         import os
+         import sys
+         import tempfile
+@@ -150,14 +150,14 @@ def main():
+             # Monkeypatch file dialogs and message boxes so the UI flow is non-blocking
+             try:
+                 QFileDialog.getOpenFileName = lambda *a, **k: (test_path, "")
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+             try:
+                 QMessageBox.information = lambda *a, **k: None
+                 QMessageBox.warning = lambda *a, **k: None
+                 QMessageBox.exec = lambda *a, **k: None
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+             # Ensure package/project import resolution works when running from tools/
+@@ -203,7 +203,7 @@ def main():
+             finally:
+                 try:
+                     os.unlink(test_path)
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+ 
+ 
+diff --git a/HjemmeladingApp/ui/customizer.py b/HjemmeladingApp/ui/customizer.py
+index 291b5a5..46c61b7 100644
+--- a/HjemmeladingApp/ui/customizer.py
++++ b/HjemmeladingApp/ui/customizer.py
+@@ -47,7 +47,7 @@ class AppearanceCustomizer(QWidget):
+                 append_exception(
+                     f"AppearanceCustomizer init failed: {_init_err}", _init_err
+                 )
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("AppearanceCustomizer init failed")
+             # Fallback minimal UI
+@@ -72,7 +72,7 @@ class AppearanceCustomizer(QWidget):
+             except Exception as _gerr:
+                 try:
+                     append_exception(f"get_background_preview failed: {_gerr}", _gerr)
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+             if pixmap is None and _HAS_QPIXMAP:
+                 try:
+@@ -94,13 +94,13 @@ class AppearanceCustomizer(QWidget):
+                     append_exception(
+                         f"Applying background failed: {_pal_err}", _pal_err
+                     )
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+                 logger.exception("Applying background failed")
+         except Exception as _err:
+             try:
+                 append_exception(f"choose_bg exception: {_err}", _err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("choose_bg exception")
+ 
+@@ -116,12 +116,12 @@ class AppearanceCustomizer(QWidget):
+                 except (AttributeError, TypeError, RuntimeError) as _pal_err:
+                     try:
+                         append_exception(f"Applying color failed: {_pal_err}", _pal_err)
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+                     logger.exception("Applying color failed")
+         except Exception as _err:
+             try:
+                 append_exception(f"choose_color exception: {_err}", _err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("choose_color exception")
+diff --git a/HjemmeladingApp/ui/profile_editor.py b/HjemmeladingApp/ui/profile_editor.py
+index effb1e6..c9b1eec 100644
+--- a/HjemmeladingApp/ui/profile_editor.py
++++ b/HjemmeladingApp/ui/profile_editor.py
+@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
+ 
+ try:
+     from HjemmeladingApp.modules.user_profile import UserProfile
+-except Exception:
++except Exception as _suppressed_exc:
+     try:
+         # backwards-compatible import if running from package root
+         from HjemmeladingApp.modules.user_profile import UserProfile  # type: ignore
+@@ -23,7 +23,7 @@ except Exception:
+         # Provide a lightweight stub so the UI doesn't crash when module missing
+         try:
+             append_exception(f"UserProfile import failed: {_up_err}", _up_err)
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+ 
+         class UserProfile:
+@@ -100,7 +100,7 @@ class ProfileEditor(QWidget):
+             # If constructing full UI fails, provide a minimal fallback so app continues
+             try:
+                 append_exception(f"ProfileEditor init failed: {_init_err}", _init_err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("ProfileEditor init failed")
+             fallback_layout = QVBoxLayout()
+@@ -126,7 +126,7 @@ class ProfileEditor(QWidget):
+         except Exception as _bg_err:
+             try:
+                 append_exception(f"choose_bg failed: {_bg_err}", _bg_err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("choose_bg failed")
+ 
+@@ -142,24 +142,24 @@ class ProfileEditor(QWidget):
+             except Exception as _save_err:
+                 try:
+                     append_exception(f"Profile save failed: {_save_err}", _save_err)
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+                 logger.exception("Profile save failed")
+             if ok:
+                 try:
+                     QMessageBox.information(self, "Lagret", "Innstillinger lagret!")
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     # non-blocking fallback when running headless
+                     logger.info("Settings saved (no UI notification available)")
+             else:
+                 try:
+                     QMessageBox.warning(self, "Feil", "Kunne ikke lagre innstillinger.")
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     logger.warning("Could not show save warning messagebox")
+         except Exception as _err:
+             try:
+                 append_exception(f"save handler exception: {_err}", _err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("save handler exception")
+ 
+@@ -175,7 +175,7 @@ class ProfileEditor(QWidget):
+                 except Exception as _exp_err:
+                     try:
+                         append_exception(f"Profile export failed: {_exp_err}", _exp_err)
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+                     logger.exception("Profile export failed")
+                 if ok:
+@@ -183,17 +183,17 @@ class ProfileEditor(QWidget):
+                         QMessageBox.information(
+                             self, "Eksportert", "Profil eksportert!"
+                         )
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         logger.info("Profile exported (no UI notification)")
+                 else:
+                     try:
+                         QMessageBox.warning(self, "Feil", "Eksport feilet!")
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         logger.warning("Could not show export warning messagebox")
+         except Exception as _err:
+             try:
+                 append_exception(f"export handler exception: {_err}", _err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("export handler exception")
+ 
+@@ -211,13 +211,13 @@ class ProfileEditor(QWidget):
+                 except Exception as _imp_err:
+                     try:
+                         append_exception(f"Profile import failed: {_imp_err}", _imp_err)
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+                     logger.exception("Profile import failed")
+                 if ok:
+                     try:
+                         QMessageBox.information(self, "Importert", "Profil importert!")
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         logger.info("Profile imported (no UI notification)")
+                     # Update UI fields safely
+                     try:
+@@ -231,7 +231,7 @@ class ProfileEditor(QWidget):
+                             self.profile.data.get("button_style", "Standard")
+                         )
+                         self.bg_edit.setText(self.profile.data.get("background", ""))
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         logger.exception("Failed to update profile fields after import")
+                 else:
+                     # If the profile object recorded a detailed error, show it to the user
+@@ -247,11 +247,11 @@ class ProfileEditor(QWidget):
+                             mb.exec()
+                         else:
+                             QMessageBox.warning(self, "Feil", "Import feilet!")
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         logger.exception("Could not show import warning messagebox")
+         except Exception as _err:
+             try:
+                 append_exception(f"import handler exception: {_err}", _err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             logger.exception("import handler exception")
+diff --git a/HjemmeladingApp/ui/settings_dialog.py b/HjemmeladingApp/ui/settings_dialog.py
+index da56a8d..e6a1797 100644
+--- a/HjemmeladingApp/ui/settings_dialog.py
++++ b/HjemmeladingApp/ui/settings_dialog.py
+@@ -32,7 +32,7 @@ class SettingsDialog(QtWidgets.QDialog):
+         layout.addWidget(self.logo_label)
+         try:
+             self._load_logo()
+-        except Exception:
++        except Exception as _suppressed_exc:
+             # _load_logo already logs; continue safely
+             pass
+ 
+@@ -157,17 +157,17 @@ class SettingsDialog(QtWidgets.QDialog):
+                     _logger.exception(
+                         "Failed initial preview application in SettingsDialog: %s", e
+                     )
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             try:
+                 safe_logger.append_exception("SettingsDialog.__init__ failed", e)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             # Build a minimal error dialog UI so dialog remains usable
+             try:
+                 try:
+                     super().__init__(parent)
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+                 self.setWindowTitle("Innstillinger — Feil")
+                 self.resize(400, 120)
+@@ -179,7 +179,7 @@ class SettingsDialog(QtWidgets.QDialog):
+                 btn = QtWidgets.QPushButton("Lukk")
+                 btn.clicked.connect(self.reject)
+                 err_layout.addWidget(btn)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 # If even fallback UI fails, swallow to avoid crashing the app
+                 pass
+ 
+@@ -189,19 +189,19 @@ class SettingsDialog(QtWidgets.QDialog):
+                 if exc:
+                     try:
+                         _logger.exception(msg or "Exception in SettingsDialog")
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+                 else:
+                     try:
+                         _logger.error(msg)
+-                    except Exception:
++                    except Exception as _suppressed_exc:
+                         pass
+             # Use the centralized safe_logger to append to per-user debug file
+             try:
+                 safe_logger.append_exception(msg or "SettingsDialog exception", exc)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+-        except Exception:
++        except Exception as _suppressed_exc:
+             # Intentionally swallow all errors during logging
+             pass
+ 
+@@ -231,11 +231,11 @@ class SettingsDialog(QtWidgets.QDialog):
+             try:
+                 if _logger:
+                     _logger.exception("Failed to load settings dialog logo")
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             try:
+                 self.logo_label.setText("HJEMMELADING")
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+     def _choose_background(self) -> None:
+@@ -252,7 +252,7 @@ class SettingsDialog(QtWidgets.QDialog):
+             try:
+                 if _logger:
+                     _logger.exception("Failed during background selection dialog")
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+     def _on_rgb_change(self) -> None:
+@@ -343,7 +343,7 @@ class SettingsDialog(QtWidgets.QDialog):
+             try:
+                 if _logger:
+                     _logger.exception("Error updating background preview")
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+     def _on_save(self) -> None:
+@@ -381,7 +381,7 @@ class SettingsDialog(QtWidgets.QDialog):
+                         _logger.exception(
+                             "Failed to import config in SettingsDialog._on_save"
+                         )
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+             try:
+                 settings.save()
+@@ -391,7 +391,7 @@ class SettingsDialog(QtWidgets.QDialog):
+                         _logger.exception(
+                             "Failed to save settings in SettingsDialog._on_save"
+                         )
+-                except Exception:
++                except Exception as _suppressed_exc:
+                     pass
+             self.accept()
+         except Exception as e:
+@@ -400,13 +400,13 @@ class SettingsDialog(QtWidgets.QDialog):
+                 self._safe_log_exception(
+                     "Unhandled error during SettingsDialog save", e
+                 )
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             try:
+                 QtWidgets.QMessageBox.critical(
+                     self, "Feil", f"Kunne ikke lagre innstillinger: {e}"
+                 )
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+     def _update_bg_preview(self, path: str, mode: str) -> None:
+@@ -447,12 +447,12 @@ class SettingsDialog(QtWidgets.QDialog):
+                     QtCore.Qt.TransformationMode.SmoothTransformation,
+                 )
+             self.preview_label.setPixmap(scaled)
+-        except Exception:
++        except Exception as _suppressed_exc:
+             # on preview failure, log and continue
+             try:
+                 if _logger:
+                     _logger.exception("Preview image update failed for %s", path)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+ 
+diff --git a/HjemmeladingApp/utils/backgrounds.py b/HjemmeladingApp/utils/backgrounds.py
+index 0ec88f1..e39334a 100644
+--- a/HjemmeladingApp/utils/backgrounds.py
++++ b/HjemmeladingApp/utils/backgrounds.py
+@@ -142,7 +142,7 @@ def load_background_pixmap(path: str):
+         except (RuntimeError, TypeError) as _qt_err:
+             try:
+                 logger.debug("QPixmap load failed: %s", _qt_err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+ 
+     # If Qt pixmap not available or failed, attempt a lightweight PIL verify
+@@ -154,7 +154,7 @@ def load_background_pixmap(path: str):
+         except (OSError, ValueError) as _pil_err:
+             try:
+                 logger.debug("PIL verify failed for %s: %s", path, _pil_err)
+-            except Exception:
++            except Exception as _suppressed_exc:
+                 pass
+             return None
+ 
+@@ -171,6 +171,6 @@ def get_background_preview(path: str):
+     except Exception as _err:
+         try:
+             logger.exception("get_background_preview failed: %s", _err)
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+         return None
+diff --git a/HjemmeladingApp/utils/fonts.py b/HjemmeladingApp/utils/fonts.py
+index 633cb3f..960aed2 100644
+--- a/HjemmeladingApp/utils/fonts.py
++++ b/HjemmeladingApp/utils/fonts.py
+@@ -14,7 +14,8 @@ def register_bundled_fonts() -> int:
+     """
+     try:
+         fonts_dir = Path(__file__).resolve().parent.parent / "resources" / "fonts"
+-    except Exception:
++    except Exception as e:
++        log.debug("Could not resolve fonts directory: %s", e)
+         return 0
+ 
+     if not fonts_dir.exists():
+@@ -24,12 +25,14 @@ def register_bundled_fonts() -> int:
+     # Lazy imports so this module can be imported in non-Qt environments
+     try:
+         from PyQt6.QtGui import QFontDatabase
+-    except Exception:
++    except Exception as e:
++        log.debug("PyQt6.QtGui.QFontDatabase import failed: %s", e)
+         QFontDatabase = None  # type: ignore
+ 
+     try:
+         import matplotlib.font_manager as mf
+-    except Exception:
++    except Exception as e:
++        log.debug("matplotlib.font_manager import failed: %s", e)
+         mf = None
+ 
+     for f in sorted(fonts_dir.glob("*.ttf")):
+@@ -43,26 +46,26 @@ def register_bundled_fonts() -> int:
+                         log.debug("QFontDatabase failed to add %s", f)
+                     else:
+                         log.debug("QFontDatabase added %s -> id %s", f, res)
+-                except Exception:
+-                    log.exception("QFontDatabase.addApplicationFont failed for %s", f)
++                except Exception as e:
++                    log.exception("QFontDatabase.addApplicationFont failed for %s: %s", f, e)
+             # Matplotlib registration (if available)
+             if mf is not None:
+                 try:
+                     mf.fontManager.addfont(str(f))
+-                except Exception:
+-                    log.exception("matplotlib.font_manager.addfont failed for %s", f)
++                except Exception as e:
++                    log.exception("matplotlib.font_manager.addfont failed for %s: %s", f, e)
+             added += 1
+-        except Exception:
+-            log.exception("Failed to register font %s", f)
++        except Exception as e:
++            log.exception("Failed to register font %s: %s", f, e)
+     # Rebuild matplotlib font cache if possible
+     try:
+         if mf is not None:
+             try:
+                 mf._rebuild()
+-            except Exception:
++            except Exception as e:
+                 # If private API not present, ignore
+-                pass
+-    except Exception:
+-        pass
++                log.debug("matplotlib _rebuild skipped: %s", e)
++    except Exception as e:
++        log.debug("Error while attempting matplotlib rebuild: %s", e)
+ 
+     return added
+diff --git a/HjemmeladingApp/utils/mode_manager.py b/HjemmeladingApp/utils/mode_manager.py
+index b9229f1..f3dd029 100644
+--- a/HjemmeladingApp/utils/mode_manager.py
++++ b/HjemmeladingApp/utils/mode_manager.py
+@@ -23,15 +23,15 @@ class _SimpleSignal:
+     def connect(self, fn):
+         try:
+             self._callbacks.append(fn)
+-        except Exception:
+-            log.exception("Failed to connect signal callback")
++        except Exception as e:
++            log.exception("Failed to connect signal callback: %s", e)
+ 
+     def emit(self, *args, **kwargs):
+         for cb in list(self._callbacks):
+             try:
+                 cb(*args, **kwargs)
+-            except Exception:
+-                log.exception("Error in signal callback")
++            except Exception as e:
++                log.exception("Error in signal callback: %s", e)
+ 
+ 
+ class UserModeManager:
+@@ -53,8 +53,8 @@ class UserModeManager:
+         self._mode = mode
+         try:
+             self.mode_changed.emit(mode)
+-        except Exception:
+-            log.exception("Failed to emit mode_changed")
++        except Exception as e:
++            log.exception("Failed to emit mode_changed: %s", e)
+ 
+ 
+ __all__ = ["UserMode", "UserModeManager"]
+diff --git a/HjemmeladingApp/utils/safe_logger.py b/HjemmeladingApp/utils/safe_logger.py
+index 933254a..50df60c 100644
+--- a/HjemmeladingApp/utils/safe_logger.py
++++ b/HjemmeladingApp/utils/safe_logger.py
+@@ -20,7 +20,7 @@ def _get_log_dir(app_name: str = "Hjemmelading") -> Path:
+         p = Path(_gld(app_name))
+         p.mkdir(parents=True, exist_ok=True)
+         return p
+-    except Exception:
++    except Exception as _suppressed_exc:
+         # Fall back to LOCALAPPDATA or cwd
+         try:
+             local = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_STATE_HOME")
+@@ -28,13 +28,13 @@ def _get_log_dir(app_name: str = "Hjemmelading") -> Path:
+                 p = Path(local) / app_name / "logs"
+                 p.mkdir(parents=True, exist_ok=True)
+                 return p
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+     try:
+         cwd = Path.cwd() / "logs"
+         cwd.mkdir(parents=True, exist_ok=True)
+         return cwd
+-    except Exception:
++    except Exception as _suppressed_exc:
+         return Path(".")
+ 
+ 
+@@ -59,14 +59,14 @@ def append_exception(
+                 )
+             else:
+                 fh.write(msg + "\n")
+-    except Exception:
++    except Exception as _suppressed_exc:
+         # Intentionally swallow all exceptions; logging must not raise
+         try:
+             # As a very last resort, write to stderr if available
+             import sys
+ 
+             sys.stderr.write(f"{msg}\n")
+-        except Exception:
++        except Exception as _suppressed_exc:
+             pass
+ 
+ 
+@@ -78,5 +78,5 @@ def append_message(msg: str, app_name: str = "Hjemmelading") -> None:
+ 
+             fh.write(f"\n--- {datetime.utcnow().isoformat()}Z ---\n")
+             fh.write(msg + "\n")
+-    except Exception:
++    except Exception as _suppressed_exc:
+         pass
+-- 
+2.52.0.windows.1
+

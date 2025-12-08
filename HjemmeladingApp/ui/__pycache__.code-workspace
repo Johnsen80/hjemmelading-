@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "../__pycache__"
+		},
+		{
+			"path": "../assets"
+		},
+		{
+			"path": "../data"
+		},
+		{
+			"path": "../modules"
+		},
+		{
+			"path": "../resources"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../utils"
+		}
+	]
+}

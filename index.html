@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Hjemmelading</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; padding: 18px; }
+      .panel { border: 1px solid #ddd; padding: 12px; margin-bottom: 12px; border-radius: 6px; }
+      label { display:block; margin-top:8px; }
+      input, textarea, select { width:100%; box-sizing:border-box; padding:6px; margin-top:4px; }
+      button { margin-top:8px; padding:8px 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>Hjemmelading — Admin</h1>
+
+    <div class="panel">
+      <h2>Powder</h2>
+      <form id="powder-form">
+        <label>Navn <input id="powder-name" name="name" /></label>
+        <label>Vendor <input id="powder-vendor" name="vendor" /></label>
+        <label>Notes <textarea id="powder-notes" name="notes"></textarea></label>
+        <button type="submit">Save powder</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Bullet</h2>
+      <form id="bullet-form">
+        <label>Navn <input id="bullet-name" name="name" /></label>
+        <label>Caliber <input id="bullet-caliber" name="caliber" /></label>
+        <label>Notes <textarea id="bullet-notes" name="notes"></textarea></label>
+        <button type="submit">Save bullet</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Import GRT</h2>
+      <textarea id="import-grt-text" rows="8" placeholder="Paste GRT datasheet text here..."></textarea>
+      <button id="import-grt-button">Import</button>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
+  <title>Hjemmelading — Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .col { display: inline-block; vertical-align: top; width: 48%; margin-right: 2%; }
+    textarea { width: 100%; height: 200px; }
+    ul { list-style: none; padding-left: 0; }
+    label { display:block; margin-top:8px; }
+    input[type=text], textarea { padding:6px; width:100%; box-sizing:border-box }
+    .small { width: 120px; display: inline-block }
+  </style>
+  <script src="renderer.js"></script>
+</head>
+<body>
+  <h1>Hjemmelading — Data</h1>
+  <div class="col">
+    <h2>Powders</h2>
+    <form id="powder-form">
+      <label>Navn <input id="powder-name" type="text" required></label>
+      <label>Brennhastighet <input id="powder-burn" type="text"></label>
+      <label>Notater <input id="powder-notes" type="text"></label>
+      <button type="submit">Lagre krutt</button>
+    </form>
+    <ul id="powders-list"></ul>
+
+    <h2>Kuler</h2>
+    <form id="bullet-form">
+      <label>Navn <input id="bullet-name" type="text" required></label>
+      <label>Kaliber <input id="bullet-caliber" type="text"></label>
+      <label>Vekt (gr) <input id="bullet-weight" type="text"></label>
+      <label>Type <input id="bullet-type" type="text"></label>
+      <button type="submit">Lagre kule</button>
+    </form>
+    <ul id="bullets-list"></ul>
+
+    <h2>Våpen (manuell registrering)</h2>
+    <form id="weapon-form">
+      <label>Navn <input id="weapon-name" type="text" required></label>
+      <label>Kaliber <input id="weapon-caliber" type="text"></label>
+      <label>Pipe lengde
+        <input id="weapon-barrel-length" type="text" class="small" placeholder="610">
+        <select id="weapon-barrel-unit">
+          <option value="mm">mm</option>
+          <option value="in">in</option>
+        </select>
+      </label>
+      <label>Twist (tomme per omdreining eller mm per omdreining)
+        <input id="weapon-twist" type="text" class="small" placeholder="10">
+        <select id="weapon-twist-unit">
+          <option value="1/in">inches/turn (1:10)</option>
+          <option value="mm/turn">mm/turn</option>
+        </select>
+      </label>
+      <button type="submit">Lagre våpen</button>
+    </form>
+    <ul id="weapons-list"></ul>
+  </div>
+
+  <div class="col">
+    <h2>Importer GRT-tekst</h2>
+    <p>Lim inn datasheet / loads-tekst fra Gordon's Reloading Tool og trykk <em>Importer</em>.</p>
+    <textarea id="import-text" placeholder="Lim inn GRT-tekst her..."></textarea>
+    <button id="import-btn">Importer</button>
+  </div>
+</body>
+</html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
+  <title>Hjemmelading — Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .col { display: inline-block; vertical-align: top; width: 48%; margin-right: 2%; }
+    textarea { width: 100%; height: 200px; }
+    ul { list-style: none; padding-left: 0; }
+    label { display:block; margin-top:8px; }
+    input[type=text], textarea { padding:6px; width:100%; box-sizing:border-box }
+  </style>
+  <script src="renderer.js"></script>
+</head>
+<body>
+  <h1>Hjemmelading — Data</h1>
+  <div class="col">
+    <h2>Powders</h2>
+    <form id="powder-form">
+      <label>Navn <input id="powder-name" type="text" required></label>
+      <label>Brennhastighet <input id="powder-burn" type="text"></label>
+      <label>Notater <input id="powder-notes" type="text"></label>
+      <button type="submit">Lagre krutt</button>
+    </form>
+    <ul id="powders-list"></ul>
+
+    <h2>Kuler</h2>
+    <form id="bullet-form">
+      <label>Navn <input id="bullet-name" type="text" required></label>
+      <label>Kaliber <input id="bullet-caliber" type="text"></label>
+      <label>Vekt (gr) <input id="bullet-weight" type="text"></label>
+      <label>Type <input id="bullet-type" type="text"></label>
+      <button type="submit">Lagre kule</button>
+    </form>
+    <ul id="bullets-list"></ul>
+  </div>
+
+  <div class="col">
+    <h2>Importer GRT-tekst</h2>
+    <p>Lim inn datasheet / loads-tekst fra Gordon's Reloading Tool og trykk <em>Importer</em>.</p>
+    <textarea id="import-text" placeholder="Lim inn GRT-tekst her..."></textarea>
+    <button id="import-btn">Importer</button>
+  </div>
+</body>
+</html>
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <title>Hjemmelading - Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Hjemmelading</h1>
+    <div id="mode">Mode: Desktop</div>
+  </header>
+
+  <main>
+    <section id="dashboard">
+      <button id="btn-new-weapon">Ny våpen</button>
+      <button id="btn-import-grt">Importer GRT-datasheet</button>
+      <button id="btn-start-server">Start server-modus</button>
+
+      <div id="output"></div>
+    </section>
+  </main>
+
+  <script src="modules/importGRT.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

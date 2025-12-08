@@ -1,0 +1,75 @@
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+exclude = '(?:\.venv|\.github/\.tool-venv|HjemmeladingApp/ui/\.venv)'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip = [".venv", ".github/.tool-venv", "HjemmeladingApp/ui/.venv"]
+[tool.mypy]
+python_version = 3.11
+ignore_missing_imports = true
+[tool.ruff]
+# merged ruff settings
+line-length = 120
+exclude = [".venv", "__pycache__", "data", "assets", "tools", "artifacts", "venv", "scripts/*", "tools/archive"]
+
+# Lint-specific settings
+[tool.ruff.lint]
+# Pragmatic selects/ignores for this legacy codebase. Move linter-specific
+# configuration under the `lint` section as newer ruff versions expect.
+extend-select = ["E", "F", "W", "C90"]
+# Ignore the McCabe complexity warnings (C901) for now — refactor later.
+extend-ignore = ["E402", "C901"]
+
+# Per-file ignores for intentionally long text blocks (UI templates, i18n, DB inits)
+# Per-file ignores: use a TOML table so multi-line entries parse correctly.
+[tool.ruff.lint."per-file-ignores"]
+"src/utils/i18n.py" = ["E501"]
+"src/database/*.py" = ["E501"]
+"src/modules/*wizard*.py" = ["E501"]
+"src/modules/*_builder.py" = ["E501"]
+"src/modules/*_pages.py" = ["E501"]
+"src/modules/*_generator.py" = ["E501"]
+"src/modules/*_workspace.py" = ["E501"]
+"src/modules/ai_chat_assistant.py" = ["E501"]
+"src/modules/ballistics_engine.py" = ["E501"]
+"src/modules/comprehensive_logger.py" = ["E501"]
+"src/modules/dashboard.py" = ["E501", "C901"]
+"src/modules/environmental_logger.py" = ["E501"]
+"src/modules/precision_tracker.py" = ["E501"]
+"src/modules/weapon_profile_dialog.py" = ["E501"]
+"src/modules/modern_load_builder.py" = ["E501"]
+"src/modules/ladder_test_lab.py" = ["E501"]
+"src/modules/load_development_workflow.py" = ["E501"]
+"src/modules/primer_tools.py" = ["E501"]
+"src/modules/rifle_accuracy_test_system.py" = ["E501"]
+"src/modules/rifle_database_manager.py" = ["E501"]
+"src/modules/rifle_performance_tracker.py" = ["E501", "C901"]
+"src/modules/rimfire_analyzer.py" = ["E501", "C901"]
+"HjemmeladingApp/ui/*.py" = ["C901"]
+"HjemmeladingApp/ui/**/*.py" = ["C901"]
+"src/modules/batch_qc_dashboard.py" = ["C901"]
+"src/modules/chronograph_importer.py" = ["C901"]
+"src/modules/ammo_profile_manager.py" = ["C901"]
+"HjemmeladingApp/utils/backgrounds.py" = ["C901"]
+"HjemmeladingApp/utils/fonts.py" = ["C901"]
+"HjemmeladingApp/main.py" = ["C901"]
+"src/modules/drop_chart_generator.py" = ["C901"]
+"src/modules/grt_integration.py" = ["C901"]
+"src/modules/harmonic_wizard.py" = ["C901"]
+"src/modules/rifle_optic_manager.py" = ["C901"]
+
+# Additional per-file ignores for legacy complex functions flagged by ruff
+# (Only add files that are not already listed above to avoid TOML duplicate keys)
+"src/modules/primer_guide.py" = ["C901"]
+"src/modules/saami_compliance_checker.py" = ["C901"]
+"src/modules/session_logger.py" = ["C901"]
+"src/modules/smart_loading_wizard.py" = ["C901"]
+"src/modules/workflow_hub.py" = ["C901"]
+"src/ui/main_window.py" = ["C901"]
+
+# If you need additional ruff settings, add them under [tool.ruff]
+# Example: select = ["E", "F", "I"]

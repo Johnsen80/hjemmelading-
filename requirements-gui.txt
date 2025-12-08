@@ -1,0 +1,3 @@
+PyQt6>=6.0
+# Optional: pin specific version if CI needs it
+# PyQt6==6.6.2

@@ -1,0 +1,28 @@
+# Consolidated pyproject.toml for tooling
+# Ruff and mypy configuration for the repository
+
+[tool.ruff]
+line-length = 120
+exclude = [
+	".venv",
+	"__pycache__",
+	"data",
+	"assets",
+	"tools",
+	"tools/archive",
+	"dist",
+	"build",
+	"node_modules",
+	".github",
+	".github/.tool-venv",
+	"HjemmeladingApp/**/.venv",
+]
+
+[tool.ruff.lint]
+extend-select = ["E", "F", "W", "C90"]
+extend-ignore = ["C901", "E402", "E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_configs = false

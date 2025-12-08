@@ -1,0 +1,64 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+  workflow_dispatch: {}
+
+jobs:
+  headless-tests:
+    name: Headless tests (default)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies (best-effort)
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
+          if [ -f dev-requirements.txt ]; then pip install -r dev-requirements.txt || true; fi
+
+      - name: Discover files importing PyQt6 and run pytest (headless)
+        run: |
+          # collect files that import PyQt6 and pass them to pytest --ignore
+          FILES=$(git grep -l "from PyQt6" || true)
+          IGNORE_ARGS="--ignore=bundle_publish"
+          for f in $FILES; do
+            IGNORE_ARGS="$IGNORE_ARGS --ignore=$f"
+          done
+          echo "Ignoring PyQt6 files: $FILES"
+          python -m pytest -q --disable-warnings --maxfail=1 $IGNORE_ARGS
+
+  gui-tests:
+    name: GUI tests (optional — installs PyQt6)
+    runs-on: ubuntu-latest
+    needs: headless-tests
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install GUI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
+          if [ -f requirements-gui.txt ]; then pip install -r requirements-gui.txt; fi
+
+      - name: Install Xvfb and run full pytest (GUI)
+        run: |
+          # Xvfb provides a virtual X server for headless GUI testing on Linux runners
+          sudo apt-get update && sudo apt-get install -y xvfb
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' python -m pytest -q --disable-warnings --maxfail=1

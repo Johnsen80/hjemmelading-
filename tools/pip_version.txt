@@ -1,0 +1,1 @@
+pip 25.3 from c:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\.venv\Lib\site-packages\pip (python 3.11)

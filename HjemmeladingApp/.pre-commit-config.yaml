@@ -1,0 +1,54 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-fix
+        name: ruff --fix
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m ruff check --fix
+        language: system
+        types: [python]
+      - id: isort
+        name: isort
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m isort
+        language: system
+        types: [python]
+      - id: black
+        name: black
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m black
+        language: system
+        types: [python]
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-fix
+        name: ruff --fix
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m ruff check --fix
+        language: system
+        types: [python]
+      - id: isort
+        name: isort
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m isort
+        language: system
+        types: [python]
+      - id: black
+        name: black
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m black
+        language: system
+        types: [python]
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-fix
+        name: ruff --fix
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m ruff check --fix
+        language: system
+        types: [python]
+      - id: isort
+        name: isort
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m isort
+        language: system
+        types: [python]
+      - id: black
+        name: black
+        entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m black
+        language: system
+        types: [python]

@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+\.venv_ci/
+\.venv_test/
+
+# PyQt UI venvs inside project
+HjemmeladingApp/ui/.venv/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# GitHub actions temp
+.github/Hjemmelading-remote/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database/files tracked with LFS should not be committed directly
+data/*.db
+/.venv/
+*.lnk
+error.log
+tools/shortcut_creation_debug.json
+/dist/
+/build/
+__pycache__/
+*.pyc
+*.pyo
+HjemmeladingApp/resources/fonts/
+node_modules
+
+# Ignore local tool virtualenv
+.github/.tool-venv/
+
+# Ignore generated bundle and publishing dir
+refactor-long-lines.bundle
+bundle_publish/

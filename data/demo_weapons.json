@@ -1,0 +1,20 @@
+[
+  {
+    "id": "demo-01",
+    "name": "Valkyrie Scout",
+    "caliber": "6.5mm",
+    "barrel_length_mm": 610,
+    "twist": "1:8",
+    "muzzle_velocity_mps": 820,
+    "notes": "Lightweight hunting/target rifle demo profile"
+  },
+  {
+    "id": "demo-02",
+    "name": "Valkyrie Precision",
+    "caliber": ".308 Win",
+    "barrel_length_mm": 660,
+    "twist": "1:10",
+    "muzzle_velocity_mps": 790,
+    "notes": "Benchrest-style demo profile"
+  }
+]

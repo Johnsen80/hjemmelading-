@@ -1,0 +1,300 @@
+"""Minimal, cleaned-up Terrain Map module for Hjemmelading.
+
+This file consolidates the previous fragmented implementations into a
+single syntactically-correct module. It provides the main UI widget and
+safe helpers for folium usage. Further domain logic can be restored
+incrementally from history if needed.
+"""
+
+import math
+import os
+import logging
+
+from PyQt6.QtCore import QUrl
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QCheckBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
+    QTextEdit,
+    QWidget,
+)
+from PyQt6.QtGui import QFont
+
+# Defensive (optional) imports
+_HAS_REQUESTS = False
+_HAS_FOLIUM = False
+_HAS_QTWEBENGINE = False
+
+try:
+    import requests
+
+    _HAS_REQUESTS = True
+except Exception:
+    _HAS_REQUESTS = False
+
+try:
+    import folium
+
+    _HAS_FOLIUM = True
+except Exception:
+    _HAS_FOLIUM = False
+
+try:
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
+
+    _HAS_QTWEBENGINE = True
+except Exception:
+    _HAS_QTWEBENGINE = False
+
+# Optional safe logger import (fall back to no-op)
+try:
+    from HjemmeladingApp.utils.safe_logger import append_exception
+except Exception:
+    def append_exception(*_, **__):
+        return None
+
+from src.logging_config import configure_logging
+from src.utils.i18n import tr
+
+configure_logging()
+logger = logging.getLogger(__name__)
+
+
+class PurposeSelectionDialog(QDialog):
+    """Simple dialog to select the purpose/mode for the terrain analysis."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Velg formål")
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(QLabel("Hva skal du bruke terrenganalysen til?"))
+        self.combo = QComboBox()
+        self.combo.addItems(["range", "hunting", "fri analyse"])
+        layout.addWidget(self.combo)
+        btn = QPushButton("OK")
+        btn.clicked.connect(self.accept)
+        layout.addWidget(btn)
+
+    def get_purpose(self):
+        return self.combo.currentText()
+
+
+def _safe_add_marker(map_obj, location, popup=None, color="blue", icon="info"):
+    """Safely add a folium Marker to `map_obj` if folium is available."""
+    if not _HAS_FOLIUM or map_obj is None:
+        return
+    try:
+        folium.Marker(location=location, popup=popup).add_to(map_obj)
+    except Exception as e:
+        logger.debug("Could not add folium Marker: %s", e)
+
+
+def _safe_add_polyline(map_obj, locations, color="blue", weight=3, opacity=0.7):
+    if not _HAS_FOLIUM or map_obj is None:
+        return
+    try:
+        folium.PolyLine(locations=locations, color=color, weight=weight, opacity=opacity).add_to(map_obj)
+    except Exception as e:
+        logger.debug("Could not add folium PolyLine: %s", e)
+
+
+class TerrainMapViewer(QWidget):
+    """Widget for terrain-aware shooting analysis (simplified).
+
+    This implementation focuses on providing a syntactically-correct and
+    lint-clean baseline so we can continue triage. Behavioural details
+    can be restored incrementally.
+    """
+
+    def __init__(self, parent=None, db=None):
+        super().__init__(parent)
+        self.db = db
+        self.current_map = None
+        self.map_view = None
+        self.results_text = None
+        self.shooter_lat = None
+        self.shooter_lon = None
+        self.target_lat = None
+        self.target_lon = None
+        self.current_language = "no"
+        self.selected_purpose = "range"
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        title = QLabel(tr("title", self.current_language))
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        layout.addWidget(title)
+
+        subtitle = QLabel(tr("subtitle", self.current_language))
+        subtitle.setStyleSheet("color: gray; font-size: 11pt;")
+        layout.addWidget(subtitle)
+
+        # Language
+        self.language_combo = QComboBox()
+        self.language_combo.addItem("Norsk", "no")
+        self.language_combo.addItem("Engelsk", "en")
+        layout.addWidget(QLabel("Velg språk:"))
+        layout.addWidget(self.language_combo)
+
+        main_layout = QHBoxLayout()
+        layout.addLayout(main_layout)
+
+        map_group = self.create_map_section()
+        main_layout.addWidget(map_group, 3)
+
+        control_group = self.create_control_section()
+        main_layout.addWidget(control_group, 1)
+
+        results_group = self.create_results_section()
+        layout.addWidget(results_group)
+
+        # Try loading default map (non-fatal)
+        try:
+            self.load_default_map()
+        except Exception as e:
+            logger.error("Map loading error: %s", e)
+
+    def create_map_section(self):
+        group = QGroupBox(tr("title", self.current_language))
+        group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+
+        # Web view for kart (if available)
+        if _HAS_QTWEBENGINE:
+            try:
+                self.map_view = QWebEngineView()
+                self.map_view.setMinimumHeight(400)
+                layout.addWidget(self.map_view)
+            except Exception:
+                self.map_view = None
+
+        if not self.map_view:
+            info = QLabel("Interaktivt kart ikke tilgjengelig; bruk manuelle koordinater.")
+            info.setWordWrap(True)
+            layout.addWidget(info)
+
+        return group
+
+    def create_control_section(self):
+        group = QGroupBox(tr("weather", self.current_language))
+        group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+
+        form = QFormLayout()
+        self.shooter_lat = QDoubleSpinBox()
+        self.shooter_lat.setRange(-90, 90)
+        self.shooter_lat.setDecimals(6)
+        self.shooter_lat.setValue(59.9139)
+        form.addRow("Skytter Lat:", self.shooter_lat)
+
+        self.shooter_lon = QDoubleSpinBox()
+        self.shooter_lon.setRange(-180, 180)
+        self.shooter_lon.setDecimals(6)
+        self.shooter_lon.setValue(10.7522)
+        form.addRow("Skytter Lon:", self.shooter_lon)
+
+        layout.addLayout(form)
+
+        fetch_weather_btn = QPushButton("☁️ Hent vær for skyteposisjon")
+        fetch_weather_btn.clicked.connect(self.fetch_weather)
+        layout.addWidget(fetch_weather_btn)
+
+        self.weather_display = QTextEdit()
+        self.weather_display.setReadOnly(True)
+        layout.addWidget(self.weather_display)
+
+        analyze_btn = QPushButton(tr("analyze_shot", self.current_language))
+        analyze_btn.clicked.connect(self.analyze_shot)
+        layout.addWidget(analyze_btn)
+
+        return group
+
+    def create_results_section(self):
+        group = QGroupBox(tr("ai_coach", self.current_language))
+        group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        layout = QVBoxLayout()
+        group.setLayout(layout)
+
+        self.results_text = QTextEdit()
+        self.results_text.setReadOnly(True)
+        layout.addWidget(self.results_text)
+        return group
+
+    def load_default_map(self):
+        # Provide a simple fallback HTML when folium/QWebEngine isn't available
+        info_html = "<html><body><h2>Terrain Map</h2><p>Bruk manuelle koordinater.</p></body></html>"
+        if self.map_view:
+            try:
+                self.map_view.setHtml(info_html)
+            except Exception:
+                logger.debug("Failed to set HTML on map_view")
+
+    def display_map(self, folium_map):
+        if not folium_map:
+            return
+        try:
+            os.makedirs("data", exist_ok=True)
+            map_file = os.path.join("data", "temp_terrain_map.html")
+            folium_map.save(map_file)
+            if self.map_view:
+                self.map_view.setUrl(QUrl.fromLocalFile(os.path.abspath(map_file)))
+        except Exception as e:
+            logger.error("Map display error: %s", e)
+
+    def fetch_weather(self):
+        # Basic synchronous implementation; backgrounding can be added later
+        try:
+            lat = float(self.shooter_lat.value())
+            lon = float(self.shooter_lon.value())
+        except Exception:
+            self.weather_display.setText("Mangler koordinater for værdata.")
+            return
+
+        if not _HAS_REQUESTS:
+            self.weather_display.setText("requests ikke tilgjengelig")
+            return
+
+        try:
+            data = requests.get(f"https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={lat}&lon={lon}", timeout=10).json()
+            self.weather_display.setText(str(data)[:1000])
+        except Exception as e:
+            logger.error("Yr værdata-feil: %s", e)
+            self.weather_display.setText("Kunne ikke hente værdata")
+
+    def get_elevation(self, lat, lon):
+        if not _HAS_REQUESTS:
+            return None
+        try:
+            url = f"https://api.opentopodata.org/v1/srtm30m?locations={lat},{lon}"
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("results", [])[0].get("elevation")
+        except Exception as e:
+            logger.debug("get_elevation failed: %s", e)
+            try:
+                append_exception("get_elevation failed", e)
+            except Exception:
+                pass
+            return None
+
+    def analyze_shot(self):
+        self.results_text.setText("Analyse startet (forenklet)")
+
+

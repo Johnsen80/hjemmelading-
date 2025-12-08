@@ -1,0 +1,9 @@
+
+# Formatter and linters
+black==24.1.0
+ruff==0.14.0
+flake8==6.1.0
+
+# Test runner
+pytest==7.4.0
+

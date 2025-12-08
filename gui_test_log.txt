@@ -1,0 +1,7 @@
+Starting GUI test...
+Exception during GUI test:
+Traceback (most recent call last):
+  File "C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\tools\gui_test.py", line 10, in <module>
+    from PyQt6.QtCore import QTimer
+ModuleNotFoundError: No module named 'PyQt6'
+

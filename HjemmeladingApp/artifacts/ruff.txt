@@ -1,0 +1,69 @@
+F841 Local variable `ok` is assigned to but never used
+  --> tools\run_settings_smoke.py:53:9
+   |
+52 |         up = UserProfile()
+53 |         ok = up.import_profile(test_path)
+   |         ^^
+54 |         last_err = getattr(up, "last_error", None)
+55 |         if last_err:
+   |
+help: Remove assignment to unused variable `ok`
+
+F841 Local variable `app` is assigned to but never used
+  --> tools\run_settings_smoke.py:62:5
+   |
+60 |         print("CORE_IMPORT_EXCEPTION:", exc)
+61 |
+62 |     app = QApplication([])
+   |     ^^^
+63 |
+64 |     try:
+   |
+help: Remove assignment to unused variable `app`
+
+E402 Module level import not at top of file
+  --> tools\run_settings_smoke.py:91:1
+   |
+89 |     rc = main()
+90 |     sys.exit(rc)
+91 | import sys
+   | ^^^^^^^^^^
+92 | from pathlib import Path
+93 | from PyQt6.QtWidgets import QApplication
+   |
+
+E402 Module level import not at top of file
+  --> tools\run_settings_smoke.py:92:1
+   |
+90 |     sys.exit(rc)
+91 | import sys
+92 | from pathlib import Path
+   | ^^^^^^^^^^^^^^^^^^^^^^^^
+93 | from PyQt6.QtWidgets import QApplication
+94 | from PyQt6.QtCore import QTimer
+   |
+
+E402 Module level import not at top of file
+  --> tools\run_settings_smoke.py:93:1
+   |
+91 | import sys
+92 | from pathlib import Path
+93 | from PyQt6.QtWidgets import QApplication
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+94 | from PyQt6.QtCore import QTimer
+   |
+
+E402 Module level import not at top of file
+  --> tools\run_settings_smoke.py:94:1
+   |
+92 | from pathlib import Path
+93 | from PyQt6.QtWidgets import QApplication
+94 | from PyQt6.QtCore import QTimer
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+95 |
+96 | # Ensure package root is on sys.path like main.py does
+   |
+
+Found 6 errors.
+No fixes available (2 hidden fixes can be enabled with the `--unsafe-fixes` option).
+

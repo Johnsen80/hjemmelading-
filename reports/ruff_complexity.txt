@@ -1,0 +1,118 @@
+C901 `validate_profile` is too complex (17 > 10)
+  --> HjemmeladingApp\modules\hjemmelading\validation.py:23:5
+   |
+23 | def validate_profile(data: Dict[str, Any]) -> Dict[str, Any]:
+   |     ^^^^^^^^^^^^^^^^
+24 |     """Validate and normalize a profile dictionary.
+   |
+
+C901 `calculate_load` is too complex (38 > 10)
+   --> src\modules\ballistics_engine.py:182:9
+    |
+180 |         self.db = get_database()
+181 |
+182 |     def calculate_load(
+    |         ^^^^^^^^^^^^^^
+183 |         self,
+184 |         rifle_id: int,
+    |
+
+C901 `get_ai_response` is too complex (45 > 10)
+   --> src\modules\modern_load_builder.py:820:9
+    |
+818 |         self.chat_display.moveCursor(QTextCursor.MoveOperation.End)
+819 |
+820 |     def get_ai_response(self, message):
+    |         ^^^^^^^^^^^^^^^
+821 |         """
+822 |         Comprehensive AI reloading assistant - your expert friend!
+    |
+
+C901 `recommend_primer` is too complex (13 > 10)
+   --> src\modules\primer_guide.py:186:9
+    |
+184 |             print(f"Error loading primers: {e}")
+185 |
+186 |     def recommend_primer(self):
+    |         ^^^^^^^^^^^^^^^^
+187 |         """Recommend primer based on selections"""
+188 |         cartridge = self.cartridge_combo.currentText()
+    |
+
+C901 `check_compliance` is too complex (22 > 10)
+   --> src\modules\saami_compliance_checker.py:303:9
+    |
+301 |         self.spin_case_length.setValue(self.current_spec["case_length"])
+302 |
+303 |     def check_compliance(self):
+    |         ^^^^^^^^^^^^^^^^
+304 |         """Sjekk compliance"""
+305 |         if not self.current_spec:
+    |
+
+C901 `load_session_data` is too complex (12 > 10)
+   --> src\modules\session_logger.py:624:9
+    |
+622 |         layout.addLayout(btn_layout)
+623 |
+624 |     def load_session_data(self):
+    |         ^^^^^^^^^^^^^^^^^
+625 |         """Laster eksisterende session data"""
+626 |         self.date.setDate(QDate.fromString(self.session["date"], "yyyy-MM-dd"))
+    |
+
+C901 `analyze_and_recommend` is too complex (12 > 10)
+   --> src\modules\smart_loading_wizard.py:424:9
+    |
+422 |         self.analyze_and_recommend(rifle_id, purpose, components)
+423 |
+424 |     def analyze_and_recommend(self, rifle_id: int, purpose: str, components: Dict):
+    |         ^^^^^^^^^^^^^^^^^^^^^
+425 |         """Analyser data og gi anbefaling"""
+426 |         self.progress.setValue(10)
+    |
+
+C901 `init_ui` is too complex (17 > 10)
+   --> src\modules\workflow_hub.py:176:9
+    |
+174 |         self.init_ui()
+175 |
+176 |     def init_ui(self):
+    |         ^^^^^^^
+177 |         scroll = QScrollArea()
+178 |         scroll.setWidgetResizable(True)
+    |
+
+C901 `apply_user_settings` is too complex (21 > 10)
+   --> src\ui\main_window.py:393:9
+    |
+391 |             logger.exception("Error applying theme from settings")
+392 |
+393 |     def apply_user_settings(self):
+    |         ^^^^^^^^^^^^^^^^^^^
+394 |         """Safely apply per-user settings and initialize mode/shortcuts.
+    |
+
+C901 `create_analysis_tab` is too complex (17 > 10)
+   --> src\ui\main_window.py:732:9
+    |
+730 |             return w
+731 |
+732 |     def create_analysis_tab(self):
+    |         ^^^^^^^^^^^^^^^^^^^
+733 |         """Oppretter analyse-fanen"""
+734 |         widget = QWidget()
+    |
+
+C901 `launch_workflow` is too complex (19 > 10)
+    --> src\ui\main_window.py:1062:9
+     |
+1060 |         self.statusBar.showMessage("Legacy view - Alle verktøy")
+1061 |
+1062 |     def launch_workflow(self, workflow_id: str):
+     |         ^^^^^^^^^^^^^^^
+1063 |         """Launch specific workflow"""
+1064 |         workflow_map = {
+     |
+
+Found 11 errors.
