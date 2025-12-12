@@ -8,20 +8,21 @@ Modern Viking Card Widget for PyQt6
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from src.ui.reloading_theme import ReloadingTheme
 
 
 class ModernCard(QWidget):
     def __init__(self, title, subtitle, icon_path=None, parent=None):
         super().__init__(parent)
-        self.setStyleSheet(
-            """
-            background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1,
-                stop:0 #23242b, stop:1 #18181c);
-            border-radius: 16px;
-            border: 2px solid #bfa14a;
-            padding: 18px;
-        """
-        )
+        # Use theme helpers instead of inline styles so the widget is
+        # safe for import-time and consistent with the central stylesheet.
+        self.setObjectName("modernCard")
+        # apply the small card stylesheet snippet locally
+        try:
+            self.setStyleSheet(ReloadingTheme.get_card_style())
+        except Exception:
+            # fall back to minimal inline safe defaults if theme helper fails
+            self.setStyleSheet("background-color:#23242b; border-radius:12px; padding:12px;")
         self.setMinimumWidth(320)
         self.setMaximumWidth(480)
         layout = QVBoxLayout(self)
@@ -43,14 +44,14 @@ class ModernCard(QWidget):
             layout.addWidget(icon_label)
         # Title
         title_label = QLabel(title)
+        title_label.setObjectName("cardTitle")
         title_label.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #ffd700;")
         title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(title_label)
         # Subtitle
         subtitle_label = QLabel(subtitle)
+        subtitle_label.setObjectName("cardSubtitle")
         subtitle_label.setFont(QFont("Segoe UI", 12))
-        subtitle_label.setStyleSheet("color: #e0e0e0;")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(subtitle_label)
         layout.addStretch()

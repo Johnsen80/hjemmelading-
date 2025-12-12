@@ -622,7 +622,11 @@ class BallisticsEngine:
         # V ≈ K * sqrt(P * C / W) * f(L)
         # Where K is caliber factor, P is pressure, C is charge, W is bullet weight, L is length
 
-        charge_ratio = charge_gr / bullet_weight_gr
+        # Defensive guards: avoid division by zero from bad input data
+        safe_bullet_weight = bullet_weight_gr if bullet_weight_gr and bullet_weight_gr > 0 else 1e-9
+        safe_barrel_length = barrel_length_in if barrel_length_in and barrel_length_in > 0 else 1e-6
+
+        charge_ratio = charge_gr / safe_bullet_weight
 
         # Base velocity factor (empirical)
         base_velocity = (
@@ -644,11 +648,15 @@ class BallisticsEngine:
         velocity_curve = []
         steps = 20
         for i in range(steps + 1):
-            position_in = (barrel_length_in * i) / steps
+            position_in = (safe_barrel_length * i) / steps
 
-            # Velocity increases asymptotically
-            progress = position_in / barrel_length_in
-            velocity_at_pos = muzzle_velocity * math.sqrt(progress)
+            # Velocity increases asymptotically; use safe_barrel_length to avoid div-by-zero
+            progress = position_in / safe_barrel_length
+            # Protect against tiny negative/NaN progress from bad inputs
+            if not (progress and progress > 0):
+                velocity_at_pos = 0.0
+            else:
+                velocity_at_pos = muzzle_velocity * math.sqrt(progress)
 
             velocity_curve.append((position_in, velocity_at_pos))
 

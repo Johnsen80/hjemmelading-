@@ -6,7 +6,23 @@
     "barrel_length_mm": 610,
     "twist": "1:8",
     "muzzle_velocity_mps": 820,
-    "notes": "Lightweight hunting/target rifle demo profile"
+    "notes": "Lightweight hunting/target rifle demo profile",
+    "barrels": [
+      {
+        "id": "b1",
+        "name": "Std barrel",
+        "length_mm": 610,
+        "material": "chrome-moly",
+        "mount_type": "screwed",
+        "muzzle_device_type": "suppressor",
+        "muzzle_device_weight_g": 320.0,
+        "muzzle_device_length_mm": 140.0,
+        "measurement_points": [
+          {"pos_mm": 0, "outer_dia_mm": 25, "inner_dia_mm": 6.5},
+          {"pos_mm": 300, "outer_dia_mm": 24, "inner_dia_mm": 6.5}
+        ]
+      }
+    ]
   },
   {
     "id": "demo-02",
@@ -15,6 +31,22 @@
     "barrel_length_mm": 660,
     "twist": "1:10",
     "muzzle_velocity_mps": 790,
-    "notes": "Benchrest-style demo profile"
+    "notes": "Benchrest-style demo profile",
+    "barrels": [
+      {
+        "id": "b1",
+        "name": "Match barrel",
+        "length_mm": 660,
+        "material": "stainless",
+        "mount_type": "integral",
+        "muzzle_device_type": "compensator",
+        "muzzle_device_weight_g": 85.0,
+        "muzzle_device_length_mm": 40.0,
+        "measurement_points": [
+          {"pos_mm": 0, "outer_dia_mm": 26, "inner_dia_mm": 7.82},
+          {"pos_mm": 330, "outer_dia_mm": 25, "inner_dia_mm": 7.82}
+        ]
+      }
+    ]
   }
 ]

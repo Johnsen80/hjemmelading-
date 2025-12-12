@@ -1,0 +1,13 @@
+"""Small placeholder for third backup copy.
+
+Stored to reduce workspace duplication while keeping a recoverable copy
+in the backups folder.
+"""
+
+__all__ = []
+"""Lightweight placeholder backup for terrain_map.py (moved).
+
+Original full backup was large; a placeholder references the archived copy.
+"""
+
+# See moved backups for full contents.

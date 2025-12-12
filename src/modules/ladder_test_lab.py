@@ -5,8 +5,7 @@ Planlegging og analyse av ladder tests
 
 from datetime import datetime
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+from src.utils.optional_deps import Figure as Figure, FigureCanvas as FigureCanvas
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (

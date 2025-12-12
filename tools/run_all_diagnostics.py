@@ -7,8 +7,8 @@ This script will:
 - Run `tools/startup_check.py` which checks key imports
 
 Run from project root with venv active:
-  & .\.venv\Scripts\Activate.ps1
-  & .\.venv\Scripts\python.exe .\tools\run_all_diagnostics.py
+  & .\\.venv\\Scripts\\Activate.ps1
+  & .\\.venv\\Scripts\\python.exe .\tools\run_all_diagnostics.py
 
 Then attach the contents of the generated files under `tools/`.
 """

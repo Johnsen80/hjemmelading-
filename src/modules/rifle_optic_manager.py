@@ -23,7 +23,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
 from src.database.database import get_database
 
 

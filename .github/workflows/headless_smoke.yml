@@ -9,6 +9,9 @@ jobs:
   smoke-windows:
     name: Headless smoke test (Windows)
     runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +29,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install PyQt6 matplotlib pillow pytest
+      - name: Install dev tools
+        run: |
+          pip install ruff mypy types-Pillow types-requests
+      - name: Run linter (ruff)
+        run: |
+          ruff src
+      - name: Run type checks (mypy)
+        run: |
+          python -m mypy src --ignore-missing-imports
       - name: Run headless smoke test
         run: |
           python tools/headless_smoke_test.py
@@ -36,6 +48,9 @@ jobs:
   smoke-ubuntu:
     name: Headless smoke test (Ubuntu)
     runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
     strategy:
       matrix:
         python-version: ['3.11']

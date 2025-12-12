@@ -14,9 +14,19 @@ try:
     from matplotlib.figure import Figure
 except Exception:  # pragma: no cover - optional plotting backend
 
-    class FigureCanvasQTAgg:  # type: ignore
+    try:
+        # Try to use a QWidget base if available so the stub can be added
+        # to Qt layouts without type errors.
+        from PyQt6.QtWidgets import QWidget as _QWidget
+    except Exception:
+        # Fallback stub when PyQt isn't available. Use a plain object
+        # and silence type-assignment complaints to satisfy mypy.
+        _QWidget = object  # type: ignore
+
+    class FigureCanvasQTAgg(_QWidget):  # type: ignore
         def __init__(self, *args, **kwargs):
-            pass
+            if _QWidget is not object:
+                super().__init__()
 
     class Figure:  # type: ignore
         def __init__(self, *args, **kwargs):

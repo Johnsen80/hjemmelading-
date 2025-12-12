@@ -89,14 +89,90 @@ def fetch_weather_data_owm(
         return None
 
 
+def fetch_weather_data_yr(lat: float, lon: float, timeout: int = 10, user_agent: str = "Hjemmelading/1.0 (+https://example.local)") -> Optional[dict]:
+    """Fetch weather from met.no / YR (locationforecast compact).
+
+    The met.no API requires a descriptive User-Agent header. No API key
+    is needed. Returns parsed JSON on success or None on failure.
+    """
+    if not _HAS_REQUESTS or requests is None:
+        return None
+    try:
+        key = _cache_key(lat, lon)
+    except Exception:
+        return None
+    if key in _weather_cache:
+        return _weather_cache[key]
+    try:
+        headers = {"User-Agent": user_agent}
+        url = f"https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={lat}&lon={lon}"
+        resp = requests.get(url, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        _weather_cache[key] = data
+        return data
+    except Exception as exc:
+        logger.debug("fetch_weather_data_yr failed: %s", exc)
+        try:
+            append_exception("fetch_weather_data_yr failed", exc)
+        except Exception:
+            pass
+        return None
+
+
+def fetch_weather(provider: str, lat: float, lon: float, *, api_key: Optional[str] = None, timeout: int = 10, manual_data: Optional[dict] = None, **kwargs) -> Optional[dict]:
+    """Dispatch weather fetch to a chosen provider.
+
+    provider: one of 'auto', 'owm', 'openweathermap', 'yr', 'metno', 'manual'.
+    - 'auto': prefer OWM if api_key provided, otherwise YR.
+    - 'manual': returns `manual_data` (used for advanced equipment inputs).
+
+    Additional provider-specific kwargs are forwarded.
+    """
+    p = (provider or "auto").lower()
+    if p in ("auto", "default"):
+        if api_key:
+            p = "owm"
+        else:
+            p = "yr"
+
+    if p in ("owm", "openweathermap"):
+        return fetch_weather_data_owm(lat, lon, api_key=api_key, timeout=timeout)
+    if p in ("yr", "metno", "met"):
+        # allow custom user_agent via kwargs
+        ua = kwargs.get("user_agent", "Hjemmelading/1.0 (+https://example.local)")
+        return fetch_weather_data_yr(lat, lon, timeout=timeout, user_agent=ua)
+    if p in ("manual",):
+        return manual_data
+
+    # Unknown provider: fallback to auto behavior
+    if api_key:
+        return fetch_weather_data_owm(lat, lon, api_key=api_key, timeout=timeout)
+    return fetch_weather_data_yr(lat, lon, timeout=timeout)
+
+
 def fetch_weather_for_viewer_async(
     viewer: "TerrainMapViewer", api_key: Optional[str] = None
 ) -> None:
+    """Asynchronously fetch weather for a viewer using the viewer's settings.
+
+    The viewer may provide the following optional attributes which this
+    function will respect if present:
+    - `weather_provider`: provider string (see `fetch_weather`)
+    - `weather_api_key`: API key for providers that need it (e.g. OWM)
+    - `weather_manual_data`: dict with manual weather info (for 'manual')
+    - `weather_user_agent`: custom User-Agent for YR requests
+    """
     if not _HAS_REQUESTS:
         return
 
-    # Defensively obtain getter callables for shooter_lat/shooter_lon so
-    # static type checkers don't warn about calling methods on None.
+    # Read provider details from the viewer if available
+    provider = getattr(viewer, "weather_provider", "auto")
+    api_key = getattr(viewer, "weather_api_key", api_key)
+    manual_data = getattr(viewer, "weather_manual_data", None)
+    user_agent = getattr(viewer, "weather_user_agent", None)
+
+    # Defensively obtain lat/lon values from viewer
     shooter_lat_obj = getattr(viewer, "shooter_lat", None)
     shooter_lon_obj = getattr(viewer, "shooter_lon", None)
     try:
@@ -118,14 +194,18 @@ def fetch_weather_for_viewer_async(
             except Exception:
                 pass
 
+    def _task(a: float, b: float, provider_arg: str, key: Optional[str], manual: Optional[dict], ua: Optional[str]) -> Optional[dict]:
+        try:
+            return fetch_weather(provider_arg, a, b, api_key=key, manual_data=manual, user_agent=ua)
+        except Exception as exc:
+            logger.debug("_task fetch error: %s", exc)
+            return None
+
     if NetworkWorker is None:
-        _write(fetch_weather_data_owm(lat, lon, api_key))
+        _write(fetch_weather(provider, lat, lon, api_key=api_key, manual_data=manual_data, user_agent=user_agent))
         return
 
-    def _task(a: float, b: float, key: Optional[str] = None) -> Optional[dict]:
-        return fetch_weather_data_owm(a, b, key)
-
-    worker = NetworkWorker(_task, args=(lat, lon, api_key))
+    worker = NetworkWorker(_task, args=(lat, lon, provider, api_key, manual_data, user_agent))
 
     def _on_finished(res: Optional[dict]) -> None:
         _write(res)
@@ -211,5 +291,7 @@ __all__ = [
     "_safe_add_polyline",
     "get_elevation",
     "fetch_weather_data_owm",
+    "fetch_weather_data_yr",
+    "fetch_weather",
     "fetch_weather_for_viewer_async",
 ]

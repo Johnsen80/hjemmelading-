@@ -5,7 +5,7 @@ Bruker OpenCV til å måle gruppestørrelse fra bilder av skiver
 
 import os
 
-import cv2
+from src.utils.optional_deps import cv2, HAS_CV2
 import numpy as np
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QImage, QPixmap
@@ -188,6 +188,14 @@ class TargetAnalyzer(QWidget):
         )
 
         if file_path:
+            if not HAS_CV2 or cv2 is None:
+                QMessageBox.critical(
+                    self,
+                    "Manglende avhengighet",
+                    "OpenCV (cv2) er ikke installert. Bildeanalyse er deaktivert.",
+                )
+                return
+
             # Last inn med OpenCV
             self.current_image = cv2.imread(file_path)
 
@@ -210,20 +218,26 @@ class TargetAnalyzer(QWidget):
             for i, shot in enumerate(shots):
                 x, y = shot
                 # Tegn sirkel rundt skudd
-                cv2.circle(display_img, (int(x), int(y)), 10, (0, 255, 0), 2)
+                if HAS_CV2 and cv2 is not None:
+                    cv2.circle(display_img, (int(x), int(y)), 10, (0, 255, 0), 2)
                 # Nummerer skudd
-                cv2.putText(
-                    display_img,
-                    str(i + 1),
-                    (int(x) + 15, int(y) + 5),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (0, 255, 0),
-                    2,
-                )
+                if HAS_CV2 and cv2 is not None:
+                    cv2.putText(
+                        display_img,
+                        str(i + 1),
+                        (int(x) + 15, int(y) + 5),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        (0, 255, 0),
+                        2,
+                    )
 
         # Konverter BGR til RGB
-        rgb_image = cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB)
+        if HAS_CV2 and cv2 is not None:
+            rgb_image = cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB)
+        else:
+            # Fallback: assume image is already RGB-like numpy array
+            rgb_image = display_img
 
         # Skaler ned hvis for stort
         height, width = rgb_image.shape[:2]
@@ -252,6 +266,14 @@ class TargetAnalyzer(QWidget):
 
         try:
             # Kjør deteksjon
+            if not HAS_CV2 or cv2 is None:
+                QMessageBox.critical(
+                    self,
+                    "Manglende avhengighet",
+                    "OpenCV (cv2) er ikke installert. Analyse ikke mulig.",
+                )
+                return
+
             shots = self.detect_shots(self.current_image, self.sensitivity.value())
 
             if len(shots) == 0:
@@ -283,6 +305,9 @@ class TargetAnalyzer(QWidget):
 
     def detect_shots(self, image, sensitivity):
         """Detekterer skudd i bildet"""
+        if not HAS_CV2 or cv2 is None:
+            raise ImportError("OpenCV (cv2) is required for detect_shots but is not installed.")
+
         # Konverter til gråskala
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 

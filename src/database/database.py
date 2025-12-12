@@ -94,8 +94,10 @@ class Database:
         # Sørg for at data-mappen eksisterer
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-        self.conn = None
-        self.cursor = None
+        # Typed as Any so static analysis does not assume "None" at call-sites
+        # `_connect()` will initialise these before use at runtime.
+        self.conn: Any = None
+        self.cursor: Any = None
         self._connect()
         self._create_tables()
 
@@ -1894,7 +1896,139 @@ class Database:
             (name, manufacturer, caliber, barrel_profile_id, notes),
         )
         self.conn.commit()
+        rid = self.cursor.lastrowid
+        assert rid is not None
+        return rid
+
+    # Inventory & QC helpers
+    def create_inventory_lot(
+        self,
+        component_type: str,
+        component_id: Optional[int],
+        lot_number: str,
+        quantity: int,
+        purchase_date: Optional[str] = None,
+        supplier: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> int:
+        """Create an inventory lot and return its id."""
+        self.cursor.execute(
+            """
+            INSERT INTO inventory_lots (component_type, component_id, lot_number, quantity_initial, quantity_remaining, purchase_date, supplier, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                component_type,
+                component_id,
+                lot_number,
+                quantity,
+                quantity,
+                purchase_date,
+                supplier,
+                notes,
+            ),
+        )
+        self.conn.commit()
         return self.cursor.lastrowid
+
+    def get_inventory_lot(self, lot_id: int) -> Optional[Dict[str, Any]]:
+        return self.get_by_id("inventory_lots", lot_id)
+
+    def update_inventory_quantity(self, lot_id: int, delta: int) -> None:
+        """Adjust quantity_remaining by delta (can be negative)."""
+        try:
+            self.cursor.execute(
+                "SELECT quantity_remaining FROM inventory_lots WHERE id = ?",
+                (lot_id,),
+            )
+            row = self.cursor.fetchone()
+            if not row:
+                return
+            new_qty = row[0] + delta
+            if new_qty < 0:
+                new_qty = 0
+            self.cursor.execute(
+                "UPDATE inventory_lots SET quantity_remaining = ? WHERE id = ?",
+                (new_qty, lot_id),
+            )
+            self.conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to update inventory quantity: {e}")
+
+    def create_measurement_session(
+        self, lot_id: int, measured_by: Optional[str] = None, sample_size: Optional[int] = None, measured_all: int = 0, notes: Optional[str] = None
+    ) -> int:
+        """Create a measurement session and return session id."""
+        self.cursor.execute(
+            "INSERT INTO measurement_sessions (lot_id, measured_by, sample_size, measured_all, notes) VALUES (?, ?, ?, ?, ?)",
+            (lot_id, measured_by, sample_size, measured_all, notes),
+        )
+        self.conn.commit()
+        return self.cursor.lastrowid
+
+    def add_measurement_value(
+        self,
+        session_id: int,
+        item_index: int,
+        weight_grains: Optional[float] = None,
+        length_mm: Optional[float] = None,
+        neck_thickness_mm: Optional[float] = None,
+        case_weight_gr: Optional[float] = None,
+        passed_qc: Optional[int] = None,
+        notes: Optional[str] = None,
+    ) -> int:
+        """Add a single measurement value to a session."""
+        self.cursor.execute(
+            "INSERT INTO measurement_values (session_id, item_index, weight_grains, length_mm, neck_thickness_mm, case_weight_gr, passed_qc, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                session_id,
+                item_index,
+                weight_grains,
+                length_mm,
+                neck_thickness_mm,
+                case_weight_gr,
+                passed_qc,
+                notes,
+            ),
+        )
+        self.conn.commit()
+        return self.cursor.lastrowid
+
+    def get_sessions_for_lot(self, lot_id: int) -> List[Dict[str, Any]]:
+        return self.execute_query("SELECT * FROM measurement_sessions WHERE lot_id = ? ORDER BY datetime DESC", (lot_id,))
+
+    def get_values_for_session(self, session_id: int) -> List[Dict[str, Any]]:
+        return self.execute_query("SELECT * FROM measurement_values WHERE session_id = ? ORDER BY item_index", (session_id,))
+
+    def create_prep_session(
+        self,
+        brass_batch_id: int,
+        method: Optional[str] = None,
+        anneal_date: Optional[str] = None,
+        trim_mm: Optional[float] = None,
+        neck_bushing_size_inches: Optional[float] = None,
+        neck_tension_notes: Optional[str] = None,
+        measured_after: int = 0,
+        notes: Optional[str] = None,
+    ) -> int:
+        self.cursor.execute(
+            "INSERT INTO prep_sessions (brass_batch_id, method, anneal_date, trim_mm, neck_bushing_size_inches, neck_tension_notes, measured_after, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                brass_batch_id,
+                method,
+                anneal_date,
+                trim_mm,
+                neck_bushing_size_inches,
+                neck_tension_notes,
+                measured_after,
+                notes,
+            ),
+        )
+        self.conn.commit()
+        return self.cursor.lastrowid
+
+    def get_prep_sessions_for_batch(self, brass_batch_id: int) -> List[Dict[str, Any]]:
+        return self.execute_query("SELECT * FROM prep_sessions WHERE brass_batch_id = ? ORDER BY created_date DESC", (brass_batch_id,))
 
 
 # Singleton instance

@@ -5,8 +5,7 @@ Finner sammenhenger mellom væ, ammunisjon, og presisjon
 
 from datetime import datetime
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
+from src.utils.optional_deps import Figure as Figure, FigureCanvas as FigureCanvas
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
@@ -22,7 +21,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
 from src.database.database import get_database
 
 
@@ -134,7 +132,7 @@ class PrecisionTracker(QWidget):
         graph_layout = QVBoxLayout()
         graph_group.setLayout(graph_layout)
 
-        self.overview_canvas = FigureCanvasQTAgg(Figure(figsize=(10, 4)))
+        self.overview_canvas = FigureCanvas(Figure(figsize=(10, 4)))
         graph_layout.addWidget(self.overview_canvas)
 
         layout.addWidget(graph_group)
@@ -182,7 +180,7 @@ class PrecisionTracker(QWidget):
         temp_layout = QVBoxLayout()
         temp_group.setLayout(temp_layout)
 
-        self.temp_canvas = FigureCanvasQTAgg(Figure(figsize=(5, 4)))
+        self.temp_canvas = FigureCanvas(Figure(figsize=(5, 4)))
         temp_layout.addWidget(self.temp_canvas)
 
         graphs_layout.addWidget(temp_group)
@@ -192,7 +190,7 @@ class PrecisionTracker(QWidget):
         wind_layout = QVBoxLayout()
         wind_group.setLayout(wind_layout)
 
-        self.wind_canvas = FigureCanvasQTAgg(Figure(figsize=(5, 4)))
+        self.wind_canvas = FigureCanvas(Figure(figsize=(5, 4)))
         wind_layout.addWidget(self.wind_canvas)
 
         graphs_layout.addWidget(wind_group)
@@ -222,7 +220,7 @@ class PrecisionTracker(QWidget):
         graph_layout = QVBoxLayout()
         graph_group.setLayout(graph_layout)
 
-        self.trend_canvas = FigureCanvasQTAgg(Figure(figsize=(10, 5)))
+        self.trend_canvas = FigureCanvas(Figure(figsize=(10, 5)))
         graph_layout.addWidget(self.trend_canvas)
 
         layout.addWidget(graph_group)

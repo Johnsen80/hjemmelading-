@@ -2,9 +2,9 @@
 
 Run from project root with venv active:
 
-  & .\.venv\Scripts\Activate.ps1
+  & .\\.venv\\Scripts\\Activate.ps1
   $env:QT_DEBUG_PLUGINS='1'
-  & .\.venv\Scripts\python.exe .\tools\force_gui_debug.py
+  & .\\.venv\\Scripts\\python.exe .\tools\force_gui_debug.py
 
 This script writes `tools/force_gui_debug.log` with traceback or success message.
 """

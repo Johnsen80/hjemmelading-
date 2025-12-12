@@ -11,9 +11,11 @@ import os
 import uuid
 from datetime import datetime, timedelta
 
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from src.utils.optional_deps import plt, Figure as Figure, FigureCanvas as FigureCanvas
+try:
+    from matplotlib.backends.backend_pdf import PdfPages
+except Exception:
+    PdfPages = None
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtWidgets import (
@@ -37,7 +39,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
 from src.database.database import get_database
 from src.logging_config import configure_logging, get_logger
 from src.modules.weapon_profile_dialog import WeaponProfileDialog

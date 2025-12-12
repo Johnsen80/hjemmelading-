@@ -2,7 +2,7 @@
 
 Run this from the project root with the project's Python environment active:
 
-  & .\.venv\Scripts\python.exe .\tools\run_weapon_editor.py
+  & .\\.venv\\Scripts\\python.exe .\tools\run_weapon_editor.py
 
 """
 
@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 try:
     from PyQt6.QtWidgets import QApplication
-
     from src.ui.weapon_profile_editor import WeaponProfileEditor
 except Exception:
     traceback.print_exc()

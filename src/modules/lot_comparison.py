@@ -1,5 +1,4 @@
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from src.utils.optional_deps import plt, FigureCanvas as FigureCanvas
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,

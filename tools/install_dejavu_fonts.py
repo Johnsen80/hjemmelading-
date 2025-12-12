@@ -1,4 +1,4 @@
-"""Download and install DejaVu TTF fonts into the project resources.
+r"""Download and install DejaVu TTF fonts into the project resources.
 
 This script downloads a DejaVu TTF zip (if available), extracts all .ttf
 files into `HjemmeladingApp/resources/fonts/`, and prints a summary.

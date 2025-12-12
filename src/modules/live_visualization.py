@@ -620,8 +620,8 @@ class LiveHistogram(BaseCanvas):
         self._setup_plot()
 
 
-# Import matplotlib.pyplot for circle patch
-import matplotlib.pyplot as plt
+# Use the optional deps shim so import-time won't fail in CI/headless
+from src.utils.optional_deps import plt
 
 if __name__ == "__main__":
     import sys

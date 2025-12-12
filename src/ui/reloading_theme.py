@@ -111,6 +111,13 @@ class ReloadingTheme:
             gridline-color: #15181a;
         }
 
+        /* Image preview styling for small thumbnails */
+        QLabel#imagePreview {
+            border: 1px solid #888;
+            background-color: #0b0d0e;
+            padding: 2px;
+        }
+
         /* Status / warnings */
         .warning { color: #ff6b35; }
         .danger { color: #d9534f; }
@@ -119,4 +126,60 @@ class ReloadingTheme:
         .accent-olive { color: #7b8a3a; }
         .accent-blue { color: #0b3a66; }
 
+        """
+    @staticmethod
+    def get_card_style():
+        """Return a small stylesheet snippet for modern card widgets.
+        Callers can apply this via `widget.setObjectName('modernCard')`
+        and then apply `ReloadingTheme.get_card_style()` at widget-level.
+        """
+        return """
+        QWidget#modernCard {
+            background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #23242b, stop:1 #18181c);
+            border-radius: 12px;
+            border: 2px solid #bfa14a;
+            padding: 14px;
+        }
+        QWidget#modernCard QLabel#cardTitle {
+            color: #ff6b35;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        QWidget#modernCard QLabel#cardSubtitle {
+            color: #d8e1e6;
+            font-size: 12px;
+        }
+        """
+
+    @staticmethod
+    def get_banner_style():
+        """Return a compact banner style used for disabled-feature notices."""
+        return """
+        QWidget#banner {
+            background-color: #241f2a;
+            border: 1px solid #3a2f37;
+            color: #f3e9e6;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        """
+
+    @staticmethod
+    def get_button_stylesheet() -> str:
+        """Return a stylesheet snippet for global button styling (used by MainWindow)."""
+        return """
+        /* Centralized button styling snippet */
+        QPushButton { min-height: 36px; padding: 8px 12px; border-radius: 6px; }
+        QPushButton#homeButton { font-weight: 800; }
+        QPushButton#measurementWizardButton { padding-left: 10px; }
+        QPushButton[variant="secondary"] { border-style: solid; }
+        """
+
+    @staticmethod
+    def get_navbar_style() -> str:
+        """Return a small stylesheet snippet for navigation bar widgets."""
+        return """
+        QWidget { background-color: transparent; }
+        QWidget > QPushButton { background-color: transparent; }
+        QLabel#currentWorkflowLabel { color: #b8c6cc; font-weight: 600; }
         """

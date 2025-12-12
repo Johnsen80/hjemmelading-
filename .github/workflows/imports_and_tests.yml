@@ -1,0 +1,32 @@
+name: Imports and Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.11]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dev requirements
+        run: |
+          python -m pip install -U pip
+          if [ -f HjemmeladingApp/requirements-dev.txt ]; then python -m pip install -r HjemmeladingApp/requirements-dev.txt; else python -m pip install pytest; fi
+
+      - name: Run import-checker
+        run: python -u tools/check_src_imports.py
+
+      - name: Run tests
+        run: python -m pytest -q

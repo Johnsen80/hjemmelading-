@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import requests  # type: ignore[import-untyped]
-
 from src.logging_config import configure_logging, get_logger
 
 configure_logging()

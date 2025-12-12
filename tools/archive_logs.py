@@ -1,7 +1,7 @@
 """Archive old debug logs into `logs/` with a timestamp.
 
 Run from project root using the project's Python:
-  & .\.venv\Scripts\python.exe .\tools\archive_logs.py
+  & .\\.venv\\Scripts\\python.exe .\tools\archive_logs.py
 """
 
 from __future__ import annotations

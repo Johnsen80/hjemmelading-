@@ -10,16 +10,31 @@ This module provides:
 - Multi-objective optimization (Genetic Algorithm)
 """
 
-import cv2
+from src.utils.optional_deps import cv2, HAS_CV2
 import numpy as np
-import shap
-import tensorflow as tf
-from prophet import Prophet
-from sklearn.ensemble import GradientBoostingRegressor
+
+# Optional heavy ML/CV dependencies - import guarded so module can be imported
+# in minimal environments. Functions that require these libs should check
+# the corresponding variable and raise a clear ImportError if used.
+shap = None
+tf = None
+Prophet = None
+GradientBoostingRegressor = None
 
 
 # 1. MOA/ES/SD Prediction (Gradient Boosting)
 def train_accuracy_predictor(X, y):
+    global GradientBoostingRegressor
+    if GradientBoostingRegressor is None:
+        try:
+            from sklearn.ensemble import GradientBoostingRegressor as _GBR
+
+            GradientBoostingRegressor = _GBR
+        except Exception:
+            raise ImportError(
+                "scikit-learn GradientBoostingRegressor is required for train_accuracy_predictor"
+            )
+
     model = GradientBoostingRegressor(
         n_estimators=1000, learning_rate=0.01, max_depth=8, min_samples_split=5
     )
@@ -33,6 +48,15 @@ def predict_accuracy(model, X_new):
 
 # 2. Pressure Prediction (Neural Network)
 def train_pressure_nn(X, y):
+    global tf
+    if tf is None:
+        try:
+            import tensorflow as _tf
+
+            tf = _tf
+        except Exception:
+            raise ImportError("TensorFlow is required for train_pressure_nn")
+
     model = tf.keras.Sequential(
         [
             tf.keras.layers.Dense(128, activation="relu", input_shape=(X.shape[1],)),
@@ -55,6 +79,15 @@ def predict_pressure(model, X_new):
 # 3. Barrel Life Forecasting (Prophet)
 def forecast_barrel_life(df):
     # df: columns ['ds' (date), 'rounds_fired', 'y' (MOA)]
+    global Prophet
+    if Prophet is None:
+        try:
+            from prophet import Prophet as _Prophet
+
+            Prophet = _Prophet
+        except Exception:
+            raise ImportError("Prophet is required for forecast_barrel_life")
+
     model = Prophet()
     model.fit(df)
     future = model.make_future_dataframe(periods=10)
@@ -64,7 +97,13 @@ def forecast_barrel_life(df):
 
 # 4. Computer Vision Group Measurement (OpenCV)
 def measure_group_size(image_path):
+    if not HAS_CV2 or cv2 is None:
+        raise ImportError("OpenCV (cv2) is required for measure_group_size but is not installed.")
+
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return None
+
     blurred = cv2.GaussianBlur(img, (5, 5), 0)
     _, thresh = cv2.threshold(blurred, 50, 255, cv2.THRESH_BINARY_INV)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

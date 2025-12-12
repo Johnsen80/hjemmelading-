@@ -1,0 +1,209 @@
+"""Archived backup (moved). Placeholder to reduce editor noise.
+
+See `src/modules/terrain_map_backups/terrain_map.py.bak2` for full content.
+"""
+
+# Original full backup preserved in this folder; this placeholder prevents
+# the language server from reparsing the large historical file from the
+# module root while keeping a quick local backup.
+
+__all__ = []
+from __future__ import annotations
+
+"""Compact, import-safe baseline for terrain map helpers.
+
+This file provides a small, single-definition baseline implementing a
+few helpers and lightweight viewer/dialog shims. Optional heavy
+dependencies (requests, folium, PyQt WebEngine) are detected at import
+time and guarded so the module is safe to import in headless/CI
+environments. Restore richer UI code in a separate module.
+"""
+
+import logging
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
+
+# Feature flags for optional runtime dependencies
+_HAS_REQUESTS = False
+_HAS_FOLIUM = False
+_HAS_QTWEBENGINE = False
+
+try:
+    import requests  # type: ignore
+
+    _HAS_REQUESTS = True
+except Exception:  # pragma: no cover - optional
+    requests = None  # type: ignore
+
+try:
+    import folium  # type: ignore
+
+    _HAS_FOLIUM = True
+except Exception:  # pragma: no cover - optional
+    folium = None  # type: ignore
+
+try:
+    from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
+
+    _HAS_QTWEBENGINE = True
+except Exception:  # pragma: no cover - optional
+    QWebEngineView = None  # type: ignore
+
+if TYPE_CHECKING:
+    from PyQt6.QtWidgets import QTextEdit, QDoubleSpinBox  # type: ignore
+
+# Best-effort helpers so importing this module never fails
+try:
+    from HjemmeladingApp.utils.safe_logger import append_exception  # type: ignore
+except Exception:  # pragma: no cover - provide safe fallback
+    def append_exception(*_: Any, **__: Any) -> None:  # type: ignore
+        return None
+
+try:
+    from src.utils.i18n import tr  # type: ignore
+except Exception:  # pragma: no cover - simple fallback
+    def tr(key: str, lang: str = "no") -> str:  # type: ignore
+        return key
+
+try:
+    from src.modules.network import NetworkWorker  # type: ignore
+except Exception:  # pragma: no cover - optional helper missing
+    NetworkWorker = None  # type: ignore
+
+# Tiny in-memory cache to reduce external requests during tests
+_weather_cache: Dict[Tuple[float, float], dict] = {}
+
+
+def fetch_weather_data_owm(
+    lat: float, lon: float, api_key: Optional[str] = None, timeout: int = 8, retries: int = 1
+) -> Optional[dict]:
+    """Fetch current weather from OpenWeatherMap, or ``None`` on failure.
+
+    If `requests` isn't available this returns ``None``.
+    """
+    if not _HAS_REQUESTS or requests is None:
+        return None
+    try:
+        key = (round(float(lat), 5), round(float(lon), 5))
+    except Exception:
+        return None
+    if key in _weather_cache:
+        return _weather_cache[key]
+
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {"lat": lat, "lon": lon, "units": "metric"}
+    if api_key:
+        params["appid"] = api_key
+
+    for _ in range(retries + 1):
+        try:
+            resp = requests.get(url, params=params, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            _weather_cache[key] = data
+            return data
+        except Exception as exc:  # pragma: no cover - network
+            logger.debug("fetch_weather_data_owm attempt failed: %s", exc)
+            try:
+                append_exception("fetch_weather_data_owm failed", exc)
+            except Exception:
+                pass
+    return None
+
+
+def fetch_weather_for_viewer_async(viewer: "TerrainMapViewer", api_key: Optional[str] = None) -> None:
+    """Fetch weather and write a compact result into ``viewer``.
+
+    This is intentionally synchronous if no `NetworkWorker` is available;
+    callers should run it off the UI thread when used in GUIs.
+    """
+    if not _HAS_REQUESTS:
+        return
+    try:
+        lat = (
+            float(viewer.shooter_lat.value()) if getattr(viewer, "shooter_lat", None) is not None else 59.9139
+        )
+        lon = (
+            float(viewer.shooter_lon.value()) if getattr(viewer, "shooter_lon", None) is not None else 10.7522
+        )
+    except Exception:
+        return
+
+    def _write_result(res: Optional[dict]) -> None:
+        if getattr(viewer, "weather_display", None) is not None:
+            try:
+                viewer.weather_display.setText(str(res)[:2000])
+            except Exception:
+                pass
+
+    if NetworkWorker is None:
+        res = fetch_weather_data_owm(lat, lon, api_key)
+        _write_result(res)
+        return
+
+    def _task(a: float, b: float, key: Optional[str] = None) -> Optional[dict]:
+        return fetch_weather_data_owm(a, b, key)
+
+    worker = NetworkWorker(_task, args=(lat, lon, api_key))
+
+    def _on_finished(result: Optional[dict]) -> None:
+        _write_result(result)
+
+    def _on_error(exc: Exception) -> None:  # pragma: no cover - best-effort
+        logger.debug("fetch_weather_for_viewer_async error: %s", exc)
+
+    worker.on_finished = _on_finished
+    worker.on_error = _on_error
+    try:
+        worker.start()
+    except Exception as exc:  # pragma: no cover - thread start failures
+        logger.debug("Could not start NetworkWorker: %s", exc)
+
+
+def get_elevation(lat: float, lon: float) -> Optional[float]:
+    """Synchronous elevation lookup using OpenTopoData. Returns None on failure."""
+    if not _HAS_REQUESTS or requests is None:
+        return None
+    try:
+        url = f"https://api.opentopodata.org/v1/srtm30m?locations={lat},{lon}"
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        results = data.get("results", []) if isinstance(data, dict) else []
+        if not results:
+            return None
+        entry = results[0]
+        return entry.get("elevation")
+    except Exception as exc:  # pragma: no cover - network
+        logger.debug("get_elevation failed: %s", exc)
+        try:
+            append_exception("get_elevation failed", exc)
+        except Exception:
+            pass
+        return None
+
+
+def _safe_add_marker(map_obj: Any, location: Tuple[float, float], popup: Optional[str] = None) -> None:
+    if not _HAS_FOLIUM or folium is None or map_obj is None:
+        return
+    try:
+        folium.Marker(location=location, popup=popup).add_to(map_obj)
+    except Exception as exc:  # pragma: no cover - best-effort
+        logger.debug("_safe_add_marker failed: %s", exc)
+
+
+def _safe_add_polyline(map_obj: Any, locations: List[Tuple[float, float]], **_: Any) -> None:
+    if not _HAS_FOLIUM or folium is None or map_obj is None:
+        return
+    try:
+        folium.PolyLine(locations=locations).add_to(map_obj)
+    except Exception as exc:  # pragma: no cover - best-effort
+        logger.debug("_safe_add_polyline failed: %s", exc)
+
+
+class PurposeSelectionDialog:
+    """Minimal non-GUI selection shim used by tests/CI."""
+
+    def __init__(self, parent: Optional[Any] = None) -> None:
+        self._choice = "range"

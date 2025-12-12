@@ -19,7 +19,6 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
 )
-
 from src.modules.workflow_state import WorkflowState, WorkflowStateManager
 
 

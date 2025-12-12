@@ -1,0 +1,7 @@
+# Optional dependencies for full functionality
+matplotlib
+opencv-python
+scikit-learn
+tensorflow
+prophet
+shap

@@ -68,4 +68,3 @@ if __name__ == "__main__":
     print("4. Right-click shortcut → Properties → Change Icon")
     print(f"5. Browse to: {os.path.abspath(icon_path)}")
     print("\n🚀 Your tactical reloading system is ready!")
-

@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Optional
 
 # Guard Qt imports so this module can be imported in headless/test environments
 try:
@@ -12,7 +13,7 @@ except Exception:
     _HAS_QT = False
 
 
-def load_logo_pixmap(width: int | None = None):
+def load_logo_pixmap(width: int | None = None) -> Optional[QPixmap]:
     """Load the project logo as a QPixmap.
 
     Looks for a `Logo/logo.png` file at the repository root. If found,

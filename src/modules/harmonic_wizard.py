@@ -6,8 +6,7 @@ AI-assistert analyse av settedybde vs presisjon for å finne harmoniske noder
 from datetime import datetime
 
 import numpy as np
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+from src.utils.optional_deps import Figure as Figure, FigureCanvas as FigureCanvas
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
@@ -31,8 +30,19 @@ from PyQt6.QtWidgets import (
     QWizard,
     QWizardPage,
 )
-from scipy.interpolate import UnivariateSpline
-from scipy.signal import find_peaks
+try:
+    from scipy.interpolate import UnivariateSpline
+    from scipy.signal import find_peaks
+    HAS_SCIPY = True
+except Exception:  # pragma: no cover - optional dep
+    # Provide safe fallbacks so module can import in headless/CI environments.
+    UnivariateSpline = None  # type: ignore
+
+    def find_peaks(*args, **kwargs):
+        # Minimal placeholder: return empty peaks array and empty properties dict
+        return ([], {})
+
+    HAS_SCIPY = False
 
 from src.database.database import get_database
 

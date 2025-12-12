@@ -26,7 +26,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWizardPage,
 )
-
 from src.database.database import get_database
 
 

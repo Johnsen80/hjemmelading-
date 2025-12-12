@@ -411,12 +411,14 @@ class Translations:
 _translator = Translations()
 
 
-def tr(key: str, *, lang: str | None = None, **kwargs: object) -> str:
+def tr(key: str, lang: str | None = None, *args: object, **kwargs: object) -> str:
     """Shorthand for translation.
 
     If `lang` is provided, attempt a temporary translation lookup for that
     language; otherwise use the global translator instance.
     """
+    # Support both positional and keyword `lang` argument so callers may pass
+    # `tr('key', 'no')` or `tr('key', lang='no')`.
     if lang is not None:
         try:
             tmp = Translations()
