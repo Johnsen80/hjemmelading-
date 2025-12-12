@@ -1,8 +1,8 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from PyQt6.QtCore import QSettings, QSize, Qt
-    from PyQt6.QtGui import QAction, QIcon, QKeySequence
+    from PyQt6.QtGui import QAction, QIcon, QKeySequence, QPixmap
     from PyQt6.QtWidgets import (
         QDialog,
         QHBoxLayout,
@@ -79,6 +79,8 @@ else:
         QVBoxLayout: Any = _Stub
         QWidget: Any = _Stub
 
+import os
+
 from src.logging_config import get_logger
 
 # Per-user persistent diagnostics helper
@@ -100,7 +102,7 @@ try:
     from src.ui.logo_helper import load_logo_pixmap
 except Exception:
     # Provide a safe fallback if helper cannot be imported
-    def load_logo_pixmap(width: int | None = None):
+    def load_logo_pixmap(width: int | None = None) -> Optional["QPixmap"]:
         return None
 
 
@@ -108,7 +110,7 @@ try:
     from src.assets.logo import get_window_icon_pixmap
 except Exception:
 
-    def get_window_icon_pixmap(size=64):
+    def get_window_icon_pixmap(size=64) -> Any:
         return None
 
 
@@ -130,11 +132,49 @@ try:
     from src.utils.i18n import tr
 except Exception:
 
-    def tr(key: str, *, lang: str | None = None, **kwargs: object) -> str:
+    def tr(key: str, lang: str | None = None, *args: object, **kwargs: object) -> str:
         return key
 
 
 logger = get_logger(__name__)
+
+
+# Headless detection helper — treats offscreen/minimal QT platforms and CI/HEADLESS env as headless
+def _is_headless() -> bool:
+    qp = os.environ.get("QT_QPA_PLATFORM", "").lower()
+    if qp in ("offscreen", "minimal"):
+        return True
+    if os.environ.get("CI", "").lower() in ("1", "true"):
+        return True
+    if os.environ.get("HEADLESS", "").lower() in ("1", "true"):
+        return True
+    return False
+
+
+_HEADLESS = _is_headless()
+
+
+def _run_modal(dialog: Any) -> None:
+    """Run a dialog in a headless-safe way: show() if headless, otherwise exec().
+
+    Annotate `dialog` as `Any` so static type checkers accept runtime duck-typing
+    (some stubbed headless fallbacks declare widget types as `object`).
+    """
+    if _HEADLESS:
+        try:
+            # Non-blocking show() is better for CI/offscreen environments
+            dialog.show()
+        except Exception:
+            # best-effort: ignore failures when showing in headless
+            pass
+    else:
+        try:
+            dialog.exec()
+        except Exception:
+            try:
+                dialog.show()
+            except Exception:
+                pass
 
 
 # Apply saved theme/settings helper
@@ -189,30 +229,36 @@ class MainWindow(QMainWindow):
         central.setLayout(layout)
         self.setCentralWidget(central)
 
-        # Apply user settings and initialize the full UI safely.
+        # Defer applying user settings until after the window is constructed
+        # to avoid long-running or blocking work during MainWindow.__init__.
         try:
-            self.apply_user_settings()
-        except Exception as e:
-            # Log and persist startup exceptions for debugging, but don't silently swallow them.
-            try:
-                import traceback
+            from PyQt6.QtCore import QTimer
 
-                err = f"Exception during apply_user_settings: {e}\n{traceback.format_exc()}"
+            # schedule apply_user_settings to run once the event loop starts
+            QTimer.singleShot(0, self.apply_user_settings)
+        except Exception:
+            # If QTimer isn't available, fall back to direct call (best-effort)
+            try:
+                self.apply_user_settings()
+            except Exception as e:
                 try:
-                    logger.exception("%s", err)
-                except Exception:
-                    pass
-                try:
-                    append_exception(err, e)
-                except Exception:
-                    pass
-            finally:
-                # Show minimal user-visible error and re-raise so callers can handle it.
-                try:
-                    QMessageBox.critical(None, "Oppstartsfeil", str(e))
-                except Exception:
-                    pass
-                raise
+                    import traceback
+
+                    err = f"Exception during apply_user_settings: {e}\n{traceback.format_exc()}"
+                    try:
+                        logger.exception("%s", err)
+                    except Exception:
+                        pass
+                    try:
+                        append_exception(err, e)
+                    except Exception:
+                        pass
+                finally:
+                    try:
+                        QMessageBox.critical(None, "Oppstartsfeil", str(e))
+                    except Exception:
+                        pass
+                    raise
 
         # Quick debug shortcut to list and launch workflows (helps when UI elements are hard to reach)
         try:
@@ -224,8 +270,16 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
-        # Check for saved workflows after UI is ready
-        self.check_saved_workflows()
+        # Check for saved workflows after UI is ready — schedule to avoid blocking
+        try:
+            from PyQt6.QtCore import QTimer
+
+            QTimer.singleShot(200, self.check_saved_workflows)
+        except Exception:
+            try:
+                self.check_saved_workflows()
+            except Exception:
+                pass
 
     def _open_workflow_debug(self):
         """Temporary debug dialog to list available workflows and launch them."""
@@ -233,26 +287,37 @@ class MainWindow(QMainWindow):
         dlg.setWindowTitle("Debug: Launch workflow")
         dlg.setMinimumSize(400, 300)
         layout = QVBoxLayout()
-
         listw = QListWidget()
-        # Populate from the workflow map used by launch_workflow
+
+        # Populate from the workflow map used by launch_workflow. Filter out
+        # workflows that require optional dependencies (matplotlib/OpenCV)
+        from src.utils.optional_deps import HAS_CV2, HAS_MPL
+
         wf_keys = [
-            "load_development_workflow",
-            "ocw_test",
-            "ladder_test",
-            "seating_depth",
-            "smart_wizard",
-            "temperature_test",
-            "saami_compliance",
-            "chronograph_import",
-            "cold_bore",
-            "batch_qc",
-            "lot_tracker",
-            "drop_chart",
-            "wind_drift",
-            "zero_shift",
+            ("load_development_workflow", None),
+            ("ocw_test", None),
+            ("ladder_test", "mpl"),
+            ("seating_depth", None),
+            ("smart_wizard", None),
+            ("temperature_test", None),
+            ("saami_compliance", None),
+            ("chronograph_import", None),
+            ("cold_bore", None),
+            ("batch_qc", "mpl"),
+            ("lot_tracker", None),
+            ("drop_chart", "mpl"),
+            ("wind_drift", None),
+            ("zero_shift", None),
+            ("target_analyzer", "cv2"),
         ]
-        for k in wf_keys:
+
+        for k, req in wf_keys:
+            if req == "mpl" and not HAS_MPL:
+                # Skip workflows that need matplotlib if it's absent
+                continue
+            if req == "cv2" and not HAS_CV2:
+                # Skip CV workflows if OpenCV is absent
+                continue
             listw.addItem(k)
         layout.addWidget(listw)
 
@@ -269,6 +334,20 @@ class MainWindow(QMainWindow):
 
         dlg.setLayout(layout)
         dlg.exec()
+
+    def open_measurement_wizard(self):
+        """Open the measurement wizard dialog in a safe, lazy-imported way."""
+        try:
+            from src.modules.measurement_wizard import show_measurement_wizard
+
+            show_measurement_wizard()
+        except Exception as e:
+            try:
+                QMessageBox.critical(
+                    self, "Feil", f"Kunne ikke åpne Measurement Wizard: {e}"
+                )
+            except Exception:
+                pass
 
     def init_ui(self):
         """Initialiserer brukergrensesnittet"""
@@ -288,6 +367,27 @@ class MainWindow(QMainWindow):
         # Opprett meny
         self.create_menu()
 
+        # Show onboarding modal on first run
+        try:
+            from PyQt6.QtCore import QSettings
+
+            from src.ui.onboarding import OnboardingDialog
+
+            settings = QSettings("VALKYRIE", "Hjemmelading")
+            seen = settings.value("onboarding_seen", False)
+            if not seen:
+                try:
+                    dlg = OnboardingDialog(self)
+                    # Don't block startup in headless or test environments — schedule
+                    # the modal exec to run after the event loop starts.
+                    from PyQt6.QtCore import QTimer
+
+                    QTimer.singleShot(0, lambda d=dlg: _run_modal(d))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         # Opprett status bar
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
@@ -297,6 +397,31 @@ class MainWindow(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.apply_global_button_style()
+        # Show banner if optional dependencies are missing (matplotlib/OpenCV)
+        try:
+            from src.utils.optional_deps import HAS_CV2, HAS_MPL
+
+            missing = []
+            if not HAS_MPL:
+                missing.append("matplotlib")
+            if not HAS_CV2:
+                missing.append("opencv-python")
+
+            if missing:
+                try:
+                    from src.ui.disabled_feature_card import DisabledFeatureCard
+
+                    central_layout = self.central_widget.layout()
+                    card = DisabledFeatureCard(missing, parent=self)
+                    if central_layout is not None and hasattr(
+                        central_layout, "insertWidget"
+                    ):
+                        central_layout.insertWidget(0, card)
+                except Exception:
+                    # non-fatal: ignore UI banner failures in headless environments
+                    pass
+        except Exception:
+            pass
         # Hovedlayout
         # Ensure at least minimal state objects exist
         if not hasattr(self, "mode_manager"):
@@ -306,40 +431,16 @@ class MainWindow(QMainWindow):
 
     def apply_global_button_style(self):
         # Industrial, dark, square buttons
-        button_style = """
-            QPushButton {
-                background-color: #232a2f;
-                color: #e6eef3;
-                border: 1px solid #2f363b;
-                border-radius: 4px;
-                padding: 10px 18px;
-                font-weight: 700;
-                font-size: 14px;
-                min-height: 36px;
-            }
-            QPushButton:hover {
-                background-color: #2b3136;
-                border: 1px solid #ff6b35; /* accent edge */
-            }
-            QPushButton:pressed {
-                background-color: #1b2023;
-                border: 1px solid #1f2427;
-            }
-        """
+        # Use centralized button stylesheet
+        button_style = ReloadingTheme.get_button_stylesheet()
         self.setStyleSheet(self.styleSheet() + button_style)
         layout = QVBoxLayout()
         self.central_widget.setLayout(layout)
 
         # Navigation bar
         nav_bar = QWidget()
-        nav_bar.setStyleSheet(
-            """
-            QWidget {
-                background-color: #2c3e50;
-                padding: 10px;
-            }
-        """
-        )
+        # Use centralized navbar style
+        nav_bar.setStyleSheet(ReloadingTheme.get_navbar_style())
         nav_layout = QHBoxLayout()
         nav_bar.setLayout(nav_layout)
 
@@ -355,58 +456,31 @@ class MainWindow(QMainWindow):
         else:
             self.btn_home.setIcon(QIcon(get_window_icon_pixmap(32)))
         self.btn_home.setIconSize(QSize(24, 24))
-        self.btn_home.setStyleSheet(
-            """
-            QPushButton {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #444857, stop:1 #23242b);
-                color: #ffd700;
-                font-weight: bold;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-size: 16px;
-                border: 2px solid #7d5a18;
-            }
-            QPushButton:hover {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #5a5e6e, stop:1 #2c2d35);
-                color: #fffbe6;
-                border: 2px solid #ffd700;
-            }
-            QPushButton:pressed {
-                background-color: #23242b;
-                color: #ffd700;
-                border: 2px solid #bfa14a;
-            }
-        """
-        )
+        # Use themed selector instead of inline stylesheet
+        self.btn_home.setObjectName("homeButton")
         self.btn_home.clicked.connect(self.show_workflow_hub)
         nav_layout.addWidget(self.btn_home)
 
+        # Measurement Wizard quick-launch
+        try:
+            from src.ui.icon_registry import get_icon
+
+            self.btn_measurement_wizard = QPushButton("Measurement Wizard")
+            # Use themed selector for measurement wizard
+            self.btn_measurement_wizard.setObjectName("measurementWizardButton")
+            self.btn_measurement_wizard.setMinimumHeight(36)
+            icon = get_icon("measurement_wizard")
+            if icon:
+                self.btn_measurement_wizard.setIcon(icon)
+            self.btn_measurement_wizard.clicked.connect(self.open_measurement_wizard)
+            nav_layout.addWidget(self.btn_measurement_wizard)
+        except Exception:
+            pass
+
         # All Tools button
         self.btn_all_tools = QPushButton("🔧 All Tools (Legacy)")
-        self.btn_all_tools.setStyleSheet(
-            """
-            QPushButton {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #7f8c8d, stop:1 #4b5254);
-                color: #e0e0e0;
-                font-weight: bold;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-size: 16px;
-                border: 2px solid #444;
-            }
-            QPushButton:hover {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #95a5a6, stop:1 #5a6062);
-                color: #fff;
-                border: 2px solid #ffd700;
-            }
-            QPushButton:pressed {
-                background-color: #4b5254;
-                color: #ffd700;
-                border: 2px solid #bfa14a;
-                /* box-shadow removed (unsupported by Qt stylesheets) */
-            }
-        """
-        )
+        # Use themed selector for all tools button
+        self.btn_all_tools.setObjectName("allToolsButton")
         self.btn_all_tools.clicked.connect(self.show_all_tools)
         nav_layout.addWidget(self.btn_all_tools)
 
@@ -414,9 +488,8 @@ class MainWindow(QMainWindow):
 
         # Current workflow label
         self.label_current_workflow = QLabel("")
-        self.label_current_workflow.setStyleSheet(
-            "color: white; font-size: 14px; font-weight: bold;"
-        )
+        # Use themed selector for current workflow label
+        self.label_current_workflow.setObjectName("currentWorkflowLabel")
         nav_layout.addWidget(self.label_current_workflow)
 
         layout.addWidget(nav_bar)
@@ -426,7 +499,8 @@ class MainWindow(QMainWindow):
         if pix:
             logo_lbl = QLabel()
             logo_lbl.setPixmap(pix)
-            logo_lbl.setStyleSheet("background: transparent;")
+            # Keep logo background transparent but avoid inline stylesheet
+            logo_lbl.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
             layout.addWidget(logo_lbl, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # Stacked widget for switching between workflow hub and tools
@@ -678,37 +752,102 @@ class MainWindow(QMainWindow):
         """Oppretter alle tabs"""
         _tr = globals().get("tr", lambda k, **kw: k)
 
-        # Dashboard tab
-        dashboard_widget = self.create_dashboard_tab()
-        self.tabs.addTab(dashboard_widget, _tr("tab_dashboard"))
+        # Lightweight lazy loader widget: defers heavy tab construction until
+        # the tab is actually shown. This keeps import-time and startup fast
+        # and safe for headless/CI environments.
+        class LazyLoadWidget(QWidget):
+            def __init__(self, factory, parent=None):
+                super().__init__(parent)
+                self._factory = factory
+                self._loaded = False
+                try:
+                    self._layout = QVBoxLayout()
+                    self.setLayout(self._layout)
+                    self._loading_label = QLabel("Loading…")
+                    self._layout.addWidget(self._loading_label)
+                except Exception:
+                    # In stubbed/headless situations, layout ops may fail; ignore
+                    self._layout = None
 
-        # Test Lab tab
-        test_lab_widget = self.create_test_lab_tab()
-        self.tabs.addTab(test_lab_widget, _tr("tab_test_lab"))
+            def _load(self):
+                if self._loaded:
+                    return
+                self._loaded = True
+                try:
+                    widget = self._factory()
+                    if isinstance(widget, QWidget) and self._layout is not None:
+                        # Replace placeholder with the real widget
+                        try:
+                            # remove placeholder
+                            while self._layout.count():
+                                item = self._layout.takeAt(0)
+                                w = item.widget()
+                                if w is not None:
+                                    try:
+                                        w.setParent(None)
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            pass
+                        try:
+                            self._layout.addWidget(widget)
+                        except Exception:
+                            pass
+                    else:
+                        # If factory returned non-widget, show text fallback
+                        if self._layout is not None:
+                            try:
+                                self._layout.addWidget(QLabel("(Loaded content)"))
+                            except Exception:
+                                pass
+                except Exception as e:
+                    try:
+                        logger.exception("LazyLoadWidget factory failed: %s", e)
+                    except Exception:
+                        pass
+                    if self._layout is not None:
+                        try:
+                            self._layout.addWidget(QLabel("Failed to load tab"))
+                        except Exception:
+                            pass
 
-        # Ammunisjon tab
-        ammo_widget = self.create_ammo_tab()
-        self.tabs.addTab(ammo_widget, _tr("tab_ammunition"))
+            def showEvent(self, ev):
+                try:
+                    self._load()
+                except Exception:
+                    pass
+                try:
+                    super().showEvent(ev)
+                except Exception:
+                    pass
 
-        # Rifles & Optikk tab
-        rifles_widget = self.create_rifles_tab()
-        self.tabs.addTab(rifles_widget, _tr("tab_rifles"))
+        # Dashboard tab (lazy-loaded)
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_dashboard_tab), _tr("tab_dashboard")
+        )
 
-        # Lager tab
-        inventory_widget = self.create_inventory_tab()
-        self.tabs.addTab(inventory_widget, _tr("tab_inventory"))
+        # Test Lab tab (lazy-loaded)
+        self.tabs.addTab(LazyLoadWidget(self.create_test_lab_tab), _tr("tab_test_lab"))
 
-        # Logg tab
-        log_widget = self.create_log_tab()
-        self.tabs.addTab(log_widget, _tr("tab_log"))
+        # Ammunisjon tab (lazy-loaded)
+        self.tabs.addTab(LazyLoadWidget(self.create_ammo_tab), _tr("tab_ammunition"))
 
-        # Analyse tab
-        analysis_widget = self.create_analysis_tab()
-        self.tabs.addTab(analysis_widget, _tr("tab_analysis"))
+        # Rifles & Optikk tab (lazy-loaded)
+        self.tabs.addTab(LazyLoadWidget(self.create_rifles_tab), _tr("tab_rifles"))
 
-        # Innstillinger tab
-        settings_widget = self.create_settings_tab()
-        self.tabs.addTab(settings_widget, _tr("tab_settings"))
+        # Lager tab (lazy-loaded)
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_inventory_tab), _tr("tab_inventory")
+        )
+
+        # Logg tab (lazy-loaded)
+        self.tabs.addTab(LazyLoadWidget(self.create_log_tab), _tr("tab_log"))
+
+        # Analyse tab (lazy-loaded)
+        self.tabs.addTab(LazyLoadWidget(self.create_analysis_tab), _tr("tab_analysis"))
+
+        # Innstillinger tab (lazy-loaded)
+        self.tabs.addTab(LazyLoadWidget(self.create_settings_tab), _tr("tab_settings"))
 
     def create_dashboard_tab(self):
         """Oppretter dashboard-fanen"""
@@ -869,7 +1008,32 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.terrain_map import TerrainMapViewer
 
-            tabs.addTab(TerrainMapViewer(), "🗺️ Terrengkart")
+            viewer = TerrainMapViewer()
+            is_qwidget = False
+            try:
+                is_qwidget = isinstance(viewer, QWidget)
+            except Exception:
+                is_qwidget = False
+
+            if is_qwidget:
+                tabs.addTab(viewer, "🗺️ Terrengkart")
+            else:
+                # Wrap non-Qt viewer objects in a lightweight QWidget so
+                # QTabWidget.addTab() does not raise a TypeError in headless
+                # or baseline import-safe implementations.
+                wrap = QWidget()
+                wrap_layout = QVBoxLayout()
+                wrap.setLayout(wrap_layout)
+                try:
+                    # If the viewer exposes a Qt widget (e.g. map_view), embed it.
+                    mv = getattr(viewer, "map_view", None)
+                    if mv is not None and isinstance(mv, QWidget):
+                        wrap_layout.addWidget(mv)
+                    else:
+                        wrap_layout.addWidget(QLabel("TerrainMapViewer (wrapped)"))
+                except Exception:
+                    wrap_layout.addWidget(QLabel("TerrainMapViewer (wrapped)"))
+                tabs.addTab(wrap, "🗺️ Terrengkart")
         except Exception as e:
             logger.exception("Feil ved import av TerrainMapViewer: %s", e)
             w = QWidget()
@@ -1287,6 +1451,10 @@ class MainWindow(QMainWindow):
 
     def check_saved_workflows(self):
         """Check for saved workflows on startup"""
+        # Guard against uninitialized state_manager during deferred startup
+        if not hasattr(self, "state_manager") or self.state_manager is None:
+            return
+
         active_states = self.state_manager.get_all_active()
 
         if active_states:
@@ -1299,7 +1467,7 @@ class MainWindow(QMainWindow):
                 # Show dialog after a short delay so main window is visible
                 from PyQt6.QtCore import QTimer
 
-                QTimer.singleShot(500, dialog.exec)
+                QTimer.singleShot(500, lambda d=dialog: _run_modal(d))
             except Exception as e:
                 logger.exception("Failed to show WorkflowResumeDialog: %s", e)
                 return
