@@ -28,6 +28,9 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QTextEdit as QTextEditWidget,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QGroupBox,
 )
 
 from src.database.database import get_database
@@ -419,6 +422,26 @@ class ModernLoadBuilder(QWidget):
         manual_btn.setStyleSheet("padding: 8px; font-size: 10pt;")
         manual_btn.clicked.connect(self.on_manual_chronograph_clicked)
         scroll_layout.addWidget(manual_btn)
+
+        # Chronograph imports list
+        chrono_group = QGroupBox("Imported Chronograph Data")
+        chrono_layout = QVBoxLayout()
+
+        self.chrono_list = QListWidget()
+        chrono_layout.addWidget(self.chrono_list)
+
+        chrono_btn_layout = QHBoxLayout()
+        refresh_btn = QPushButton("↺ Refresh")
+        refresh_btn.clicked.connect(self.on_refresh_chronograph_list)
+        chrono_btn_layout.addWidget(refresh_btn)
+
+        attach_btn = QPushButton("🔗 Attach to Profile")
+        attach_btn.clicked.connect(self.on_attach_chronograph_to_profile)
+        chrono_btn_layout.addWidget(attach_btn)
+
+        chrono_layout.addLayout(chrono_btn_layout)
+        chrono_group.setLayout(chrono_layout)
+        scroll_layout.addWidget(chrono_group)
 
         scroll_content.setLayout(scroll_layout)
         scroll.setWidget(scroll_content)
@@ -966,6 +989,78 @@ class ModernLoadBuilder(QWidget):
 
         dlg.setLayout(layout)
         dlg.exec()
+
+    def on_refresh_chronograph_list(self):
+        """Reload recent chronograph imports into the list widget"""
+        cur = self.db.cursor
+        cur.execute(
+            "SELECT id, file_path, import_date, velocity_count, velocity_avg, velocity_es, velocity_sd FROM chronograph_imports ORDER BY import_date DESC LIMIT 50"
+        )
+        rows = cur.fetchall()
+        self.chrono_list.clear()
+        for r in rows:
+            import_id = r[0]
+            file_path = r[1] or "(manual)"
+            date = r[2]
+            count = r[3]
+            avg = r[4]
+            es = r[5]
+            sd = r[6]
+            text = f"#{import_id} {file_path} — {count} vel — avg {avg:.1f} fps — ES {es:.1f} — SD {sd:.1f}"
+            item = QListWidgetItem(text)
+            item.setData(Qt.ItemDataRole.UserRole, import_id)
+            self.chrono_list.addItem(item)
+
+    def on_attach_chronograph_to_profile(self):
+        """Attach selected chronograph import to an ammo_profile (create minimal profile if needed)"""
+        item = self.chrono_list.currentItem()
+        if not item:
+            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            return
+        import_id = item.data(Qt.ItemDataRole.UserRole)
+
+        # If a current ammo selection exists (we created one when creating batch earlier), attach to it.
+        # Otherwise create a minimal ammo_profile from current UI selections.
+        cur = self.db.cursor
+        cur.execute("SELECT ammo_profile_id FROM chronograph_imports WHERE id = ?", (import_id,))
+        existing = cur.fetchone()
+        if existing and existing[0]:
+            QMessageBox.information(self, "Already attached", f"Import already attached to profile id {existing[0]}")
+            return
+
+        # Create minimal profile if we have component selections
+        if self.rifle_data and self.bullet_data and self.powder_data:
+            name = f"Profile from import {import_id}"
+            cur.execute(
+                "INSERT INTO ammo_profiles (name, rifle_id, caliber, bullet_id, bullet_weight, powder_id, powder_charge, primer_id, case_id, coal, cbto, created_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+                (
+                    name,
+                    self.rifle_data.get("id"),
+                    self.rifle_data.get("caliber"),
+                    self.bullet_data.get("id"),
+                    float(self.bullet_data.get("weight", 0)),
+                    self.powder_data.get("id"),
+                    float(self.current_charge),
+                    self.primer_data.get("id") if self.primer_data else None,
+                    self.brass_data.get("id") if self.brass_data else None,
+                    float(self.coal_mm),
+                    float(self.cbto_mm),
+                ),
+            )
+            self.db.conn.commit()
+            ammo_profile_id = cur.lastrowid
+        else:
+            # Prompt for profile id
+            ap_id, ok = QInputDialog.getInt(self, "Ammo Profile ID", "Enter existing Ammo Profile ID to attach to:")
+            if not ok:
+                return
+            ammo_profile_id = ap_id
+
+        # Update import row
+        cur.execute("UPDATE chronograph_imports SET ammo_profile_id = ? WHERE id = ?", (ammo_profile_id, import_id))
+        self.db.conn.commit()
+        QMessageBox.information(self, "Attached", f"Import #{import_id} attached to profile {ammo_profile_id}")
+        self.on_refresh_chronograph_list()
 
     def toggle_chat(self):
         """Toggle chat panel visibility"""
