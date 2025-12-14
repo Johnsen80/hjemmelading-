@@ -21,6 +21,9 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QInputDialog,
+    QMessageBox,
+    QFileDialog,
 )
 
 from src.database.database import get_database
@@ -347,6 +350,7 @@ class ModernLoadBuilder(QWidget):
         """
         )
         header_layout.addWidget(create_batch_btn)
+        create_batch_btn.clicked.connect(self.on_create_batch_clicked)
 
         layout.addLayout(header_layout)
 
@@ -399,6 +403,12 @@ class ModernLoadBuilder(QWidget):
         scroll_layout.addWidget(seating_group)
 
         scroll_layout.addStretch()
+
+        # Import chronograph CSV button
+        import_btn = QPushButton("📥 Import Chronograph CSV")
+        import_btn.setStyleSheet("padding: 8px; font-size: 10pt;")
+        import_btn.clicked.connect(self.on_import_chronograph_clicked)
+        scroll_layout.addWidget(import_btn)
 
         scroll_content.setLayout(scroll_layout)
         scroll.setWidget(scroll_content)
@@ -805,6 +815,79 @@ class ModernLoadBuilder(QWidget):
 
         widget.setLayout(layout)
         return widget
+
+    def on_create_batch_clicked(self):
+        """UI handler: ask for batch name/size and create batch"""
+        # Ensure components selected
+        if not (self.rifle_data and self.bullet_data and self.powder_data and self.brass_data):
+            QMessageBox.warning(self, "Missing data", "Please select rifle, brass, bullet and powder before creating a batch.")
+            return
+
+        count, ok = QInputDialog.getInt(self, "Batch Size", "How many rounds to create?", 10, 1, 10000, 1)
+        if not ok:
+            return
+
+        name, ok2 = QInputDialog.getText(self, "Batch Name", "Name for this batch:", text=f"Batch for {self.rifle_data.get('name','rifle')}")
+        if not ok2:
+            return
+
+        # Ensure there's an ammo_profile for this configuration; create minimal profile
+        cur = self.db.cursor
+        # Build minimal ammo_profile
+        cur.execute(
+            "INSERT INTO ammo_profiles (name, rifle_id, caliber, bullet_id, bullet_weight, powder_id, powder_charge, primer_id, case_id, coal, cbto, created_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+            (
+                name,
+                self.rifle_data.get("id"),
+                self.rifle_data.get("caliber"),
+                self.bullet_data.get("id"),
+                float(self.bullet_data.get("weight", 0)),
+                self.powder_data.get("id"),
+                float(self.current_charge),
+                self.primer_data.get("id") if self.primer_data else None,
+                self.brass_data.get("id") if self.brass_data else None,
+                float(self.coal_mm),
+                float(self.cbto_mm),
+            ),
+        )
+        self.db.conn.commit()
+        ammo_profile_id = cur.lastrowid
+
+        # Call batch manager
+        try:
+            from src.database.batch_manager import create_loading_batch
+
+            res = create_loading_batch(self.db, ammo_profile_id, name, count, self.current_charge, self.coal_mm, self.cbto_mm)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to create batch: {e}")
+            return
+
+        if not res.get("ok"):
+            QMessageBox.warning(self, "Batch not created", res.get("message", "Unknown error"))
+            return
+
+        QMessageBox.information(self, "Batch created", f"Batch created (id={res.get('batch_id')}). Inventory updated.")
+
+    def on_import_chronograph_clicked(self):
+        """Open a file dialog, import selected CSV and show stats"""
+        path, _ = QFileDialog.getOpenFileName(self, "Select chronograph CSV", "", "CSV Files (*.csv);;All Files (*)")
+        if not path:
+            return
+
+        try:
+            from src.utils.chronograph_import import import_chronograph_csv
+
+            res = import_chronograph_csv(self.db, path, None, note=f"Imported via UI from {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Import failed", f"Failed to import CSV: {e}")
+            return
+
+        stats = res.get("stats", {})
+        QMessageBox.information(
+            self,
+            "Import complete",
+            f"Imported {stats.get('count', 0)} velocities. Avg: {stats.get('avg')}, ES: {stats.get('es')}, SD: {stats.get('sd')}",
+        )
 
     def toggle_chat(self):
         """Toggle chat panel visibility"""
