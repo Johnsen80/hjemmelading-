@@ -623,8 +623,12 @@ class BallisticsEngine:
         # Where K is caliber factor, P is pressure, C is charge, W is bullet weight, L is length
 
         # Defensive guards: avoid division by zero from bad input data
-        safe_bullet_weight = bullet_weight_gr if bullet_weight_gr and bullet_weight_gr > 0 else 1e-9
-        safe_barrel_length = barrel_length_in if barrel_length_in and barrel_length_in > 0 else 1e-6
+        safe_bullet_weight = (
+            bullet_weight_gr if bullet_weight_gr and bullet_weight_gr > 0 else 1e-9
+        )
+        safe_barrel_length = (
+            barrel_length_in if barrel_length_in and barrel_length_in > 0 else 1e-6
+        )
 
         charge_ratio = charge_gr / safe_bullet_weight
 

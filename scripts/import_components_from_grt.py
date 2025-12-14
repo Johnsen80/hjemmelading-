@@ -10,10 +10,11 @@ Usage: run from repo root:
     python scripts/import_components_from_grt.py
 
 """
+
 import os
 import sqlite3
-from typing import Dict, List, Any
 from decimal import Decimal
+from typing import Any, Dict, List
 
 
 def open_src_db() -> sqlite3.Connection:
@@ -70,8 +71,14 @@ def normalize_projectile(row: Dict[str, Any]) -> Dict[str, Any]:
         "name": row.get("name") or row.get("projectile_name") or row.get("model") or "",
         "manufacturer": row.get("manufacturer") or row.get("maker") or "",
         "caliber": row.get("caliber") or row.get("calibre") or row.get("cal") or "",
-        "weight_grains": row.get("weight") or row.get("grains") or row.get("bullet_weight") or None,
-        "diameter_mm": row.get("diameter") or row.get("dia") or row.get("caliber") or None,
+        "weight_grains": row.get("weight")
+        or row.get("grains")
+        or row.get("bullet_weight")
+        or None,
+        "diameter_mm": row.get("diameter")
+        or row.get("dia")
+        or row.get("caliber")
+        or None,
         "length_mm": row.get("length") or row.get("ogive_length") or None,
         "bc_g1": row.get("bc_g1") or row.get("bc") or None,
         "bc_g7": row.get("bc_g7") or None,
@@ -108,18 +115,38 @@ def normalize_load(row: Dict[str, Any]) -> Dict[str, Any]:
     # Map common load table fields to our `load_data` schema
     out = {
         "source": "imported",
-        "cartridge": row.get("cartridge") or row.get("caliber") or row.get("case") or "",
-        "bullet_name": row.get("projectile") or row.get("bullet") or row.get("projectile_name") or "",
-        "bullet_weight_grains": row.get("bullet_weight") or row.get("weight") or row.get("grains") or None,
+        "cartridge": row.get("cartridge")
+        or row.get("caliber")
+        or row.get("case")
+        or "",
+        "bullet_name": row.get("projectile")
+        or row.get("bullet")
+        or row.get("projectile_name")
+        or "",
+        "bullet_weight_grains": row.get("bullet_weight")
+        or row.get("weight")
+        or row.get("grains")
+        or None,
         "powder_name": row.get("powder") or row.get("powder_name") or "",
-        "min_charge_grains": row.get("min_charge") or row.get("charge_min") or row.get("charge_low") or None,
-        "max_charge_grains": row.get("max_charge") or row.get("charge_max") or row.get("charge_high") or None,
+        "min_charge_grains": row.get("min_charge")
+        or row.get("charge_min")
+        or row.get("charge_low")
+        or None,
+        "max_charge_grains": row.get("max_charge")
+        or row.get("charge_max")
+        or row.get("charge_high")
+        or None,
         "min_velocity_fps": row.get("min_velocity") or row.get("vel_min") or None,
         "max_velocity_fps": row.get("max_velocity") or row.get("vel_max") or None,
         "min_pressure_psi": row.get("min_pressure") or row.get("pressure_min") or None,
         "max_pressure_psi": row.get("max_pressure") or row.get("pressure_max") or None,
-        "coal_inches": row.get("coal") or row.get("seating_depth") or row.get("oal") or None,
-        "case_capacity_grains": row.get("case_capacity") or row.get("case_capacity_h2o") or None,
+        "coal_inches": row.get("coal")
+        or row.get("seating_depth")
+        or row.get("oal")
+        or None,
+        "case_capacity_grains": row.get("case_capacity")
+        or row.get("case_capacity_h2o")
+        or None,
         "barrel_length_inches": row.get("barrel_length") or None,
         "primer_type": row.get("primer") or row.get("primer_type") or None,
         "notes": row.get("notes") or row.get("comment") or "",
@@ -175,7 +202,10 @@ def upsert_bullets(dest: sqlite3.Connection, bullets: List[Dict[str, Any]]) -> i
                 insert_vals.append(v)
             placeholders = ",".join(["?" for _ in insert_vals])
             cols_sql = ",".join(insert_cols)
-            cur.execute(f"INSERT INTO bullets ({cols_sql}) VALUES ({placeholders})", tuple(insert_vals))
+            cur.execute(
+                f"INSERT INTO bullets ({cols_sql}) VALUES ({placeholders})",
+                tuple(insert_vals),
+            )
             inserted += 1
 
     dest.commit()
@@ -223,7 +253,10 @@ def upsert_powders(dest: sqlite3.Connection, powders: List[Dict[str, Any]]) -> i
                 insert_vals.append(v)
             placeholders = ",".join(["?" for _ in insert_vals])
             cols_sql = ",".join(insert_cols)
-            cur.execute(f"INSERT INTO powder ({cols_sql}) VALUES ({placeholders})", tuple(insert_vals))
+            cur.execute(
+                f"INSERT INTO powder ({cols_sql}) VALUES ({placeholders})",
+                tuple(insert_vals),
+            )
             inserted += 1
 
     dest.commit()
@@ -270,7 +303,10 @@ def upsert_primers(dest: sqlite3.Connection, primers: List[Dict[str, Any]]) -> i
                 insert_vals.append(v)
             placeholders = ",".join(["?" for _ in insert_vals])
             cols_sql = ",".join(insert_cols)
-            cur.execute(f"INSERT INTO primers ({cols_sql}) VALUES ({placeholders})", tuple(insert_vals))
+            cur.execute(
+                f"INSERT INTO primers ({cols_sql}) VALUES ({placeholders})",
+                tuple(insert_vals),
+            )
             inserted += 1
 
     dest.commit()
@@ -289,7 +325,9 @@ def upsert_bullet_data(dest: sqlite3.Connection, bullets: List[Dict[str, Any]]) 
         name = b.get("name") or ""
         manu = b.get("manufacturer") or ""
         # try to find matching bullets row
-        cur.execute("SELECT id FROM bullets WHERE name = ? AND manufacturer = ?", (name, manu))
+        cur.execute(
+            "SELECT id FROM bullets WHERE name = ? AND manufacturer = ?", (name, manu)
+        )
         found = cur.fetchone()
         bullet_id = found[0] if found else None
 
@@ -323,7 +361,10 @@ def upsert_bullet_data(dest: sqlite3.Connection, bullets: List[Dict[str, Any]]) 
             if insert_cols:
                 placeholders = ",".join(["?" for _ in insert_vals])
                 cols_sql = ",".join(insert_cols)
-                cur.execute(f"INSERT INTO bullet_data ({cols_sql}) VALUES ({placeholders})", tuple(insert_vals))
+                cur.execute(
+                    f"INSERT INTO bullet_data ({cols_sql}) VALUES ({placeholders})",
+                    tuple(insert_vals),
+                )
                 inserted += 1
 
     dest.commit()
@@ -350,15 +391,18 @@ def upsert_powder_data(dest: sqlite3.Connection, powders: List[Dict[str, Any]]) 
             if dest_k in dest_cols and p.get(src_k) is not None:
                 data[dest_k] = p.get(src_k)
 
-        insert_cols = [c for c in ("name","manufacturer") if c in dest_cols]
-        insert_vals = [name, manu][:len(insert_cols)]
+        insert_cols = [c for c in ("name", "manufacturer") if c in dest_cols]
+        insert_vals = [name, manu][: len(insert_cols)]
         for k, v in data.items():
             insert_cols.append(k)
             insert_vals.append(v)
         if insert_cols:
             placeholders = ",".join(["?" for _ in insert_vals])
             cols_sql = ",".join(insert_cols)
-            cur.execute(f"INSERT INTO powder_data ({cols_sql}) VALUES ({placeholders})", tuple(insert_vals))
+            cur.execute(
+                f"INSERT INTO powder_data ({cols_sql}) VALUES ({placeholders})",
+                tuple(insert_vals),
+            )
             inserted += 1
 
     dest.commit()
@@ -398,7 +442,10 @@ def upsert_loads(dest: sqlite3.Connection, loads: List[Dict[str, Any]]) -> int:
         placeholders = ",".join(["?" for _ in insert_vals])
         cols_sql = ",".join(insert_cols)
         try:
-            cur.execute(f"INSERT INTO load_data ({cols_sql}) VALUES ({placeholders})", tuple(insert_vals))
+            cur.execute(
+                f"INSERT INTO load_data ({cols_sql}) VALUES ({placeholders})",
+                tuple(insert_vals),
+            )
             inserted += 1
         except Exception:
             # skip problematic rows
@@ -427,7 +474,7 @@ def upsert_calibers_from_saami(dest: sqlite3.Connection):
     for cartridge, psi in PressureCalculator.SAAMI_LIMITS.items():
         # convert psi to bar (1 bar = 14.5037738 psi)
         try:
-            bar = float(Decimal(psi) / Decimal('14.5037738'))
+            bar = float(Decimal(psi) / Decimal("14.5037738"))
         except Exception:
             bar = None
 
@@ -451,7 +498,10 @@ def upsert_calibers_from_saami(dest: sqlite3.Connection):
         if cols:
             placeholders = ",".join(["?" for _ in vals])
             cols_sql = ",".join(cols)
-            cur.execute(f"INSERT INTO calibers ({cols_sql}) VALUES ({placeholders})", tuple(vals))
+            cur.execute(
+                f"INSERT INTO calibers ({cols_sql}) VALUES ({placeholders})",
+                tuple(vals),
+            )
             inserted += 1
 
     dest.commit()
@@ -469,12 +519,20 @@ def main():
         powders = rows_from_table(src, "powder")
         primers = rows_from_table(src, "primer")
         # attempt to read loads/cartridge tables from source DB
-        load_candidates = ["load", "loads", "load_data", "cartridge", "cartridges", "cartridge_data", "grt_loads", "grt_cartridges"]
+        load_candidates = [
+            "load",
+            "loads",
+            "load_data",
+            "cartridge",
+            "cartridges",
+            "cartridge_data",
+            "grt_loads",
+            "grt_cartridges",
+        ]
         loads = []
         for t in load_candidates:
             if not loads:
                 loads = rows_from_table(src, t)
-
 
         # Fallback names
         if not projectiles:
@@ -490,7 +548,9 @@ def main():
         norm_powders = [normalize_powder(r) for r in powders]
         norm_primers = [normalize_primer(r) for r in primers]
 
-        print(f"Found {len(norm_bullets)} projectiles, {len(norm_powders)} powders, {len(norm_primers)} primers in source DB")
+        print(
+            f"Found {len(norm_bullets)} projectiles, {len(norm_powders)} powders, {len(norm_primers)} primers in source DB"
+        )
 
         # upsert loads if any found
         if norm_loads:
@@ -554,7 +614,9 @@ def main():
             for pr in primers
         ]
 
-        print(f"Falling back to JSON: bullets={len(norm_bullets)}, powders={len(norm_powders)}, primers={len(norm_primers)}")
+        print(
+            f"Falling back to JSON: bullets={len(norm_bullets)}, powders={len(norm_powders)}, primers={len(norm_primers)}"
+        )
 
     b_added = upsert_bullets(dest, norm_bullets)
     p_added = upsert_powders(dest, norm_powders)
@@ -567,7 +629,9 @@ def main():
         bd_added = upsert_bullet_data(dest, norm_bullets)
         pd_added = upsert_powder_data(dest, norm_powders)
         cal_added = upsert_calibers_from_saami(dest)
-        print(f"Extended tables: bullet_data={bd_added}, powder_data={pd_added}, calibers_added={cal_added}")
+        print(
+            f"Extended tables: bullet_data={bd_added}, powder_data={pd_added}, calibers_added={cal_added}"
+        )
     except Exception as e:
         print(f"Warning: failed to populate extended tables: {e}")
 

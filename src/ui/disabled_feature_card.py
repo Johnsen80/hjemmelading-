@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+
 from src.ui.reloading_theme import ReloadingTheme
 
 
@@ -35,18 +36,23 @@ class DisabledFeatureCard(QWidget):
 
         def _open_instructions():
             try:
-                from PyQt6.QtGui import QDesktopServices
-                from PyQt6.QtCore import QUrl
                 import os
 
-                root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+                from PyQt6.QtCore import QUrl
+                from PyQt6.QtGui import QDesktopServices
+
+                root = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "..", "..")
+                )
                 md = os.path.join(root, "OPTIONAL_DEPENDENCIES.md")
                 QDesktopServices.openUrl(QUrl.fromLocalFile(md))
             except Exception:
                 try:
                     from PyQt6.QtWidgets import QMessageBox
 
-                    QMessageBox.information(self, "Info", "See OPTIONAL_DEPENDENCIES.md in project root.")
+                    QMessageBox.information(
+                        self, "Info", "See OPTIONAL_DEPENDENCIES.md in project root."
+                    )
                 except Exception:
                     pass
 

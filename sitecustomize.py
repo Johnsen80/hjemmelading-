@@ -7,6 +7,7 @@ tests that import GUI modules at import-time don't fail with
 
 This file is intentionally lightweight and only affects local/test runs.
 """
+
 from __future__ import annotations
 
 import os

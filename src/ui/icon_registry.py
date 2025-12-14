@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 _ROOT = Path(__file__).resolve().parents[1]
 _ICON_DIR = _ROOT / "images" / "icons"
@@ -7,6 +7,7 @@ _ICON_DIR = _ROOT / "images" / "icons"
 # Guard Qt imports so this module is safe to import in headless/test envs
 try:
     from PyQt6.QtGui import QIcon, QPixmap
+
     _HAS_QT = True
 except Exception:
     QIcon = None  # type: ignore

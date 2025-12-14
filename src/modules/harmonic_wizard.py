@@ -6,7 +6,6 @@ AI-assistert analyse av settedybde vs presisjon for å finne harmoniske noder
 from datetime import datetime
 
 import numpy as np
-from src.utils.optional_deps import Figure as Figure, FigureCanvas as FigureCanvas
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
@@ -30,9 +29,14 @@ from PyQt6.QtWidgets import (
     QWizard,
     QWizardPage,
 )
+
+from src.utils.optional_deps import Figure as Figure
+from src.utils.optional_deps import FigureCanvas as FigureCanvas
+
 try:
     from scipy.interpolate import UnivariateSpline
     from scipy.signal import find_peaks
+
     HAS_SCIPY = True
 except Exception:  # pragma: no cover - optional dep
     # Provide safe fallbacks so module can import in headless/CI environments.

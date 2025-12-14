@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
 
 def analyze_group_image(image_path: str, dpi: Optional[float] = None) -> Dict[str, Any]:
@@ -14,12 +14,22 @@ def analyze_group_image(image_path: str, dpi: Optional[float] = None) -> Dict[st
         import cv2
         import numpy as np
     except Exception:
-        return {"error": "opencv-not-installed", "pixel_diameter": None, "mm_diameter": None, "n_shots": None}
+        return {
+            "error": "opencv-not-installed",
+            "pixel_diameter": None,
+            "mm_diameter": None,
+            "n_shots": None,
+        }
 
     try:
         img = cv2.imread(image_path)
         if img is None:
-            return {"error": "could-not-read-image", "pixel_diameter": None, "mm_diameter": None, "n_shots": None}
+            return {
+                "error": "could-not-read-image",
+                "pixel_diameter": None,
+                "mm_diameter": None,
+                "n_shots": None,
+            }
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, (5, 5), 0)
         _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -45,6 +55,16 @@ def analyze_group_image(image_path: str, dpi: Optional[float] = None) -> Dict[st
                 mm_diameter = inches * 25.4
             except Exception:
                 mm_diameter = None
-        return {"pixel_diameter": pixel_diameter, "mm_diameter": mm_diameter, "n_shots": n, "center": (center_x, center_y)}
+        return {
+            "pixel_diameter": pixel_diameter,
+            "mm_diameter": mm_diameter,
+            "n_shots": n,
+            "center": (center_x, center_y),
+        }
     except Exception as exc:
-        return {"error": str(exc), "pixel_diameter": None, "mm_diameter": None, "n_shots": None}
+        return {
+            "error": str(exc),
+            "pixel_diameter": None,
+            "mm_diameter": None,
+            "n_shots": None,
+        }

@@ -61,7 +61,13 @@ class CalibrationTest:
     notes: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"id": self.id, "barrel_id": self.barrel_id, "date": self.date, "loads": [load_item.to_dict() for load_item in self.loads], "notes": self.notes}
+        return {
+            "id": self.id,
+            "barrel_id": self.barrel_id,
+            "date": self.date,
+            "loads": [load_item.to_dict() for load_item in self.loads],
+            "notes": self.notes,
+        }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CalibrationTest":

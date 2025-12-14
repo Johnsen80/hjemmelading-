@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QWizard,
     QWizardPage,
 )
+
 from src.database.database import get_database
 
 

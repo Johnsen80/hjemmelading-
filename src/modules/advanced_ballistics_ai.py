@@ -10,8 +10,9 @@ This module provides:
 - Multi-objective optimization (Genetic Algorithm)
 """
 
-from src.utils.optional_deps import cv2, HAS_CV2
 import numpy as np
+
+from src.utils.optional_deps import HAS_CV2, cv2
 
 # Optional heavy ML/CV dependencies - import guarded so module can be imported
 # in minimal environments. Functions that require these libs should check
@@ -98,7 +99,9 @@ def forecast_barrel_life(df):
 # 4. Computer Vision Group Measurement (OpenCV)
 def measure_group_size(image_path):
     if not HAS_CV2 or cv2 is None:
-        raise ImportError("OpenCV (cv2) is required for measure_group_size but is not installed.")
+        raise ImportError(
+            "OpenCV (cv2) is required for measure_group_size but is not installed."
+        )
 
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if img is None:

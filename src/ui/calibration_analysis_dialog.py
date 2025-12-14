@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPainter, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
+    QLabel,
+    QMessageBox,
     QPushButton,
-    QVBoxLayout,
     QTextEdit,
+    QVBoxLayout,
 )
-from PyQt6.QtWidgets import QLabel
-from PyQt6.QtWidgets import QMessageBox
-from PyQt6.QtGui import QPixmap, QPainter, QPen
-from PyQt6.QtCore import Qt
 
 # pathlib.Path not required here
 
@@ -26,7 +26,13 @@ class CalibrationAnalysisDialog(QDialog):
     `profile['optics_history']`.
     """
 
-    def __init__(self, results: List[Dict[str, Any]], parent=None, profile: dict | None = None, persist_callback=None) -> None:
+    def __init__(
+        self,
+        results: List[Dict[str, Any]],
+        parent=None,
+        profile: dict | None = None,
+        persist_callback=None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Calibration Analysis")
         self.resize(720, 480)
@@ -64,13 +70,21 @@ class CalibrationAnalysisDialog(QDialog):
                 if v:
                     lines.append("")
                     lines.append("  Optics suggestion (vertical):")
-                    lines.append(f"    Angle ({v.get('unit')}): {v.get('angle_unit'):.3f}")
-                    lines.append(f"    Clicks: {v.get('clicks')} (revs={v.get('revolutions')}, rem={v.get('remainder_clicks')})")
+                    lines.append(
+                        f"    Angle ({v.get('unit')}): {v.get('angle_unit'):.3f}"
+                    )
+                    lines.append(
+                        f"    Clicks: {v.get('clicks')} (revs={v.get('revolutions')}, rem={v.get('remainder_clicks')})"
+                    )
                 if h:
                     lines.append("")
                     lines.append("  Optics suggestion (horizontal):")
-                    lines.append(f"    Angle ({h.get('unit')}): {h.get('angle_unit'):.3f}")
-                    lines.append(f"    Clicks: {h.get('clicks')} (revs={h.get('revolutions')}, rem={h.get('remainder_clicks')})")
+                    lines.append(
+                        f"    Angle ({h.get('unit')}): {h.get('angle_unit'):.3f}"
+                    )
+                    lines.append(
+                        f"    Clicks: {h.get('clicks')} (revs={h.get('revolutions')}, rem={h.get('remainder_clicks')})"
+                    )
             lines.append("")
             txt.setPlainText("\n".join(lines))
             # if there is an image, display it with overlay if center + pixel_diameter present
@@ -83,7 +97,12 @@ class CalibrationAnalysisDialog(QDialog):
                 img_label = QLabel()
                 pix = QPixmap(img_path)
                 # draw overlay if we have analysis center and pixel_diameter
-                if img_analysis and isinstance(img_analysis, dict) and img_analysis.get("pixel_diameter") and img_analysis.get("center"):
+                if (
+                    img_analysis
+                    and isinstance(img_analysis, dict)
+                    and img_analysis.get("pixel_diameter")
+                    and img_analysis.get("center")
+                ):
                     center = img_analysis.get("center")
                     px_d = img_analysis.get("pixel_diameter")
                     try:
@@ -94,7 +113,9 @@ class CalibrationAnalysisDialog(QDialog):
                         painter.setPen(pen)
                         cx, cy = center
                         r = px_d / 2.0
-                        painter.drawEllipse(int(cx - r), int(cy - r), int(r * 2), int(r * 2))
+                        painter.drawEllipse(
+                            int(cx - r), int(cy - r), int(r * 2), int(r * 2)
+                        )
                         painter.end()
                         img_label.setPixmap(p)
                     except Exception:
@@ -109,7 +130,9 @@ class CalibrationAnalysisDialog(QDialog):
         self.save_btn.clicked.connect(self._on_save)
         # Apply optics suggestion button (only enabled if profile is present)
         self.apply_btn = QPushButton("Apply Optic Suggestions")
-        self.apply_btn.setToolTip("Apply computed optic click suggestions to the active profile history")
+        self.apply_btn.setToolTip(
+            "Apply computed optic click suggestions to the active profile history"
+        )
         self.apply_btn.clicked.connect(self._on_apply_suggestions)
         self.apply_btn.setEnabled(self._profile is not None)
         self.close_btn = QPushButton("Close")
@@ -130,7 +153,9 @@ class CalibrationAnalysisDialog(QDialog):
         Appends entries to `profile['optics_history']` with timestamp and details.
         """
         if not self._profile:
-            QMessageBox.warning(self, "No profile", "No profile available to apply suggestions to.")
+            QMessageBox.warning(
+                self, "No profile", "No profile available to apply suggestions to."
+            )
             return
 
         applied = 0
@@ -158,8 +183,18 @@ class CalibrationAnalysisDialog(QDialog):
                     self._persist_callback()
             except Exception:
                 # ignore persistence failures but inform user
-                QMessageBox.warning(self, "Persist failed", "Applied suggestions but failed to persist to storage.")
+                QMessageBox.warning(
+                    self,
+                    "Persist failed",
+                    "Applied suggestions but failed to persist to storage.",
+                )
 
-            QMessageBox.information(self, "Applied", f"Applied {applied} optic suggestion(s) to profile history.")
+            QMessageBox.information(
+                self,
+                "Applied",
+                f"Applied {applied} optic suggestion(s) to profile history.",
+            )
         else:
-            QMessageBox.information(self, "No suggestions", "No optic suggestions were present to apply.")
+            QMessageBox.information(
+                self, "No suggestions", "No optic suggestions were present to apply."
+            )

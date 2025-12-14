@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import json
 
 
 @dataclass
@@ -16,7 +16,9 @@ class Barrel:
     measurement_points: List[Dict[str, Any]] = field(default_factory=list)
     harmonic_metadata: Dict[str, Any] = field(default_factory=dict)
     # Muzzle / muzzle-device info (suppressor, brake, compensator)
-    muzzle_device_type: Optional[str] = None  # e.g. 'suppressor', 'compensator', 'brake', None
+    muzzle_device_type: Optional[str] = (
+        None  # e.g. 'suppressor', 'compensator', 'brake', None
+    )
     muzzle_device_weight_g: Optional[float] = None
     muzzle_device_length_mm: Optional[float] = None
 

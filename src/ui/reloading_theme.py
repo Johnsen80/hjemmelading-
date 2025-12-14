@@ -127,6 +127,7 @@ class ReloadingTheme:
         .accent-blue { color: #0b3a66; }
 
         """
+
     @staticmethod
     def get_card_style():
         """Return a small stylesheet snippet for modern card widgets.

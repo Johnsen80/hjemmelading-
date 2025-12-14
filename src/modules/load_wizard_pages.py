@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWizardPage,
 )
+
 from src.database.database import get_database
 
 
@@ -667,8 +668,9 @@ class AIPredictionPage(QWizardPage):
         # Physics-based calculation for test range
         min_charge = params["min_charge"]
         max_charge = params["max_charge"]
-        coal_mm = params["coal"]
-        cbto_mm = params.get("cbto")
+        # Use the keys set by LoadDataPage (coal_mm / cbto_mm)
+        coal_mm = params.get("coal_mm")
+        cbto_mm = params.get("cbto_mm")
 
         # Calculate ballistics for min, mid, max charges
         mid_charge = (min_charge + max_charge) / 2
@@ -979,63 +981,6 @@ class BatchCreationPage(QWizardPage):
         layout.addStretch()
         self.setLayout(layout)
 
-        def print_batch_sheet(self):
-            """Generer og vis batchark for utskrift"""
-            test_charges = self.wizard.prediction_data.get("test_charges", [])
-            shots_per_charge = self.wizard.load_params.get("shots_per_charge", 3)
-            rifle = self.wizard.rifle_data
-            brass = self.wizard.brass_data
-            bullet = self.wizard.bullet_data
-            powder = self.wizard.powder_data
-            primer = self.wizard.primer_data
-            params = self.wizard.load_params
-
-            html = """
-            <h2 style='color:#2980b9;'>Batchark for Testlading</h2>
-            <table border='1' cellpadding='6' style='border-collapse:collapse;width:100%;font-size:13pt;'>
-            <tr><th>Batchnummer</th><th>Kule</th><th>Vekt</th><th>Krutt</th><th>Ladning</th><th>Tennhette</th><th>Antall</th></tr>
-            """
-            for i, charge in enumerate(test_charges, 1):
-                batch_num = f"{self.batch_prefix_input.text()}-{i:03d}"
-                html += "<tr>"
-                html += f"<td>{batch_num}</td>"
-                html += (
-                    f"<td>{bullet.get('manufacturer','')} {bullet.get('name','')}</td>"
-                )
-                html += f"<td>{bullet.get('weight_grains','-')} gr</td>"
-                html += (
-                    f"<td>{powder.get('manufacturer','')} {powder.get('name','')}</td>"
-                )
-                html += f"<td>{charge:.1f} gr</td>"
-                html += (
-                    f"<td>{primer.get('manufacturer','')} {primer.get('name','')}</td>"
-                )
-                html += f"<td>{shots_per_charge}</td>"
-                html += "</tr>"
-            html += "</table>"
-            html += f"<p><b>Rifle:</b> {rifle.get('name','-')}<br>"
-            html += f"<b>Hylsebatch:</b> {brass.get('batch_name','-')}<br>"
-            html += f"<b>COAL:</b> {params.get('coal_mm','-')} mm | <b>CBTO:</b> {params.get('cbto_mm','-')} mm</p>"
-
-            # Vis i nytt vindu
-            dlg = QDialog(self)
-            dlg.setWindowTitle("Batchark for utskrift")
-            dlg.resize(800, 600)
-            vbox = QVBoxLayout()
-            text = QTextEdit()
-            text.setReadOnly(True)
-            text.setHtml(html)
-            vbox.addWidget(text)
-            btns = QDialogButtonBox(
-                QDialogButtonBox.StandardButton.Print
-                | QDialogButtonBox.StandardButton.Close
-            )
-            btns.accepted.connect(lambda: text.print_())
-            btns.rejected.connect(dlg.reject)
-            vbox.addWidget(btns)
-            dlg.setLayout(vbox)
-            dlg.exec()
-
     def initializePage(self):
         """Show batch summary"""
         self.show_summary()
@@ -1077,6 +1022,57 @@ class BatchCreationPage(QWizardPage):
         )
 
         self.summary_text.setHtml(html)
+
+    def print_batch_sheet(self):
+        """Generer og vis batchark for utskrift"""
+        test_charges = self.wizard.prediction_data.get("test_charges", [])
+        shots_per_charge = self.wizard.load_params.get("shots_per_charge", 3)
+        rifle = self.wizard.rifle_data
+        brass = self.wizard.brass_data
+        bullet = self.wizard.bullet_data
+        powder = self.wizard.powder_data
+        primer = self.wizard.primer_data
+        params = self.wizard.load_params
+
+        html = """
+        <h2 style='color:#2980b9;'>Batchark for Testlading</h2>
+        <table border='1' cellpadding='6' style='border-collapse:collapse;width:100%;font-size:13pt;'>
+        <tr><th>Batchnummer</th><th>Kule</th><th>Vekt</th><th>Krutt</th><th>Ladning</th><th>Tennhette</th><th>Antall</th></tr>
+        """
+        for i, charge in enumerate(test_charges, 1):
+            batch_num = f"{self.batch_prefix_input.text()}-{i:03d}"
+            html += "<tr>"
+            html += f"<td>{batch_num}</td>"
+            html += f"<td>{bullet.get('manufacturer','')} {bullet.get('name','')}</td>"
+            html += f"<td>{bullet.get('weight_grains','-')} gr</td>"
+            html += f"<td>{powder.get('manufacturer','')} {powder.get('name','')}</td>"
+            html += f"<td>{charge:.1f} gr</td>"
+            html += f"<td>{primer.get('manufacturer','')} {primer.get('name','')}</td>"
+            html += f"<td>{shots_per_charge}</td>"
+            html += "</tr>"
+        html += "</table>"
+        html += f"<p><b>Rifle:</b> {rifle.get('name','-')}<br>"
+        html += f"<b>Hylsebatch:</b> {brass.get('batch_name','-')}<br>"
+        html += f"<b>COAL:</b> {params.get('coal_mm','-')} mm | <b>CBTO:</b> {params.get('cbto_mm','-')} mm</p>"
+
+        # Vis i nytt vindu
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Batchark for utskrift")
+        dlg.resize(800, 600)
+        vbox = QVBoxLayout()
+        text = QTextEdit()
+        text.setReadOnly(True)
+        text.setHtml(html)
+        vbox.addWidget(text)
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Print
+            | QDialogButtonBox.StandardButton.Close
+        )
+        btns.accepted.connect(lambda: text.print_())
+        btns.rejected.connect(dlg.reject)
+        vbox.addWidget(btns)
+        dlg.setLayout(vbox)
+        dlg.exec()
 
     def create_batches(self):
         """Create batches in database"""

@@ -9,11 +9,13 @@ if str(ROOT) not in sys.path:
 
 # Use offscreen if not already set
 import os
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt6.QtWidgets import QApplication
     import importlib
+
+    from PyQt6.QtWidgets import QApplication
 
     app = QApplication([])
     mwmod = importlib.import_module("src.ui.main_window")

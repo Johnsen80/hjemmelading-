@@ -3,7 +3,6 @@ Modern Load Builder - Interactive visual load development with AI assistant
 Replaces old wizard with intuitive 2-step workflow + live visualization
 """
 
-import pyqtgraph as pg
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QTextCursor
 from PyQt6.QtWidgets import (
@@ -23,10 +22,11 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from pyqtgraph import mkPen
 
 from src.database.database import get_database
-from src.modules.ballistics_engine import get_ballistics_engine
+
+# Importing heavy visualization libs lazily inside methods to avoid
+# expensive imports at module import time (helps headless/CI probes).
 
 
 class ModernLoadBuilder(QWidget):
@@ -41,7 +41,9 @@ class ModernLoadBuilder(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.db = get_database()
-        self.engine = get_ballistics_engine()
+        # Defer creation of ballistics engine until actually needed to avoid
+        # expensive/side-effectful initialization during import/UI composition.
+        self._engine = None
 
         # State
         self.current_step = 1
@@ -58,6 +60,18 @@ class ModernLoadBuilder(QWidget):
         self.chat_history = []
 
         self.init_ui()
+
+    @property
+    def engine(self):
+        """Lazily initialize and return the ballistics engine."""
+        if getattr(self, "_engine", None) is None:
+            try:
+                from src.modules.ballistics_engine import get_ballistics_engine
+
+                self._engine = get_ballistics_engine()
+            except Exception:
+                self._engine = None
+        return self._engine
 
     def init_ui(self):
         """Initialize the UI"""
@@ -632,23 +646,43 @@ class ModernLoadBuilder(QWidget):
         self.scope_comparison_group.setVisible(False)
         layout.addWidget(self.scope_comparison_group)
 
-        # Pressure curve
-        self.pressure_plot = pg.PlotWidget()
-        self.pressure_plot.setBackground("w")
-        self.pressure_plot.setLabel("left", "Pressure", units="PSI")
-        self.pressure_plot.setLabel("bottom", "Time", units="ms")
-        self.pressure_plot.setTitle("Chamber Pressure", color="k", size="12pt")
-        self.pressure_plot.setMinimumHeight(200)
-        layout.addWidget(self.pressure_plot)
+        # Pressure & Velocity plots - lazy-import pyqtgraph and provide safe
+        # fallbacks if the library is unavailable (prevents heavy import at
+        # module load time and keeps headless probes lightweight).
+        try:
+            import pyqtgraph as pg  # type: ignore
 
-        # Velocity curve
-        self.velocity_plot = pg.PlotWidget()
-        self.velocity_plot.setBackground("w")
-        self.velocity_plot.setLabel("left", "Velocity", units="fps")
-        self.velocity_plot.setLabel("bottom", "Position", units="inches")
-        self.velocity_plot.setTitle("Bullet Velocity", color="k", size="12pt")
-        self.velocity_plot.setMinimumHeight(200)
-        layout.addWidget(self.velocity_plot)
+            # Keep reference to pyqtgraph module for later use
+            self._pg = pg
+
+            self.pressure_plot = pg.PlotWidget()
+            self.pressure_plot.setBackground("w")
+            self.pressure_plot.setLabel("left", "Pressure", units="PSI")
+            self.pressure_plot.setLabel("bottom", "Time", units="ms")
+            self.pressure_plot.setTitle("Chamber Pressure", color="k", size="12pt")
+            self.pressure_plot.setMinimumHeight(200)
+            layout.addWidget(self.pressure_plot)
+
+            self.velocity_plot = pg.PlotWidget()
+            self.velocity_plot.setBackground("w")
+            self.velocity_plot.setLabel("left", "Velocity", units="fps")
+            self.velocity_plot.setLabel("bottom", "Position", units="inches")
+            self.velocity_plot.setTitle("Bullet Velocity", color="k", size="12pt")
+            self.velocity_plot.setMinimumHeight(200)
+            layout.addWidget(self.velocity_plot)
+        except Exception:
+            # Fallback: simple read-only text placeholders so UI still renders
+            from PyQt6.QtWidgets import QTextEdit
+
+            ph1 = QTextEdit("Pressure plot unavailable (pyqtgraph missing)")
+            ph1.setReadOnly(True)
+            ph1.setMinimumHeight(200)
+            layout.addWidget(ph1)
+
+            ph2 = QTextEdit("Velocity plot unavailable (pyqtgraph missing)")
+            ph2.setReadOnly(True)
+            ph2.setMinimumHeight(200)
+            layout.addWidget(ph2)
 
         # Compare button
         compare_btn = QPushButton("📊 Compare with Other Powders")
@@ -1204,13 +1238,19 @@ class ModernLoadBuilder(QWidget):
         times = [p[0] for p in result["pressure_curve"]]
         pressures = [p[1] for p in result["pressure_curve"]]
 
-        self.pressure_plot.plot(times, pressures, pen=mkPen(color="#e74c3c", width=3))
+        pg = getattr(self, "_pg", None)
+        if not pg:
+            return
+
+        self.pressure_plot.plot(
+            times, pressures, pen=pg.mkPen(color="#e74c3c", width=3)
+        )
 
         # Add SAAMI line
         max_pressure = result["max_pressure_psi"]
         self.pressure_plot.addLine(
             y=max_pressure,
-            pen=mkPen(color="#95a5a6", width=2, style=Qt.PenStyle.DashLine),
+            pen=pg.mkPen(color="#95a5a6", width=2, style=Qt.PenStyle.DashLine),
         )
 
     def update_velocity_graph(self, result):
@@ -1220,8 +1260,12 @@ class ModernLoadBuilder(QWidget):
         positions = [v[0] for v in result["velocity_curve"]]
         velocities = [v[1] for v in result["velocity_curve"]]
 
+        pg = getattr(self, "_pg", None)
+        if not pg:
+            return
+
         self.velocity_plot.plot(
-            positions, velocities, pen=mkPen(color="#27ae60", width=3)
+            positions, velocities, pen=pg.mkPen(color="#27ae60", width=3)
         )
 
     def update_stats(self, result):

@@ -5,7 +5,6 @@ Planlegging og analyse av ladder tests
 
 from datetime import datetime
 
-from src.utils.optional_deps import Figure as Figure, FigureCanvas as FigureCanvas
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
@@ -34,6 +33,8 @@ from src.modules.interactive_features import (
     InteractiveVelocityGraph,
 )
 from src.modules.live_visualization import LiveStatisticsDisplay
+from src.utils.optional_deps import Figure as Figure
+from src.utils.optional_deps import FigureCanvas as FigureCanvas
 
 
 class LadderTestLab(QWidget):

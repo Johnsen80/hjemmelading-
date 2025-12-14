@@ -89,7 +89,12 @@ def fetch_weather_data_owm(
         return None
 
 
-def fetch_weather_data_yr(lat: float, lon: float, timeout: int = 10, user_agent: str = "Hjemmelading/1.0 (+https://example.local)") -> Optional[dict]:
+def fetch_weather_data_yr(
+    lat: float,
+    lon: float,
+    timeout: int = 10,
+    user_agent: str = "Hjemmelading/1.0 (+https://example.local)",
+) -> Optional[dict]:
     """Fetch weather from met.no / YR (locationforecast compact).
 
     The met.no API requires a descriptive User-Agent header. No API key
@@ -120,7 +125,16 @@ def fetch_weather_data_yr(lat: float, lon: float, timeout: int = 10, user_agent:
         return None
 
 
-def fetch_weather(provider: str, lat: float, lon: float, *, api_key: Optional[str] = None, timeout: int = 10, manual_data: Optional[dict] = None, **kwargs) -> Optional[dict]:
+def fetch_weather(
+    provider: str,
+    lat: float,
+    lon: float,
+    *,
+    api_key: Optional[str] = None,
+    timeout: int = 10,
+    manual_data: Optional[dict] = None,
+    **kwargs,
+) -> Optional[dict]:
     """Dispatch weather fetch to a chosen provider.
 
     provider: one of 'auto', 'owm', 'openweathermap', 'yr', 'metno', 'manual'.
@@ -194,18 +208,38 @@ def fetch_weather_for_viewer_async(
             except Exception:
                 pass
 
-    def _task(a: float, b: float, provider_arg: str, key: Optional[str], manual: Optional[dict], ua: Optional[str]) -> Optional[dict]:
+    def _task(
+        a: float,
+        b: float,
+        provider_arg: str,
+        key: Optional[str],
+        manual: Optional[dict],
+        ua: Optional[str],
+    ) -> Optional[dict]:
         try:
-            return fetch_weather(provider_arg, a, b, api_key=key, manual_data=manual, user_agent=ua)
+            return fetch_weather(
+                provider_arg, a, b, api_key=key, manual_data=manual, user_agent=ua
+            )
         except Exception as exc:
             logger.debug("_task fetch error: %s", exc)
             return None
 
     if NetworkWorker is None:
-        _write(fetch_weather(provider, lat, lon, api_key=api_key, manual_data=manual_data, user_agent=user_agent))
+        _write(
+            fetch_weather(
+                provider,
+                lat,
+                lon,
+                api_key=api_key,
+                manual_data=manual_data,
+                user_agent=user_agent,
+            )
+        )
         return
 
-    worker = NetworkWorker(_task, args=(lat, lon, provider, api_key, manual_data, user_agent))
+    worker = NetworkWorker(
+        _task, args=(lat, lon, provider, api_key, manual_data, user_agent)
+    )
 
     def _on_finished(res: Optional[dict]) -> None:
         _write(res)

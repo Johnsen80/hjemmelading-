@@ -3,6 +3,7 @@
 import sys
 
 from PyQt6.QtWidgets import QApplication
+
 from src.modules.ballistics_simulator import BallisticsSimulator
 
 print("Starting Ballistics Simulator...")

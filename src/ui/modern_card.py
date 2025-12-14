@@ -8,6 +8,7 @@ Modern Viking Card Widget for PyQt6
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
 from src.ui.reloading_theme import ReloadingTheme
 
 
@@ -22,7 +23,9 @@ class ModernCard(QWidget):
             self.setStyleSheet(ReloadingTheme.get_card_style())
         except Exception:
             # fall back to minimal inline safe defaults if theme helper fails
-            self.setStyleSheet("background-color:#23242b; border-radius:12px; padding:12px;")
+            self.setStyleSheet(
+                "background-color:#23242b; border-radius:12px; padding:12px;"
+            )
         self.setMinimumWidth(320)
         self.setMaximumWidth(480)
         layout = QVBoxLayout(self)

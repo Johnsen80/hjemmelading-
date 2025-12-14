@@ -1956,7 +1956,12 @@ class Database:
             logger.error(f"Failed to update inventory quantity: {e}")
 
     def create_measurement_session(
-        self, lot_id: int, measured_by: Optional[str] = None, sample_size: Optional[int] = None, measured_all: int = 0, notes: Optional[str] = None
+        self,
+        lot_id: int,
+        measured_by: Optional[str] = None,
+        sample_size: Optional[int] = None,
+        measured_all: int = 0,
+        notes: Optional[str] = None,
     ) -> int:
         """Create a measurement session and return session id."""
         self.cursor.execute(
@@ -1995,10 +2000,16 @@ class Database:
         return self.cursor.lastrowid
 
     def get_sessions_for_lot(self, lot_id: int) -> List[Dict[str, Any]]:
-        return self.execute_query("SELECT * FROM measurement_sessions WHERE lot_id = ? ORDER BY datetime DESC", (lot_id,))
+        return self.execute_query(
+            "SELECT * FROM measurement_sessions WHERE lot_id = ? ORDER BY datetime DESC",
+            (lot_id,),
+        )
 
     def get_values_for_session(self, session_id: int) -> List[Dict[str, Any]]:
-        return self.execute_query("SELECT * FROM measurement_values WHERE session_id = ? ORDER BY item_index", (session_id,))
+        return self.execute_query(
+            "SELECT * FROM measurement_values WHERE session_id = ? ORDER BY item_index",
+            (session_id,),
+        )
 
     def create_prep_session(
         self,
@@ -2028,7 +2039,10 @@ class Database:
         return self.cursor.lastrowid
 
     def get_prep_sessions_for_batch(self, brass_batch_id: int) -> List[Dict[str, Any]]:
-        return self.execute_query("SELECT * FROM prep_sessions WHERE brass_batch_id = ? ORDER BY created_date DESC", (brass_batch_id,))
+        return self.execute_query(
+            "SELECT * FROM prep_sessions WHERE brass_batch_id = ? ORDER BY created_date DESC",
+            (brass_batch_id,),
+        )
 
 
 # Singleton instance

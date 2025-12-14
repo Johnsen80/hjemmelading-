@@ -1,8 +1,9 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
 from PyQt6.QtCore import QSettings
 from PyQt6.QtGui import QFont
-from src.ui.reloading_theme import ReloadingTheme
+from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+
 from src.ui.icon_registry import get_icon
+from src.ui.reloading_theme import ReloadingTheme
 
 
 class OnboardingDialog(QDialog):

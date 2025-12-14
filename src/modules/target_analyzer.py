@@ -5,7 +5,6 @@ Bruker OpenCV til å måle gruppestørrelse fra bilder av skiver
 
 import os
 
-from src.utils.optional_deps import cv2, HAS_CV2
 import numpy as np
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QImage, QPixmap
@@ -26,6 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.database.database import get_database
+from src.utils.optional_deps import HAS_CV2, cv2
 
 
 class TargetAnalyzer(QWidget):
@@ -306,7 +306,9 @@ class TargetAnalyzer(QWidget):
     def detect_shots(self, image, sensitivity):
         """Detekterer skudd i bildet"""
         if not HAS_CV2 or cv2 is None:
-            raise ImportError("OpenCV (cv2) is required for detect_shots but is not installed.")
+            raise ImportError(
+                "OpenCV (cv2) is required for detect_shots but is not installed."
+            )
 
         # Konverter til gråskala
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

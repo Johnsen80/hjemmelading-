@@ -5,7 +5,6 @@ Finner sammenhenger mellom væ, ammunisjon, og presisjon
 
 from datetime import datetime
 
-from src.utils.optional_deps import Figure as Figure, FigureCanvas as FigureCanvas
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
@@ -21,7 +20,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
 from src.database.database import get_database
+from src.utils.optional_deps import Figure as Figure
+from src.utils.optional_deps import FigureCanvas as FigureCanvas
 
 
 class PrecisionTracker(QWidget):

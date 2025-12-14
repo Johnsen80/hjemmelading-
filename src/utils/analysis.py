@@ -10,12 +10,13 @@ Functions:
 - bootstrap_ci(values, stat='mean', n_iter=2000, ci=95) -> (low, high)
 
 """
+
 from __future__ import annotations
 
 import math
 import random
 import statistics
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 
 def compute_stats(values: List[float]) -> dict:
@@ -72,7 +73,9 @@ def compute_stats(values: List[float]) -> dict:
     }
 
 
-def detect_outliers(values: List[float], method: str = "z", thresh: float = 3.0) -> List[int]:
+def detect_outliers(
+    values: List[float], method: str = "z", thresh: float = 3.0
+) -> List[int]:
     """Return indices of values considered outliers.
 
     Methods:
@@ -112,7 +115,9 @@ def detect_outliers(values: List[float], method: str = "z", thresh: float = 3.0)
     return indices
 
 
-def bootstrap_ci(values: List[float], stat: str = "mean", n_iter: int = 2000, ci: float = 95) -> Tuple[Optional[float], Optional[float]]:
+def bootstrap_ci(
+    values: List[float], stat: str = "mean", n_iter: int = 2000, ci: float = 95
+) -> Tuple[Optional[float], Optional[float]]:
     """Compute percentile bootstrap CI for a statistic ('mean' or 'median').
 
     Returns (low, high) as floats. For empty values returns (None,None).
@@ -144,8 +149,8 @@ if __name__ == "__main__":
     # simple demo
     sample = [random.gauss(100.0, 2.5) for _ in range(12)]
     sample += [115.0]  # an outlier
-    print('sample:', sample)
-    print('stats:', compute_stats(sample))
-    print('outliers (z):', detect_outliers(sample, method='z', thresh=3.0))
-    print('outliers (mad):', detect_outliers(sample, method='mad', thresh=3.5))
-    print('bootstrap mean CI:', bootstrap_ci(sample, stat='mean', n_iter=2000))
+    print("sample:", sample)
+    print("stats:", compute_stats(sample))
+    print("outliers (z):", detect_outliers(sample, method="z", thresh=3.0))
+    print("outliers (mad):", detect_outliers(sample, method="mad", thresh=3.5))
+    print("bootstrap mean CI:", bootstrap_ci(sample, stat="mean", n_iter=2000))

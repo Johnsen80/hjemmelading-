@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 try:
     from PyQt6.QtWidgets import QApplication
+
     from src.ui.weapon_profile_editor import WeaponProfileEditor
 except Exception:
     traceback.print_exc()

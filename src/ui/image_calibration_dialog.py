@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 from typing import Optional
-from PyQt6.QtGui import QPixmap, QMouseEvent
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox
-from PyQt6.QtCore import Qt, QPoint
+
+from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtGui import QMouseEvent, QPixmap
+from PyQt6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+)
+
 from src.ui.reloading_theme import ReloadingTheme
 
 
@@ -63,7 +72,11 @@ class ImageCalibrationDialog(QDialog):
     def _on_set_distance(self) -> None:
         pts = self.img_label.points
         if len(pts) < 2:
-            QMessageBox.warning(self, "Need two points", "Click two points on the image to indicate a known distance.")
+            QMessageBox.warning(
+                self,
+                "Need two points",
+                "Click two points on the image to indicate a known distance.",
+            )
             return
         p1 = pts[-2]
         p2 = pts[-1]
@@ -76,13 +89,19 @@ class ImageCalibrationDialog(QDialog):
         # ask user for real-world mm via input dialog
         from PyQt6.QtWidgets import QInputDialog
 
-        txt, ok = QInputDialog.getText(self, "Distance in mm", "Enter the real-world distance between the two points (mm):")
+        txt, ok = QInputDialog.getText(
+            self,
+            "Distance in mm",
+            "Enter the real-world distance between the two points (mm):",
+        )
         if not ok:
             return
         try:
             mm = float(txt)
         except Exception:
-            QMessageBox.warning(self, "Invalid value", "Please enter a numeric value in mm.")
+            QMessageBox.warning(
+                self, "Invalid value", "Please enter a numeric value in mm."
+            )
             return
         self.mm_per_pixel = mm / pixel_dist
         self.accept()

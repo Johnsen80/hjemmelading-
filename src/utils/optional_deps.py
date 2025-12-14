@@ -21,6 +21,7 @@ try:
     HAS_MPL = True
     FigureCanvas = FigureCanvasQTAgg
 except Exception:
+
     class _DummyPlt:
         def subplots(self, *args, **kwargs):
             fig = _DummyFigure()
@@ -91,7 +92,7 @@ except Exception:
         def tight_layout(self, *args, **kwargs):
             return
 
-    from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+    from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
     class _DummyCanvas(QWidget):
         def __init__(self, fig=None, parent=None):

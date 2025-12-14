@@ -11,7 +11,10 @@ import os
 import uuid
 from datetime import datetime, timedelta
 
-from src.utils.optional_deps import plt, Figure as Figure, FigureCanvas as FigureCanvas
+from src.utils.optional_deps import Figure as Figure
+from src.utils.optional_deps import FigureCanvas as FigureCanvas
+from src.utils.optional_deps import plt
+
 try:
     from matplotlib.backends.backend_pdf import PdfPages
 except Exception:
@@ -39,6 +42,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
 from src.database.database import get_database
 from src.logging_config import configure_logging, get_logger
 from src.modules.weapon_profile_dialog import WeaponProfileDialog

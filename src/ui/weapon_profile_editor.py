@@ -8,16 +8,17 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
+    QHeaderView,
+    QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QTextEdit,
     QTableWidget,
     QTableWidgetItem,
-    QHeaderView,
+    QTextEdit,
     QVBoxLayout,
-    QLabel,
 )
+
 from src.modules.weapon_profile import load_profiles, save_profiles
 from src.ui.barrel_editor import BarrelEditorDialog
 from src.ui.calibration_test_dialog import CalibrationTestDialog
@@ -156,7 +157,9 @@ class WeaponProfileEditor(QDialog):
         # persist via model save helper
         target = Path(path) if path else self.data_path
         profiles = [
-            __import__("src.modules.weapon_profile", fromlist=["WeaponProfile"]).WeaponProfile.from_dict(p)
+            __import__(
+                "src.modules.weapon_profile", fromlist=["WeaponProfile"]
+            ).WeaponProfile.from_dict(p)
             for p in self._data
         ]
         save_profiles(target, profiles)
@@ -280,14 +283,21 @@ class WeaponProfileEditor(QDialog):
             QMessageBox.information(self, "No barrel", "Select a barrel first.")
             return
         barrel = profile["barrels"][bidx]
-        dlg = CalibrationTestDialog(parent=self, profile=profile, persist_callback=self._save_data)
+        dlg = CalibrationTestDialog(
+            parent=self, profile=profile, persist_callback=self._save_data
+        )
         if dlg.exec():
             data = dlg.gather()
             # convert into storage: add to barrel['calibration_tests']
             barrel.setdefault("calibration_tests", [])
             # create a simple id
             nid = f"ct-{len(barrel['calibration_tests'])+1}"
-            data_obj = {"id": nid, "barrel_id": barrel.get("id"), "loads": data.get("loads", []), "notes": data.get("notes", "")}
+            data_obj = {
+                "id": nid,
+                "barrel_id": barrel.get("id"),
+                "loads": data.get("loads", []),
+                "notes": data.get("notes", ""),
+            }
             barrel["calibration_tests"].append(data_obj)
             QMessageBox.information(self, "Saved", "Calibration test saved to profile.")
 
@@ -328,7 +338,9 @@ class WeaponProfileEditor(QDialog):
             QMessageBox.information(self, "No profile", "Select a profile first.")
             return
         profile = self._data[idx]
-        dlg = OpticsHistoryDialog(profile, persist_callback=self._save_data, parent=self)
+        dlg = OpticsHistoryDialog(
+            profile, persist_callback=self._save_data, parent=self
+        )
         dlg.exec()
 
     def _gather_current(self) -> dict:
@@ -455,15 +467,17 @@ class OpticsHistoryDialog(QDialog):
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
         self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels([
-            "Timestamp",
-            "Load Index",
-            "V Angle",
-            "V Clicks",
-            "H Angle",
-            "H Clicks",
-            "Meta",
-        ])
+        self.table.setHorizontalHeaderLabels(
+            [
+                "Timestamp",
+                "Load Index",
+                "V Angle",
+                "V Clicks",
+                "H Angle",
+                "H Clicks",
+                "Meta",
+            ]
+        )
         header = self.table.horizontalHeader()
         if header is not None:
             header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -491,9 +505,17 @@ class OpticsHistoryDialog(QDialog):
             li = str(e.get("load_index", ""))
             v = e.get("vertical") or {}
             h = e.get("horizontal") or {}
-            v_angle = f"{v.get('angle_unit'):.3f}" if v and v.get("angle_unit") is not None else ""
+            v_angle = (
+                f"{v.get('angle_unit'):.3f}"
+                if v and v.get("angle_unit") is not None
+                else ""
+            )
             v_clicks = str(v.get("clicks", "")) if v else ""
-            h_angle = f"{h.get('angle_unit'):.3f}" if h and h.get("angle_unit") is not None else ""
+            h_angle = (
+                f"{h.get('angle_unit'):.3f}"
+                if h and h.get("angle_unit") is not None
+                else ""
+            )
             h_clicks = str(h.get("clicks", "")) if h else ""
             meta = str(e.get("meta", {}))
 
@@ -521,7 +543,11 @@ class OpticsHistoryDialog(QDialog):
             if callable(self._persist):
                 self._persist()
         except Exception:
-            QMessageBox.warning(self, "Persist failed", "Failed to persist optics history after removal.")
+            QMessageBox.warning(
+                self,
+                "Persist failed",
+                "Failed to persist optics history after removal.",
+            )
         self.profile["optics_history"] = entries
         self._load_entries()
 

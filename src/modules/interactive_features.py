@@ -6,9 +6,11 @@ Hover tooltips, clickable data points, drag & drop
 from typing import Dict, Optional
 
 import numpy as np
-from src.utils.optional_deps import Figure as Figure, FigureCanvas as FigureCanvas
 from PyQt6.QtCore import QPoint, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QToolTip, QVBoxLayout, QWidget
+
+from src.utils.optional_deps import Figure as Figure
+from src.utils.optional_deps import FigureCanvas as FigureCanvas
 
 
 class InteractiveVelocityGraph(FigureCanvas):

@@ -6,9 +6,9 @@ from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QListWidget,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
-    QMessageBox,
 )
 
 from src.modules.calibration_test import ChronoData
@@ -67,8 +67,17 @@ class CalibrationTestsViewer(QDialog):
             img_path = load.get("group_image_path")
             img_res = None
             if img_path:
-                img_res = analyze_group_image(img_path, dpi=load.get("mm_per_pixel") and (1.0 / load.get("mm_per_pixel")))
-            results.append({"chrono_stats": chrono_stats, "image_analysis": img_res, "image_path": img_path})
+                img_res = analyze_group_image(
+                    img_path,
+                    dpi=load.get("mm_per_pixel") and (1.0 / load.get("mm_per_pixel")),
+                )
+            results.append(
+                {
+                    "chrono_stats": chrono_stats,
+                    "image_analysis": img_res,
+                    "image_path": img_path,
+                }
+            )
         dlg = CalibrationAnalysisDialog(results=results, parent=self)
         dlg.exec()
 
@@ -76,7 +85,10 @@ class CalibrationTestsViewer(QDialog):
         idx = self.listw.currentRow()
         if not (0 <= idx < len(self._tests)):
             return
-        if QMessageBox.question(self, "Delete", "Delete selected test?") == QMessageBox.StandardButton.Yes:
+        if (
+            QMessageBox.question(self, "Delete", "Delete selected test?")
+            == QMessageBox.StandardButton.Yes
+        ):
             del self._tests[idx]
             self.listw.takeItem(idx)
             # update barrel storage

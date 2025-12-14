@@ -14,6 +14,7 @@ if __name__ == "__main__":
 
     try:
         from PyQt6.QtWidgets import QApplication
+
         from src.ui.weapon_profile_editor import WeaponProfileEditor
     except Exception as e:
         print("Failed to import GUI components:", e)

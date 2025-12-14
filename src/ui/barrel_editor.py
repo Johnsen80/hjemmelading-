@@ -8,10 +8,10 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
-    QMessageBox,
 )
 
 
@@ -58,10 +58,14 @@ class BarrelEditorDialog(QDialog):
         self.muzzle_type_edit = QLineEdit(self._barrel.get("muzzle_device_type", ""))
         form.addRow("Muzzle device type:", self.muzzle_type_edit)
 
-        self.muzzle_weight_edit = QLineEdit(str(self._barrel.get("muzzle_device_weight_g", "")))
+        self.muzzle_weight_edit = QLineEdit(
+            str(self._barrel.get("muzzle_device_weight_g", ""))
+        )
         form.addRow("Muzzle device weight (g):", self.muzzle_weight_edit)
 
-        self.muzzle_length_edit = QLineEdit(str(self._barrel.get("muzzle_device_length_mm", "")))
+        self.muzzle_length_edit = QLineEdit(
+            str(self._barrel.get("muzzle_device_length_mm", ""))
+        )
         form.addRow("Muzzle device length (mm):", self.muzzle_length_edit)
 
         self.measurements_text = QTextEdit()
@@ -69,7 +73,9 @@ class BarrelEditorDialog(QDialog):
         try:
             import json
 
-            self.measurements_text.setPlainText(json.dumps(mp, indent=2, ensure_ascii=False))
+            self.measurements_text.setPlainText(
+                json.dumps(mp, indent=2, ensure_ascii=False)
+            )
         except Exception:
             self.measurements_text.setPlainText(str(mp))
         form.addRow(QLabel("Measurement points (JSON array):"), self.measurements_text)
@@ -91,18 +97,30 @@ class BarrelEditorDialog(QDialog):
         data["id"] = self._barrel.get("id", "")
         data["name"] = self.name_edit.text().strip()
         try:
-            data["length_mm"] = float(self.length_edit.text()) if self.length_edit.text().strip() else None
+            data["length_mm"] = (
+                float(self.length_edit.text())
+                if self.length_edit.text().strip()
+                else None
+            )
         except ValueError:
             data["length_mm"] = None
         data["material"] = self.material_edit.text().strip()
         data["mount_type"] = self.mount_edit.text().strip()
         # muzzle device
         try:
-            data["muzzle_device_weight_g"] = float(self.muzzle_weight_edit.text()) if self.muzzle_weight_edit.text().strip() else None
+            data["muzzle_device_weight_g"] = (
+                float(self.muzzle_weight_edit.text())
+                if self.muzzle_weight_edit.text().strip()
+                else None
+            )
         except ValueError:
             data["muzzle_device_weight_g"] = None
         try:
-            data["muzzle_device_length_mm"] = float(self.muzzle_length_edit.text()) if self.muzzle_length_edit.text().strip() else None
+            data["muzzle_device_length_mm"] = (
+                float(self.muzzle_length_edit.text())
+                if self.muzzle_length_edit.text().strip()
+                else None
+            )
         except ValueError:
             data["muzzle_device_length_mm"] = None
         data["muzzle_device_type"] = self.muzzle_type_edit.text().strip()
@@ -116,6 +134,10 @@ class BarrelEditorDialog(QDialog):
             else:
                 data["measurement_points"] = []
         except Exception:
-            QMessageBox.warning(self, "Invalid JSON", "Measurement points JSON could not be parsed. Using empty list.")
+            QMessageBox.warning(
+                self,
+                "Invalid JSON",
+                "Measurement points JSON could not be parsed. Using empty list.",
+            )
             data["measurement_points"] = []
         return data

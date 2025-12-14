@@ -1,4 +1,3 @@
-from src.utils.optional_deps import plt, FigureCanvas as FigureCanvas
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -11,6 +10,9 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from src.utils.optional_deps import FigureCanvas as FigureCanvas
+from src.utils.optional_deps import plt
 
 
 class LotComparisonWidget(QWidget):

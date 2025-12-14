@@ -2,6 +2,7 @@
 
 Provides conversions between linear offsets, angular units (mrad/moa) and turret clicks.
 """
+
 from math import atan
 from typing import Literal, Tuple
 
