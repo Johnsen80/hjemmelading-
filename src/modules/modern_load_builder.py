@@ -429,6 +429,7 @@ class ModernLoadBuilder(QWidget):
 
         self.chrono_list = QListWidget()
         chrono_layout.addWidget(self.chrono_list)
+        self.chrono_list.itemSelectionChanged.connect(self.on_chrono_selection_changed)
 
         chrono_btn_layout = QHBoxLayout()
         refresh_btn = QPushButton("↺ Refresh")
@@ -1010,6 +1011,44 @@ class ModernLoadBuilder(QWidget):
             item = QListWidgetItem(text)
             item.setData(Qt.ItemDataRole.UserRole, import_id)
             self.chrono_list.addItem(item)
+
+    def on_chrono_selection_changed(self):
+        """Plot velocities from the selected chronograph import into the velocity plot."""
+        item = self.chrono_list.currentItem()
+        if not item:
+            return
+        import_id = item.data(Qt.ItemDataRole.UserRole)
+        cur = self.db.cursor
+        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
+        row = cur.fetchone()
+        if not row:
+            return
+        import json
+        try:
+            velocities = json.loads(row[0]) if row[0] else []
+        except Exception:
+            velocities = []
+
+        if not velocities:
+            QMessageBox.information(self, "No velocities", "Selected import contains no velocity data.")
+            return
+
+        pg = getattr(self, "_pg", None)
+        # If pyqtgraph is available and we have a plot widget, plot points
+        if pg and hasattr(self, "velocity_plot") and isinstance(self.velocity_plot, pg.PlotWidget):
+            try:
+                self.velocity_plot.clear()
+                xs = list(range(1, len(velocities) + 1))
+                self.velocity_plot.plot(xs, velocities, pen=pg.mkPen(color="#34495e", width=2), symbol='o', symbolBrush="#34495e")
+            except Exception as e:
+                QMessageBox.warning(self, "Plot error", f"Could not plot velocities: {e}")
+        else:
+            # Fallback: show summary text
+            avg = sum(velocities) / len(velocities)
+            es = max(velocities) - min(velocities)
+            self.scope_comparison_label.setText(
+                f"Imported {len(velocities)} velocities — Avg {avg:.1f} fps — ES {es:.1f} fps"
+            )
 
     def on_attach_chronograph_to_profile(self):
         """Attach selected chronograph import to an ammo_profile (create minimal profile if needed)"""
