@@ -1247,17 +1247,100 @@ class ModernLoadBuilder(QWidget):
         b = model.get("b")
         r2 = model.get("r2")
 
-        # Prompt user to accept suggestion
+        # Refine suggestion by sampling the quadratic model across observed range
+        try:
+            min_c, max_c = res.get("observed_range", (suggested - 0.5, suggested + 0.5))
+            import math
+
+            samples = []
+            best_charge = suggested
+            best_val = None
+            for i in range(21):
+                c = min_c + (max_c - min_c) * i / 20.0
+                val = a * c * c + b * c + model.get("c", 0.0)
+                samples.append((c, val))
+                if best_val is None or val < best_val:
+                    best_val = val
+                    best_charge = c
+
+            # Use refined charge
+            refined = best_charge
+        except Exception:
+            refined = suggested
+
+        # Plot model curve overlay on velocity_plot (uses charge vs predicted group size)
+        pg = getattr(self, "_pg", None)
+        if pg and hasattr(self, "velocity_plot") and isinstance(self.velocity_plot, pg.PlotWidget):
+            try:
+                # prepare curve points
+                xs = [s[0] for s in samples]
+                ys = [s[1] for s in samples]
+                # draw as separate plot (different color)
+                self.velocity_plot.plot(xs, ys, pen=pg.mkPen(color="#8e44ad", width=2, style=Qt.PenStyle.DashLine))
+            except Exception:
+                pass
+
+        # Safety check: use ballistics engine to predict peak pressure for refined suggestion
+        predicted_pressure = None
+        saami_max_psi = None
+        try:
+            eng = self.engine
+            if eng:
+                res_calc = eng.calculate_load(
+                    self.rifle_data["id"],
+                    self.bullet_data["id"],
+                    self.powder_data["id"],
+                    refined,
+                    self.coal_mm,
+                    self.cbto_mm,
+                )
+                predicted_pressure = res_calc.get("max_pressure_psi")
+        except Exception:
+            predicted_pressure = None
+
+        try:
+            # Lookup SAAMI/CIP max pressure for the caliber
+            caliber = None
+            if self.rifle_data:
+                caliber = self.rifle_data.get("caliber")
+            if caliber:
+                cur = self.db.cursor
+                cur.execute("SELECT max_pressure_bar FROM calibers WHERE name = ?", (caliber,))
+                r = cur.fetchone()
+                if r and r[0]:
+                    saami_max_psi = float(r[0]) * 14.5037738
+        except Exception:
+            saami_max_psi = None
+
+        # If we have predicted pressure and saami, enforce safety
+        if predicted_pressure is not None and saami_max_psi is not None:
+            if predicted_pressure > saami_max_psi:
+                QMessageBox.critical(
+                    self,
+                    "Unsafe",
+                    f"Predicted peak pressure {predicted_pressure:.0f} PSI exceeds SAAMI max {saami_max_psi:.0f} PSI. Suggestion blocked.",
+                )
+                return
+            elif predicted_pressure > saami_max_psi * 0.95:
+                confirm = QMessageBox.question(
+                    self,
+                    "High pressure warning",
+                    f"Predicted peak pressure {predicted_pressure:.0f} PSI is within 95% of SAAMI max ({saami_max_psi:.0f} PSI). Apply anyway?",
+                )
+                if confirm != QMessageBox.StandardButton.Yes:
+                    return
+
+        # Prompt user to accept refined suggestion
         accept = QMessageBox.question(
             self,
             "Optimizer Suggestion",
-            f"Suggested charge: {suggested:.2f} gr\nModel R^2: {r2:.2f}\nApply suggested charge to slider?",
+            f"Suggested charge (refined): {refined:.2f} gr\nModel R^2: {r2:.2f}\nApply suggested charge to slider?",
         )
         if accept == QMessageBox.StandardButton.Yes:
             # set slider value (slider stores 10x grains)
             try:
-                self.charge_slider.setValue(int(round(suggested * 10)))
-                self.current_charge = suggested
+                self.charge_slider.setValue(int(round(refined * 10)))
+                self.current_charge = refined
                 self.charge_label.setText(f"{self.current_charge:.2f} gr")
                 self.update_visualization()
             except Exception as e:
