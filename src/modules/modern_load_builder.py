@@ -449,6 +449,10 @@ class ModernLoadBuilder(QWidget):
         qc_attach_btn.clicked.connect(self.on_attach_chrono_to_qc_batch)
         chrono_btn_layout.addWidget(qc_attach_btn)
 
+        suggest_btn = QPushButton("💡 Analyze & Suggest")
+        suggest_btn.clicked.connect(self.on_analyze_and_suggest)
+        chrono_btn_layout.addWidget(suggest_btn)
+
         chrono_layout.addLayout(chrono_btn_layout)
         chrono_group.setLayout(chrono_layout)
         scroll_layout.addWidget(chrono_group)
@@ -1172,6 +1176,49 @@ class ModernLoadBuilder(QWidget):
         self.db.conn.commit()
         inserted_id = cur.lastrowid
         QMessageBox.information(self, "Saved", f"Saved test_results id {inserted_id} (avg {avg:.1f} fps, ES {es:.1f})")
+
+    def on_analyze_and_suggest(self):
+        """Analyze selected import (or current test results) and show recommendations."""
+        item = self.chrono_list.currentItem()
+        if not item:
+            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            return
+        import_id = item.data(Qt.ItemDataRole.UserRole)
+        cur = self.db.cursor
+        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
+        row = cur.fetchone()
+        if not row:
+            QMessageBox.warning(self, "Not found", "Import row not found in DB")
+            return
+        import json
+        velocities = json.loads(row[0]) if row[0] else []
+        if not velocities:
+            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
+            return
+
+        # Compute stats
+        import statistics as _st
+        avg = _st.mean(velocities)
+        es = max(velocities) - min(velocities)
+        sd = _st.stdev(velocities) if len(velocities) > 1 else 0.0
+
+        from src.utils.recommender import suggest_adjustments
+
+        stats = {"count": len(velocities), "avg": avg, "es": es, "sd": sd}
+        suggestions = suggest_adjustments(stats, self.current_charge, self.coal_mm, self.cbto_mm)
+
+        # Show suggestions in dialog
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Analysis & Suggestions")
+        layout = QVBoxLayout()
+        for s in suggestions:
+            layout.addWidget(QLabel(s))
+
+        btn = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        btn.accepted.connect(dlg.accept)
+        layout.addWidget(btn)
+        dlg.setLayout(layout)
+        dlg.exec()
 
     def on_attach_chrono_to_qc_batch(self):
         """Attach selected chronograph import by creating or using existing qc_batch and insert qc_measurements."""
