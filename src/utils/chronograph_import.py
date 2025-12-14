@@ -118,3 +118,44 @@ def import_chronograph_csv(db, file_path: str, ammo_profile_id: Optional[int] = 
     db.conn.commit()
     import_id = cur.lastrowid
     return {"ok": True, "import_id": import_id, "stats": stats}
+
+
+def import_velocities(db, velocities: List[float], ammo_profile_id: Optional[int] = None, note: Optional[str] = None) -> Dict:
+    """
+    Persist a list of velocities into `chronograph_imports` and return stats.
+    """
+    stats = summarize_velocities(velocities)
+    cur = db.cursor
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chronograph_imports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_path TEXT,
+            ammo_profile_id INTEGER,
+            import_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            velocity_count INTEGER,
+            velocity_avg REAL,
+            velocity_es REAL,
+            velocity_sd REAL,
+            velocities_json TEXT,
+            notes TEXT
+        )
+        """
+    )
+
+    cur.execute(
+        "INSERT INTO chronograph_imports (file_path, ammo_profile_id, velocity_count, velocity_avg, velocity_es, velocity_sd, velocities_json, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            None,
+            ammo_profile_id,
+            stats["count"],
+            stats["avg"],
+            stats["es"],
+            stats["sd"],
+            json.dumps(velocities),
+            note,
+        ),
+    )
+    db.conn.commit()
+    import_id = cur.lastrowid
+    return {"ok": True, "import_id": import_id, "stats": stats}

@@ -24,6 +24,10 @@ from PyQt6.QtWidgets import (
     QInputDialog,
     QMessageBox,
     QFileDialog,
+    QDialog,
+    QDialogButtonBox,
+    QTextEdit as QTextEditWidget,
+    QLineEdit,
 )
 
 from src.database.database import get_database
@@ -409,6 +413,12 @@ class ModernLoadBuilder(QWidget):
         import_btn.setStyleSheet("padding: 8px; font-size: 10pt;")
         import_btn.clicked.connect(self.on_import_chronograph_clicked)
         scroll_layout.addWidget(import_btn)
+
+        # Manual chronograph entry
+        manual_btn = QPushButton("✍️ Manually Add Chronograph Data")
+        manual_btn.setStyleSheet("padding: 8px; font-size: 10pt;")
+        manual_btn.clicked.connect(self.on_manual_chronograph_clicked)
+        scroll_layout.addWidget(manual_btn)
 
         scroll_content.setLayout(scroll_layout)
         scroll.setWidget(scroll_content)
@@ -888,6 +898,74 @@ class ModernLoadBuilder(QWidget):
             "Import complete",
             f"Imported {stats.get('count', 0)} velocities. Avg: {stats.get('avg')}, ES: {stats.get('es')}, SD: {stats.get('sd')}",
         )
+
+    def on_manual_chronograph_clicked(self):
+        """Open dialog to paste velocities (one per line or comma-separated) and insert into DB"""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Manual Chronograph Entry")
+        layout = QVBoxLayout()
+
+        info = QLabel("Paste velocities (one per line or comma-separated). Optionally enter an Ammo Profile ID to link:")
+        layout.addWidget(info)
+
+        vel_text = QTextEditWidget()
+        vel_text.setPlaceholderText("e.g.\n820.1\n818.5\n823.0\n... or 820,818.5,823")
+        vel_text.setMinimumHeight(120)
+        layout.addWidget(vel_text)
+
+        ap_label = QLabel("Ammo Profile ID (optional):")
+        layout.addWidget(ap_label)
+        ap_input = QLineEdit()
+        ap_input.setPlaceholderText("e.g. 42")
+        layout.addWidget(ap_input)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        layout.addWidget(buttons)
+
+        def on_accept():
+            text = vel_text.toPlainText().strip()
+            if not text:
+                QMessageBox.warning(dlg, "No data", "Please paste at least one velocity value.")
+                return
+            # parse values
+            normalized = text.replace(',', ' ')
+            tokens = [t for t in normalized.split() if t.strip()]
+            vals = []
+            for tok in tokens:
+                try:
+                    vals.append(float(tok))
+                except Exception:
+                    QMessageBox.warning(dlg, "Parse error", f"Could not parse token: {tok}")
+                    return
+
+            ap_id = None
+            ap_text = ap_input.text().strip()
+            if ap_text:
+                try:
+                    ap_id = int(ap_text)
+                except Exception:
+                    QMessageBox.warning(dlg, "Parse error", "Ammo Profile ID must be an integer")
+                    return
+
+            # persist
+            try:
+                from src.utils.chronograph_import import import_velocities
+
+                res = import_velocities(self.db, vals, ap_id, note="Manual entry via UI")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to save velocities: {e}")
+                dlg.reject()
+                return
+
+            stats = res.get('stats', {})
+            QMessageBox.information(self, "Saved", f"Saved {stats.get('count',0)} velocities. Avg: {stats.get('avg')}")
+            dlg.accept()
+
+        buttons.accepted.connect(on_accept)
+        buttons.rejected.connect(dlg.reject)
+
+        dlg.setLayout(layout)
+        dlg.exec()
 
     def toggle_chat(self):
         """Toggle chat panel visibility"""
