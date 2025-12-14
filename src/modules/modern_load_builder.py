@@ -440,6 +440,10 @@ class ModernLoadBuilder(QWidget):
         attach_btn.clicked.connect(self.on_attach_chronograph_to_profile)
         chrono_btn_layout.addWidget(attach_btn)
 
+        save_btn = QPushButton("💾 Save Import → Test Results")
+        save_btn.clicked.connect(self.on_save_chronograph_to_test_results)
+        chrono_btn_layout.addWidget(save_btn)
+
         chrono_layout.addLayout(chrono_btn_layout)
         chrono_group.setLayout(chrono_layout)
         scroll_layout.addWidget(chrono_group)
@@ -1034,10 +1038,16 @@ class ModernLoadBuilder(QWidget):
             return
 
         pg = getattr(self, "_pg", None)
-        # If pyqtgraph is available and we have a plot widget, plot points
+        # If pyqtgraph is available and we have a plot widget, plot simulated curve and overlay import points
         if pg and hasattr(self, "velocity_plot") and isinstance(self.velocity_plot, pg.PlotWidget):
             try:
                 self.velocity_plot.clear()
+                # First draw simulated curve if present
+                if hasattr(self, "_last_velocity_curve") and self._last_velocity_curve:
+                    sim_x, sim_y = self._last_velocity_curve
+                    self.velocity_plot.plot(sim_x, sim_y, pen=pg.mkPen(color="#27ae60", width=3), name='sim')
+
+                # Plot import velocities as points (x = shot index)
                 xs = list(range(1, len(velocities) + 1))
                 self.velocity_plot.plot(xs, velocities, pen=pg.mkPen(color="#34495e", width=2), symbol='o', symbolBrush="#34495e")
             except Exception as e:
@@ -1100,6 +1110,63 @@ class ModernLoadBuilder(QWidget):
         self.db.conn.commit()
         QMessageBox.information(self, "Attached", f"Import #{import_id} attached to profile {ammo_profile_id}")
         self.on_refresh_chronograph_list()
+
+    def on_save_chronograph_to_test_results(self):
+        """Save selected chronograph import statistics into `test_results` linked to a profile or batch."""
+        item = self.chrono_list.currentItem()
+        if not item:
+            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            return
+        import_id = item.data(Qt.ItemDataRole.UserRole)
+        cur = self.db.cursor
+        cur.execute("SELECT velocities_json, ammo_profile_id FROM chronograph_imports WHERE id = ?", (import_id,))
+        row = cur.fetchone()
+        if not row:
+            QMessageBox.warning(self, "Not found", "Import row not found in DB")
+            return
+        import json
+        velocities = json.loads(row[0]) if row[0] else []
+        if not velocities:
+            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
+            return
+
+        # Determine ammo_profile to attach results
+        ap_id = row[1]
+        if not ap_id:
+            # try to use currently selected ammo/profile in UI if exists (we created one earlier when creating batch)
+            # For simplicity, prompt user for an ammo_profile id
+            ap_id, ok = QInputDialog.getInt(self, "Ammo Profile ID", "Enter Ammo Profile ID to associate test results with:")
+            if not ok:
+                return
+
+        # Compute stats
+        avg = sum(velocities) / len(velocities)
+        es = max(velocities) - min(velocities)
+        sd = (statistics.stdev(velocities) if len(velocities) > 1 else 0.0)
+
+        # Insert into test_results: put first up to 3 velocities into velocity_1..3
+        v1 = velocities[0] if len(velocities) > 0 else None
+        v2 = velocities[1] if len(velocities) > 1 else None
+        v3 = velocities[2] if len(velocities) > 2 else None
+
+        cur.execute(
+            "INSERT INTO test_results (ladder_test_id, charge_weight, velocity_1, velocity_2, velocity_3, velocity_avg, velocity_es, velocity_sd, image_path, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                None,
+                None,
+                v1,
+                v2,
+                v3,
+                float(avg),
+                float(es),
+                float(sd),
+                None,
+                f"Imported from chronograph_imports #{import_id}, linked to ammo_profile {ap_id}",
+            ),
+        )
+        self.db.conn.commit()
+        inserted_id = cur.lastrowid
+        QMessageBox.information(self, "Saved", f"Saved test_results id {inserted_id} (avg {avg:.1f} fps, ES {es:.1f})")
 
     def toggle_chat(self):
         """Toggle chat panel visibility"""
@@ -1555,13 +1622,14 @@ class ModernLoadBuilder(QWidget):
         positions = [v[0] for v in result["velocity_curve"]]
         velocities = [v[1] for v in result["velocity_curve"]]
 
+        # Store latest simulated curve for overlaying with imports
+        self._last_velocity_curve = (positions, velocities)
+
         pg = getattr(self, "_pg", None)
         if not pg:
             return
 
-        self.velocity_plot.plot(
-            positions, velocities, pen=pg.mkPen(color="#27ae60", width=3)
-        )
+        self.velocity_plot.plot(positions, velocities, pen=pg.mkPen(color="#27ae60", width=3))
 
     def update_stats(self, result):
         """Update statistics display"""
