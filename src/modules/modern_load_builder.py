@@ -453,6 +453,10 @@ class ModernLoadBuilder(QWidget):
         suggest_btn.clicked.connect(self.on_analyze_and_suggest)
         chrono_btn_layout.addWidget(suggest_btn)
 
+        optimize_btn = QPushButton("⚙️ Optimize From Ladder Tests")
+        optimize_btn.clicked.connect(self.on_optimize_from_ladder_tests)
+        chrono_btn_layout.addWidget(optimize_btn)
+
         chrono_layout.addLayout(chrono_btn_layout)
         chrono_group.setLayout(chrono_layout)
         scroll_layout.addWidget(chrono_group)
@@ -1219,6 +1223,45 @@ class ModernLoadBuilder(QWidget):
         layout.addWidget(btn)
         dlg.setLayout(layout)
         dlg.exec()
+
+    def on_optimize_from_ladder_tests(self):
+        """Query historical ladder tests and propose an optimal charge."""
+        try:
+            from src.utils.ladder_optimizer import suggest_charge_from_history
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Optimizer module missing: {e}")
+            return
+
+        rifle_id = self.rifle_data.get("id") if self.rifle_data else None
+        bullet_id = self.bullet_data.get("id") if self.bullet_data else None
+        powder_id = self.powder_data.get("id") if self.powder_data else None
+
+        res = suggest_charge_from_history(self.db, rifle_id, bullet_id, powder_id)
+        if not res:
+            QMessageBox.information(self, "Insufficient data", "Not enough historical ladder test data to suggest an optimal charge.")
+            return
+
+        suggested = res.get("suggested_charge")
+        model = res.get("model", {})
+        a = model.get("a")
+        b = model.get("b")
+        r2 = model.get("r2")
+
+        # Prompt user to accept suggestion
+        accept = QMessageBox.question(
+            self,
+            "Optimizer Suggestion",
+            f"Suggested charge: {suggested:.2f} gr\nModel R^2: {r2:.2f}\nApply suggested charge to slider?",
+        )
+        if accept == QMessageBox.StandardButton.Yes:
+            # set slider value (slider stores 10x grains)
+            try:
+                self.charge_slider.setValue(int(round(suggested * 10)))
+                self.current_charge = suggested
+                self.charge_label.setText(f"{self.current_charge:.2f} gr")
+                self.update_visualization()
+            except Exception as e:
+                QMessageBox.warning(self, "Apply failed", f"Could not apply suggested charge: {e}")
 
     def on_attach_chrono_to_qc_batch(self):
         """Attach selected chronograph import by creating or using existing qc_batch and insert qc_measurements."""
