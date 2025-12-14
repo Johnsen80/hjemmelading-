@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.database.database import get_database
+import statistics
 
 # Importing heavy visualization libs lazily inside methods to avoid
 # expensive imports at module import time (helps headless/CI probes).
@@ -443,6 +444,10 @@ class ModernLoadBuilder(QWidget):
         save_btn = QPushButton("💾 Save Import → Test Results")
         save_btn.clicked.connect(self.on_save_chronograph_to_test_results)
         chrono_btn_layout.addWidget(save_btn)
+
+        qc_attach_btn = QPushButton("🏷️ Attach to QC Batch")
+        qc_attach_btn.clicked.connect(self.on_attach_chrono_to_qc_batch)
+        chrono_btn_layout.addWidget(qc_attach_btn)
 
         chrono_layout.addLayout(chrono_btn_layout)
         chrono_group.setLayout(chrono_layout)
@@ -1167,6 +1172,63 @@ class ModernLoadBuilder(QWidget):
         self.db.conn.commit()
         inserted_id = cur.lastrowid
         QMessageBox.information(self, "Saved", f"Saved test_results id {inserted_id} (avg {avg:.1f} fps, ES {es:.1f})")
+
+    def on_attach_chrono_to_qc_batch(self):
+        """Attach selected chronograph import by creating or using existing qc_batch and insert qc_measurements."""
+        item = self.chrono_list.currentItem()
+        if not item:
+            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            return
+        import_id = item.data(Qt.ItemDataRole.UserRole)
+        cur = self.db.cursor
+        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
+        row = cur.fetchone()
+        if not row:
+            QMessageBox.warning(self, "Not found", "Import row not found in DB")
+            return
+        import json
+        velocities = json.loads(row[0]) if row[0] else []
+        if not velocities:
+            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
+            return
+
+        # Ask user to either enter existing qc_batch id or create new
+        batch_id, ok = QInputDialog.getInt(self, "QC Batch ID", "Enter existing QC batch ID to attach to (or 0 to create new):", 0)
+        if not ok:
+            return
+
+        if batch_id == 0:
+            # create new qc batch
+            name, ok2 = QInputDialog.getText(self, "New QC Batch", "Name for new QC batch:")
+            if not ok2 or not name:
+                QMessageBox.warning(self, "Cancelled", "Batch creation cancelled")
+                return
+            batch_size, ok3 = QInputDialog.getInt(self, "Batch Size", "How many rounds in batch?", len(velocities), 1)
+            if not ok3:
+                return
+            cur.execute(
+                "INSERT INTO qc_batches (name, target_charge, charge_tolerance, target_coal, coal_tolerance, batch_size, status) VALUES (?, ?, ?, ?, ?, ?, 'in_progress')",
+                (name, None, None, None, None, batch_size),
+            )
+            batch_id = cur.lastrowid
+            self.db.conn.commit()
+
+        # Insert measurements
+        for i, v in enumerate(velocities, start=1):
+            cur.execute(
+                "INSERT INTO qc_measurements (batch_id, patron_number, measurement_type, value, target_value, delta, is_outlier, notes) VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
+                (batch_id, i, 'velocity', float(v), None, None, f"Imported from chronograph_imports #{import_id}"),
+            )
+
+        # Optionally mark batch completed if we've inserted >= batch_size
+        cur.execute("SELECT batch_size FROM qc_batches WHERE id = ?", (batch_id,))
+        b = cur.fetchone()
+        if b and b[0] and int(b[0]) <= len(velocities):
+            cur.execute("UPDATE qc_batches SET status = 'completed', completed_date = datetime('now') WHERE id = ?", (batch_id,))
+
+        self.db.conn.commit()
+        QMessageBox.information(self, "QC Batch Updated", f"Inserted {len(velocities)} measurements into QC batch {batch_id}")
+        self.on_refresh_chronograph_list()
 
     def toggle_chat(self):
         """Toggle chat panel visibility"""
