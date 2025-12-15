@@ -3,38 +3,39 @@ Modern Load Builder - Interactive visual load development with AI assistant
 Replaces old wizard with intuitive 2-step workflow + live visualization
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal
+import statistics
+
+from PyQt6.QtCore import QDate, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QButtonGroup,
+    QCheckBox,
     QComboBox,
+    QDateEdit,
+    QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
+    QFileDialog,
     QGroupBox,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
     QPushButton,
     QRadioButton,
     QScrollArea,
     QSlider,
     QSplitter,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
-    QInputDialog,
-    QMessageBox,
-    QFileDialog,
-    QDialog,
-    QDialogButtonBox,
-    QTextEdit as QTextEditWidget,
-    QLineEdit,
-    QListWidget,
-    QListWidgetItem,
-    QGroupBox,
 )
+from PyQt6.QtWidgets import QTextEdit
+from PyQt6.QtWidgets import QTextEdit as QTextEditWidget
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from src.database.database import get_database
-import statistics
+from src.utils.pressure_logger import predict_and_log, query_recent_pressures
 
 # Importing heavy visualization libs lazily inside methods to avoid
 # expensive imports at module import time (helps headless/CI probes).
@@ -55,6 +56,10 @@ class ModernLoadBuilder(QWidget):
         # Defer creation of ballistics engine until actually needed to avoid
         # expensive/side-effectful initialization during import/UI composition.
         self._engine = None
+
+        # UI persisted preferences (loaded shortly after UI creation)
+        self.velocity_y_min = None
+        self.velocity_y_max = None
 
         # State
         self.current_step = 1
@@ -97,7 +102,494 @@ class ModernLoadBuilder(QWidget):
         layout.addWidget(self.step1_widget)
         self.step2_widget.hide()
 
+        # Restore last-open step if persisted
+        try:
+            cur = self.db.cursor
+            cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("last_step",))
+            row = cur.fetchone()
+            if row and row[0] is not None:
+                try:
+                    last = int(row[0])
+                    if last == 2:
+                        # show step 2
+                        self.step1_widget.hide()
+                        self.layout().addWidget(self.step2_widget)
+                        self.step2_widget.show()
+                        self.current_step = 2
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         self.setLayout(layout)
+
+        # AI assistant quick access
+        self.ai_button = QPushButton("AI Assistant")
+        self.ai_button.setToolTip(
+            "Ask the assistant about loads, calibration, or suggestions."
+        )
+        self.ai_button.clicked.connect(self.on_open_ai_chat)
+        layout.addWidget(self.ai_button)
+
+        # Explain-plot button
+        self.explain_plot_btn = QPushButton("Explain This Plot")
+        self.explain_plot_btn.setToolTip(
+            "Ask the assistant to explain the currently visible plot."
+        )
+        self.explain_plot_btn.clicked.connect(self.on_explain_plot_clicked)
+        layout.addWidget(self.explain_plot_btn)
+
+        self.ai_settings_btn = QPushButton("AI Settings")
+        self.ai_settings_btn.setToolTip(
+            "Configure AI assistant (enable remote API, model, API key)"
+        )
+        self.ai_settings_btn.clicked.connect(self.on_open_ai_settings)
+        layout.addWidget(self.ai_settings_btn)
+
+        # Preferences button (small centralized UI prefs)
+        self.prefs_btn = QPushButton("Preferences")
+        self.prefs_btn.setToolTip("Open UI preferences")
+        self.prefs_btn.clicked.connect(self.on_open_preferences)
+        layout.addWidget(self.prefs_btn)
+
+        # Apply persisted UI theme if present
+        try:
+            cur = self.db.cursor
+            cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("ui_theme",))
+            r = cur.fetchone()
+            if r and r[0] is not None:
+                theme = r[0]
+                try:
+                    if theme.lower() == "dark":
+                        self.setStyleSheet("background: #2c2c2c; color: #f0f0f0;")
+                    elif theme.lower() == "light":
+                        self.setStyleSheet("")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # GP optimizer suggest button
+        self.suggest_btn = QPushButton("Suggest Next Charge")
+        self.suggest_btn.setToolTip(
+            "Use GP-based optimizer to suggest the next charge to test."
+        )
+        self.suggest_btn.clicked.connect(self.on_suggest_next_charge)
+        layout.addWidget(self.suggest_btn)
+
+        # Subsonic mode controls
+        sub_h = QHBoxLayout()
+        self.subsonic_cb = QCheckBox("Subsonic Mode")
+        self.subsonic_cb.setToolTip(
+            "Try to suggest charges that keep velocity below the target subsonic threshold."
+        )
+        sub_h.addWidget(self.subsonic_cb)
+        sub_h.addWidget(QLabel("Target max velocity (fps):"))
+        self.subsonic_target = QDoubleSpinBox()
+        self.subsonic_target.setRange(500.0, 1300.0)
+        self.subsonic_target.setValue(1050.0)
+        self.subsonic_target.setSingleStep(5.0)
+        sub_h.addWidget(self.subsonic_target)
+        layout.addLayout(sub_h)
+
+        self.manage_suggestions_btn = QPushButton("Manage Suggestions")
+        self.manage_suggestions_btn.setToolTip(
+            "Browse past optimizer suggestions and create workflows or mark as tested."
+        )
+        self.manage_suggestions_btn.clicked.connect(self.on_manage_suggestions_clicked)
+        layout.addWidget(self.manage_suggestions_btn)
+
+        self.auto_match_btn = QPushButton("Auto-Match Suggestions")
+        self.auto_match_btn.setToolTip(
+            "Try to automatically match suggestions to recent test results and refit the optimizer."
+        )
+        self.auto_match_btn.clicked.connect(self.on_auto_match_suggestions)
+        layout.addWidget(self.auto_match_btn)
+
+        # Auto-match toggle
+        self.auto_match_toggle = QPushButton("Enable Auto-Match")
+        self.auto_match_toggle.setCheckable(True)
+        self.auto_match_toggle.setToolTip(
+            "When enabled, new test results will be auto-matched to suggestions."
+        )
+        self.auto_match_toggle.toggled.connect(self.on_toggle_auto_match)
+        layout.addWidget(self.auto_match_toggle)
+
+        # Timer for polling new test_results (created when toggled on)
+        self._auto_match_timer = QTimer(self)
+        self._auto_match_timer.setInterval(10000)  # 10s
+        self._auto_match_timer.timeout.connect(self._auto_match_poll)
+        self._last_test_result_id = None
+
+        # Pressure log UI
+        pressure_group = QGroupBox("📈 Pressure Log")
+        pressure_layout = QVBoxLayout()
+
+        # Filters: rifle selector + quick text filter
+        filter_layout = QHBoxLayout()
+        self.pressure_rifle_combo = QComboBox()
+        self.pressure_rifle_combo.addItem("All rifles", None)
+        try:
+            rifles = self.db.execute_query("SELECT id, name FROM rifles ORDER BY name")
+            for r in rifles:
+                self.pressure_rifle_combo.addItem(r.get("name", "?"), r.get("id"))
+        except Exception:
+            pass
+        self.pressure_rifle_combo.currentIndexChanged.connect(self.refresh_pressure_log)
+        filter_layout.addWidget(self.pressure_rifle_combo)
+
+        # Date range filters
+        self.pressure_from = QDateEdit()
+        self.pressure_from.setCalendarPopup(True)
+        self.pressure_from.setDate(QDate.currentDate().addDays(-30))
+        filter_layout.addWidget(self.pressure_from)
+
+        self.pressure_to = QDateEdit()
+        self.pressure_to.setCalendarPopup(True)
+        self.pressure_to.setDate(QDate.currentDate())
+        filter_layout.addWidget(self.pressure_to)
+
+        # Quick presets
+        from_btn = QPushButton("7d")
+        from_btn.setToolTip("Last 7 days")
+        from_btn.clicked.connect(lambda: self.on_set_date_preset(7))
+        filter_layout.addWidget(from_btn)
+
+        m30_btn = QPushButton("30d")
+        m30_btn.setToolTip("Last 30 days")
+        m30_btn.clicked.connect(lambda: self.on_set_date_preset(30))
+        filter_layout.addWidget(m30_btn)
+
+        m90_btn = QPushButton("90d")
+        m90_btn.setToolTip("Last 90 days")
+        m90_btn.clicked.connect(lambda: self.on_set_date_preset(90))
+        filter_layout.addWidget(m90_btn)
+
+        self.pressure_search = QLineEdit()
+        self.pressure_search.setPlaceholderText("Filter notes, id or charge...")
+        self.pressure_search.returnPressed.connect(self.refresh_pressure_log)
+        filter_layout.addWidget(self.pressure_search)
+
+        pressure_layout.addLayout(filter_layout)
+
+        self.pressure_list = QListWidget()
+        self.pressure_list.setMinimumHeight(150)
+        pressure_layout.addWidget(self.pressure_list)
+
+        pbtn_layout = QHBoxLayout()
+        refresh_pbtn = QPushButton("↺ Refresh")
+        refresh_pbtn.setStyleSheet("padding:6px;")
+        refresh_pbtn.clicked.connect(self.refresh_pressure_log)
+        pbtn_layout.addWidget(refresh_pbtn)
+
+        export_btn = QPushButton("⬇️ Export CSV")
+        export_btn.setStyleSheet("padding:6px;")
+        export_btn.clicked.connect(self.on_export_pressure_log)
+        pbtn_layout.addWidget(export_btn)
+
+        log_pbtn = QPushButton("📝 Log Predicted Pressure")
+        log_pbtn.setStyleSheet("padding:6px; background:#f39c12; color:white;")
+        log_pbtn.clicked.connect(self.on_log_predicted_pressure)
+        pbtn_layout.addWidget(log_pbtn)
+
+        pressure_layout.addLayout(pbtn_layout)
+        pressure_group.setLayout(pressure_layout)
+        layout.addWidget(pressure_group)
+
+    def refresh_pressure_log(self):
+        """Reload the pressure_history list applying current filters."""
+        try:
+            rows = query_recent_pressures(self.db, limit=500)
+        except Exception:
+            rows = []
+
+        # Apply rifle filter, date range, and quick text filter
+        rifle_id = None
+        if hasattr(self, "pressure_rifle_combo"):
+            sel = self.pressure_rifle_combo.currentData()
+            if isinstance(sel, int):
+                rifle_id = sel
+
+        q = ""
+        if hasattr(self, "pressure_search"):
+            q = (self.pressure_search.text() or "").strip().lower()
+
+        # date range
+        date_from = None
+        date_to = None
+        if hasattr(self, "pressure_from") and hasattr(self, "pressure_to"):
+            try:
+                date_from = self.pressure_from.date().toString("yyyy-MM-dd")
+                date_to = self.pressure_to.date().toString("yyyy-MM-dd")
+            except Exception:
+                date_from = None
+                date_to = None
+
+        # build id->name caches
+        rifle_names = {}
+        ammo_names = {}
+        try:
+            for r in self.db.execute_query("SELECT id, name FROM rifles"):
+                rifle_names[r.get("id")] = r.get("name")
+        except Exception:
+            pass
+        try:
+            for a in self.db.execute_query("SELECT id, name FROM ammo_profiles"):
+                ammo_names[a.get("id")] = a.get("name")
+        except Exception:
+            pass
+
+        filtered = []
+        for r in rows:
+            if rifle_id and r.get("rifle_id") != rifle_id:
+                continue
+
+            ts = r.get("timestamp") or ""
+            ts_date = ts[:10] if isinstance(ts, str) and len(ts) >= 10 else ""
+            if date_from and ts_date and ts_date < date_from:
+                continue
+            if date_to and ts_date and ts_date > date_to:
+                continue
+
+            if q:
+                note = str(r.get("note") or "").lower()
+                if (
+                    q not in note
+                    and q not in str(r.get("id") or "")
+                    and q not in str(r.get("charge_weight") or "")
+                ):
+                    continue
+            filtered.append(r)
+
+        self.pressure_list.clear()
+        for r in filtered:
+            try:
+                pval = r.get("predicted_pressure_psi")
+                ptxt = f"{pval:.1f} PSI" if pval is not None else "N/A"
+            except Exception:
+                ptxt = "N/A"
+
+            rifle_name = rifle_names.get(r.get("rifle_id"), f"R:{r.get('rifle_id')}")
+        # build powder/bullet lot mapping per ammo_profile
+        ammo_component_lots = {}
+        try:
+            rows_ap = self.db.execute_query(
+                "SELECT id, powder_id, bullet_id FROM ammo_profiles"
+            )
+            for ap in rows_ap:
+                apid = ap.get("id")
+                powder_lot = None
+                bullet_lot = None
+                try:
+                    if ap.get("powder_id"):
+                        pr = self.db.execute_query(
+                            "SELECT lot_number FROM component_lots WHERE component_type='powder' AND component_id=? ORDER BY created_date DESC LIMIT 1",
+                            (ap.get("powder_id"),),
+                        )
+                        if pr:
+                            powder_lot = pr[0].get("lot_number")
+                except Exception:
+                    powder_lot = None
+                try:
+                    if ap.get("bullet_id"):
+                        br = self.db.execute_query(
+                            "SELECT lot_number FROM component_lots WHERE component_type='bullet' AND component_id=? ORDER BY created_date DESC LIMIT 1",
+                            (ap.get("bullet_id"),),
+                        )
+                        if br:
+                            bullet_lot = br[0].get("lot_number")
+                except Exception:
+                    bullet_lot = None
+                ammo_component_lots[apid] = {
+                    "powder_lot": powder_lot,
+                    "bullet_lot": bullet_lot,
+                }
+        except Exception:
+            pass
+            ammo_name = ammo_names.get(
+                r.get("ammo_profile_id"), f"A:{r.get('ammo_profile_id')}"
+            )
+
+            display = f"{r.get('timestamp')} | {rifle_name} | {ammo_name} | Charge:{r.get('charge_weight')} gr | P:{ptxt} | {r.get('note') or ''}"
+            item = QListWidgetItem(display)
+            item.setData(Qt.ItemDataRole.UserRole, r.get("id"))
+            self.pressure_list.addItem(item)
+
+    def on_set_date_preset(self, days: int):
+        """Set the date_from to `days` ago and refresh the list."""
+        try:
+            self.pressure_from.setDate(QDate.currentDate().addDays(-int(days)))
+            self.pressure_to.setDate(QDate.currentDate())
+        except Exception:
+            pass
+        self.refresh_pressure_log()
+
+    def on_export_pressure_log(self):
+        """Export currently filtered pressure log rows to CSV."""
+        # Reuse the same filtering logic as refresh (but fetch rows again)
+        try:
+            rows = query_recent_pressures(self.db, limit=500)
+        except Exception:
+            rows = []
+
+        rifle_id = None
+        if hasattr(self, "pressure_rifle_combo"):
+            sel = self.pressure_rifle_combo.currentData()
+            rifle_id = sel
+
+        q = ""
+        if hasattr(self, "pressure_search"):
+            q = (self.pressure_search.text() or "").strip().lower()
+
+        date_from = None
+        date_to = None
+        if hasattr(self, "pressure_from") and hasattr(self, "pressure_to"):
+            try:
+                date_from = self.pressure_from.date().toString("yyyy-MM-dd")
+                date_to = self.pressure_to.date().toString("yyyy-MM-dd")
+            except Exception:
+                date_from = None
+                date_to = None
+
+        filtered = []
+        for r in rows:
+            if rifle_id and r.get("rifle_id") != rifle_id:
+                continue
+            ts = r.get("timestamp") or ""
+            ts_date = ts[:10] if isinstance(ts, str) and len(ts) >= 10 else ""
+            if date_from and ts_date and ts_date < date_from:
+                continue
+            if date_to and ts_date and ts_date > date_to:
+                continue
+            if q:
+                note = str(r.get("note") or "").lower()
+                if (
+                    q not in note
+                    and q not in str(r.get("id") or "")
+                    and q not in str(r.get("charge_weight") or "")
+                ):
+                    continue
+            filtered.append(r)
+
+        if not filtered:
+            QMessageBox.information(
+                self, "No Data", "No pressure log rows match current filters."
+            )
+            return
+
+        fname, _ = QFileDialog.getSaveFileName(
+            self, "Export Pressure Log CSV", "", "CSV Files (*.csv)"
+        )
+        if not fname:
+            return
+
+        import csv
+
+        # Build name caches
+        rifle_names = {}
+        ammo_names = {}
+        ammo_lots = {}
+        ammo_component_lots = {}
+        try:
+            for r in self.db.execute_query("SELECT id, name FROM rifles"):
+                rifle_names[r.get("id")] = r.get("name")
+        except Exception:
+            pass
+        try:
+            for a in self.db.execute_query("SELECT id, name FROM ammo_profiles"):
+                ammo_names[a.get("id")] = a.get("name")
+        except Exception:
+            pass
+        try:
+            for a in self.db.execute_query(
+                "SELECT ap.id as apid, c.lot_number as lot FROM ammo_profiles ap LEFT JOIN cases c ON ap.case_id = c.id"
+            ):
+                ammo_lots[a.get("apid")] = a.get("lot")
+        except Exception:
+            pass
+        try:
+            # map ammo_profile -> powder/bullet lot numbers (latest per component)
+            for ap in self.db.execute_query(
+                "SELECT id, powder_id, bullet_id FROM ammo_profiles"
+            ):
+                apid = ap.get("id")
+                powder_lot = None
+                bullet_lot = None
+                try:
+                    if ap.get("powder_id"):
+                        p_row = self.db.execute_query(
+                            "SELECT lot_number FROM component_lots WHERE component_type='powder' AND component_id=? ORDER BY created_date DESC LIMIT 1",
+                            (ap.get("powder_id"),),
+                        )
+                        if p_row:
+                            powder_lot = p_row[0].get("lot_number")
+                except Exception:
+                    powder_lot = None
+                try:
+                    if ap.get("bullet_id"):
+                        b_row = self.db.execute_query(
+                            "SELECT lot_number FROM component_lots WHERE component_type='bullet' AND component_id=? ORDER BY created_date DESC LIMIT 1",
+                            (ap.get("bullet_id"),),
+                        )
+                        if b_row:
+                            bullet_lot = b_row[0].get("lot_number")
+                except Exception:
+                    bullet_lot = None
+                ammo_component_lots[apid] = {
+                    "powder_lot": powder_lot,
+                    "bullet_lot": bullet_lot,
+                }
+        except Exception:
+            pass
+
+        try:
+            with open(fname, "w", newline="", encoding="utf-8") as fh:
+                writer = csv.writer(fh)
+                writer.writerow(
+                    [
+                        "id",
+                        "timestamp",
+                        "rifle_id",
+                        "rifle_name",
+                        "ammo_profile_id",
+                        "ammo_name",
+                        "ammo_case_lot",
+                        "powder_lot",
+                        "bullet_lot",
+                        "charge_weight",
+                        "coal_mm",
+                        "cbto_mm",
+                        "predicted_pressure_psi",
+                        "saami_max_psi",
+                        "note",
+                    ]
+                )
+                for r in filtered:
+                    comp = ammo_component_lots.get(r.get("ammo_profile_id"), {})
+                    writer.writerow(
+                        [
+                            r.get("id"),
+                            r.get("timestamp"),
+                            r.get("rifle_id"),
+                            rifle_names.get(r.get("rifle_id")),
+                            r.get("ammo_profile_id"),
+                            ammo_names.get(r.get("ammo_profile_id")),
+                            ammo_lots.get(r.get("ammo_profile_id")),
+                            comp.get("powder_lot"),
+                            comp.get("bullet_lot"),
+                            r.get("charge_weight"),
+                            r.get("coal_mm"),
+                            r.get("cbto_mm"),
+                            r.get("predicted_pressure_psi"),
+                            r.get("saami_max_psi"),
+                            r.get("note"),
+                        ]
+                    )
+            QMessageBox.information(
+                self, "Exported", f"Exported {len(filtered)} rows to {fname}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Export failed", f"Could not write CSV: {e}")
 
     def create_step1_page(self):
         """Step 1: Select Rifle & Brass"""
@@ -163,65 +655,63 @@ class ModernLoadBuilder(QWidget):
         return widget
 
     def create_rifle_selection_panel(self):
-        """Create rifle selection panel"""
-        group = QGroupBox("🎯 Your Rifles")
-        group.setStyleSheet(
-            """
-            QGroupBox {
-                font-size: 14pt;
-                font-weight: bold;
-                color: #2c3e50;
-                padding: 20px;
-                margin: 10px;
-            }
-        """
-        )
-        layout = QVBoxLayout()
+        from src.utils.ai_assistant import Assistant
 
-        # Radio buttons for rifles
-        self.rifle_button_group = QButtonGroup()
+        dlg = QDialog(self)
+        dlg.setWindowTitle("AI Assistant Settings")
+        v = QVBoxLayout()
 
-        rifles = self.db.execute_query("SELECT * FROM rifles ORDER BY name")
+        enabled_cb = QPushButton("Enable Remote API")
+        enabled_cb.setCheckable(True)
+        v.addWidget(enabled_cb)
 
-        if rifles:
-            for rifle in rifles:
-                rb = QRadioButton(f"{rifle['name']} ({rifle['caliber']})")
-                rb.setStyleSheet("font-size: 11pt; padding: 10px;")
-                rb.rifle_data = rifle
-                rb.toggled.connect(self.on_rifle_selected)
-                self.rifle_button_group.addButton(rb)
-                layout.addWidget(rb)
-        else:
-            no_rifles = QLabel("No rifles found. Add rifles in Inventory tab first.")
-            no_rifles.setStyleSheet(
-                "color: #e67e22; font-style: italic; padding: 20px;"
-            )
-            layout.addWidget(no_rifles)
+        v.addWidget(QLabel("Model:"))
+        model_edit = QLineEdit()
+        v.addWidget(model_edit)
 
-        layout.addStretch()
+        v.addWidget(QLabel("API Key:"))
+        key_edit = QLineEdit()
+        key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        v.addWidget(key_edit)
 
-        add_btn = QPushButton("+ Add New Rifle")
-        add_btn.setStyleSheet("color: #3498db; font-size: 10pt; padding: 8px;")
-        layout.addWidget(add_btn)
+        def load_current():
+            try:
+                cur = self.db.cursor
+                cur.execute(
+                    "SELECT enabled, model, api_key FROM ai_settings ORDER BY id DESC LIMIT 1"
+                )
+                row = cur.fetchone()
+                if row:
+                    enabled_cb.setChecked(bool(row[0]))
+                    if row[1]:
+                        model_edit.setText(row[1])
+                    if row[2]:
+                        key_edit.setText(row[2])
+            except Exception:
+                pass
 
-        group.setLayout(layout)
-        return group
+        load_current()
 
-    def create_brass_selection_panel(self):
-        """Create brass selection panel"""
-        group = QGroupBox("🥉 Your Brass")
-        group.setStyleSheet(
-            """
-            QGroupBox {
-                font-size: 14pt;
-                font-weight: bold;
-                color: #2c3e50;
-                padding: 20px;
-                margin: 10px;
-            }
-        """
-        )
-        layout = QVBoxLayout()
+        def do_save():
+            try:
+                enabled = enabled_cb.isChecked()
+                model = model_edit.text().strip() or None
+                api_key = key_edit.text().strip() or None
+                a = Assistant(db=self.db)
+                a.save_settings(self.db, enabled, model, api_key)
+                QMessageBox.information(self, "Saved", "AI settings saved.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not save settings: {e}")
+
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(do_save)
+        v.addWidget(save_btn)
+
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        btns.rejected.connect(dlg.reject)
+        v.addWidget(btns)
+        dlg.setLayout(v)
+        dlg.exec()
 
         self.brass_button_group = QButtonGroup()
 
@@ -317,6 +807,12 @@ class ModernLoadBuilder(QWidget):
 
         # Initialize step 2 with rifle data
         self.initialize_step2()
+        # persist last-open step
+        try:
+            self.current_step = 2
+            self._save_ui_setting("last_step", "2")
+        except Exception:
+            pass
 
     def create_step2_page(self):
         """Step 2: Interactive Load Builder"""
@@ -359,6 +855,13 @@ class ModernLoadBuilder(QWidget):
         )
         header_layout.addWidget(create_batch_btn)
         create_batch_btn.clicked.connect(self.on_create_batch_clicked)
+
+        print_label_btn = QPushButton("🏷️ Print Label")
+        print_label_btn.setStyleSheet(
+            "background:#f39c12; color:white; padding:10px 14px; border-radius:5px;"
+        )
+        print_label_btn.clicked.connect(self.on_print_label_clicked)
+        header_layout.addWidget(print_label_btn)
 
         layout.addLayout(header_layout)
 
@@ -457,6 +960,16 @@ class ModernLoadBuilder(QWidget):
         optimize_btn.clicked.connect(self.on_optimize_from_ladder_tests)
         chrono_btn_layout.addWidget(optimize_btn)
 
+        calibrate_btn = QPushButton("🧭 Calibrate Engine")
+        calibrate_btn.setStyleSheet("padding:6px;")
+        calibrate_btn.clicked.connect(self.on_calibrate_engine_clicked)
+        chrono_btn_layout.addWidget(calibrate_btn)
+
+        show_cal_btn = QPushButton("🔎 Show Calibration")
+        show_cal_btn.setStyleSheet("padding:6px;")
+        show_cal_btn.clicked.connect(self.on_show_calibration_clicked)
+        chrono_btn_layout.addWidget(show_cal_btn)
+
         chrono_layout.addLayout(chrono_btn_layout)
         chrono_group.setLayout(chrono_layout)
         scroll_layout.addWidget(chrono_group)
@@ -490,6 +1003,33 @@ class ModernLoadBuilder(QWidget):
         layout.addWidget(self.bullet_info)
 
         layout.addSpacing(10)
+
+        # Environmental conditions
+        env_group = QGroupBox("🌤️ Ambient Conditions")
+        env_layout = QHBoxLayout()
+        self.temp_spin = QDoubleSpinBox()
+        self.temp_spin.setRange(-40.0, 60.0)
+        self.temp_spin.setValue(15.0)
+        self.temp_spin.setSuffix(" °C")
+        env_layout.addWidget(QLabel("Temp"))
+        env_layout.addWidget(self.temp_spin)
+
+        self.pressure_spin = QDoubleSpinBox()
+        self.pressure_spin.setRange(70.0, 110.0)
+        self.pressure_spin.setValue(101.325)
+        self.pressure_spin.setSuffix(" kPa")
+        env_layout.addWidget(QLabel("Pressure"))
+        env_layout.addWidget(self.pressure_spin)
+
+        self.humidity_spin = QDoubleSpinBox()
+        self.humidity_spin.setRange(0.0, 100.0)
+        self.humidity_spin.setValue(0.0)
+        self.humidity_spin.setSuffix(" %")
+        env_layout.addWidget(QLabel("Humidity"))
+        env_layout.addWidget(self.humidity_spin)
+
+        env_group.setLayout(env_layout)
+        layout.addWidget(env_group)
 
         # Powder
         powder_label = QLabel("Powder:")
@@ -731,6 +1271,83 @@ class ModernLoadBuilder(QWidget):
             self.velocity_plot.setTitle("Bullet Velocity", color="k", size="12pt")
             self.velocity_plot.setMinimumHeight(200)
             layout.addWidget(self.velocity_plot)
+            # Transonic overlay controls
+            trans_h = QHBoxLayout()
+            self.transonic_cb = QCheckBox("Show Transonic Margin")
+            self.transonic_cb.setChecked(True)
+            self.transonic_cb.toggled.connect(self.update_visualization)
+            # persist when toggled
+            self.transonic_cb.toggled.connect(
+                lambda v: self._save_ui_setting(
+                    "transonic_overlay_enabled", "1" if v else "0"
+                )
+            )
+            trans_h.addWidget(self.transonic_cb)
+
+            trans_h.addWidget(QLabel("Margin (fps):"))
+            self.transonic_margin = QDoubleSpinBox()
+            self.transonic_margin.setRange(0.0, 500.0)
+            self.transonic_margin.setValue(50.0)
+            self.transonic_margin.setSingleStep(5.0)
+            self.transonic_margin.valueChanged.connect(self.update_visualization)
+            # persist margin changes
+            self.transonic_margin.valueChanged.connect(
+                lambda v: self._save_ui_setting("transonic_margin_fps", str(v))
+            )
+            trans_h.addWidget(self.transonic_margin)
+
+            layout.addLayout(trans_h)
+            # load persisted ui settings if present
+            try:
+                cur = self.db.cursor
+                cur.execute(
+                    "SELECT value FROM ui_settings WHERE key = ?",
+                    ("transonic_overlay_enabled",),
+                )
+                row = cur.fetchone()
+                if row and row[0] is not None:
+                    try:
+                        self.transonic_cb.setChecked(bool(int(row[0])))
+                    except Exception:
+                        # tolerate non-int values
+                        self.transonic_cb.setChecked(
+                            row[0].lower() in ("1", "true", "yes")
+                        )
+                cur.execute(
+                    "SELECT value FROM ui_settings WHERE key = ?",
+                    ("transonic_margin_fps",),
+                )
+                row2 = cur.fetchone()
+                if row2 and row2[0] is not None:
+                    try:
+                        self.transonic_margin.setValue(float(row2[0]))
+                    except Exception:
+                        pass
+                # velocity y-range
+                cur.execute(
+                    "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_min",)
+                )
+                vmin_r = cur.fetchone()
+                if vmin_r and vmin_r[0] is not None:
+                    try:
+                        self.velocity_y_min = float(vmin_r[0])
+                    except Exception:
+                        self.velocity_y_min = None
+                else:
+                    self.velocity_y_min = None
+                cur.execute(
+                    "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_max",)
+                )
+                vmax_r = cur.fetchone()
+                if vmax_r and vmax_r[0] is not None:
+                    try:
+                        self.velocity_y_max = float(vmax_r[0])
+                    except Exception:
+                        self.velocity_y_max = None
+                else:
+                    self.velocity_y_max = None
+            except Exception:
+                pass
         except Exception:
             # Fallback: simple read-only text placeholders so UI still renders
             from PyQt6.QtWidgets import QTextEdit
@@ -870,15 +1487,31 @@ class ModernLoadBuilder(QWidget):
     def on_create_batch_clicked(self):
         """UI handler: ask for batch name/size and create batch"""
         # Ensure components selected
-        if not (self.rifle_data and self.bullet_data and self.powder_data and self.brass_data):
-            QMessageBox.warning(self, "Missing data", "Please select rifle, brass, bullet and powder before creating a batch.")
+        if not (
+            self.rifle_data
+            and self.bullet_data
+            and self.powder_data
+            and self.brass_data
+        ):
+            QMessageBox.warning(
+                self,
+                "Missing data",
+                "Please select rifle, brass, bullet and powder before creating a batch.",
+            )
             return
 
-        count, ok = QInputDialog.getInt(self, "Batch Size", "How many rounds to create?", 10, 1, 10000, 1)
+        count, ok = QInputDialog.getInt(
+            self, "Batch Size", "How many rounds to create?", 10, 1, 10000, 1
+        )
         if not ok:
             return
 
-        name, ok2 = QInputDialog.getText(self, "Batch Name", "Name for this batch:", text=f"Batch for {self.rifle_data.get('name','rifle')}")
+        name, ok2 = QInputDialog.getText(
+            self,
+            "Batch Name",
+            "Name for this batch:",
+            text=f"Batch for {self.rifle_data.get('name','rifle')}",
+        )
         if not ok2:
             return
 
@@ -908,27 +1541,84 @@ class ModernLoadBuilder(QWidget):
         try:
             from src.database.batch_manager import create_loading_batch
 
-            res = create_loading_batch(self.db, ammo_profile_id, name, count, self.current_charge, self.coal_mm, self.cbto_mm)
+            res = create_loading_batch(
+                self.db,
+                ammo_profile_id,
+                name,
+                count,
+                self.current_charge,
+                self.coal_mm,
+                self.cbto_mm,
+            )
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to create batch: {e}")
             return
 
         if not res.get("ok"):
-            QMessageBox.warning(self, "Batch not created", res.get("message", "Unknown error"))
+            QMessageBox.warning(
+                self, "Batch not created", res.get("message", "Unknown error")
+            )
             return
 
-        QMessageBox.information(self, "Batch created", f"Batch created (id={res.get('batch_id')}). Inventory updated.")
+        QMessageBox.information(
+            self,
+            "Batch created",
+            f"Batch created (id={res.get('batch_id')}). Inventory updated.",
+        )
+
+    def on_print_label_clicked(self):
+        """Generate and save a printable label for the current profile or batch."""
+        try:
+            from src.utils.label_printer import generate_label_text, save_label_to_file
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Missing module", f"Label printer module missing: {e}"
+            )
+            return
+
+        ap_id = getattr(self, "current_ammo_profile_id", None)
+        if not ap_id:
+            # ask user for an ammo_profile id
+            ap_id, ok = QInputDialog.getInt(
+                self,
+                "Ammo Profile ID",
+                "Enter Ammo Profile ID to print label for (or 0 to use QC Batch ID):",
+                0,
+            )
+            if not ok:
+                return
+            if ap_id == 0:
+                ap_id = None
+
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Label As", "label.txt", "Text Files (*.txt);;All Files (*)"
+        )
+        if not path:
+            return
+
+        text = generate_label_text(self.db, ammo_profile_id=ap_id)
+        try:
+            save_label_to_file(path, text)
+        except Exception as e:
+            QMessageBox.critical(self, "Save failed", f"Could not save label: {e}")
+            return
+
+        QMessageBox.information(self, "Saved", f"Label saved to {path}")
 
     def on_import_chronograph_clicked(self):
         """Open a file dialog, import selected CSV and show stats"""
-        path, _ = QFileDialog.getOpenFileName(self, "Select chronograph CSV", "", "CSV Files (*.csv);;All Files (*)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select chronograph CSV", "", "CSV Files (*.csv);;All Files (*)"
+        )
         if not path:
             return
 
         try:
             from src.utils.chronograph_import import import_chronograph_csv
 
-            res = import_chronograph_csv(self.db, path, None, note=f"Imported via UI from {path}")
+            res = import_chronograph_csv(
+                self.db, path, None, note=f"Imported via UI from {path}"
+            )
         except Exception as e:
             QMessageBox.critical(self, "Import failed", f"Failed to import CSV: {e}")
             return
@@ -946,7 +1636,9 @@ class ModernLoadBuilder(QWidget):
         dlg.setWindowTitle("Manual Chronograph Entry")
         layout = QVBoxLayout()
 
-        info = QLabel("Paste velocities (one per line or comma-separated). Optionally enter an Ammo Profile ID to link:")
+        info = QLabel(
+            "Paste velocities (one per line or comma-separated). Optionally enter an Ammo Profile ID to link:"
+        )
         layout.addWidget(info)
 
         vel_text = QTextEditWidget()
@@ -960,23 +1652,29 @@ class ModernLoadBuilder(QWidget):
         ap_input.setPlaceholderText("e.g. 42")
         layout.addWidget(ap_input)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         layout.addWidget(buttons)
 
         def on_accept():
             text = vel_text.toPlainText().strip()
             if not text:
-                QMessageBox.warning(dlg, "No data", "Please paste at least one velocity value.")
+                QMessageBox.warning(
+                    dlg, "No data", "Please paste at least one velocity value."
+                )
                 return
             # parse values
-            normalized = text.replace(',', ' ')
+            normalized = text.replace(",", " ")
             tokens = [t for t in normalized.split() if t.strip()]
             vals = []
             for tok in tokens:
                 try:
                     vals.append(float(tok))
                 except Exception:
-                    QMessageBox.warning(dlg, "Parse error", f"Could not parse token: {tok}")
+                    QMessageBox.warning(
+                        dlg, "Parse error", f"Could not parse token: {tok}"
+                    )
                     return
 
             ap_id = None
@@ -985,21 +1683,29 @@ class ModernLoadBuilder(QWidget):
                 try:
                     ap_id = int(ap_text)
                 except Exception:
-                    QMessageBox.warning(dlg, "Parse error", "Ammo Profile ID must be an integer")
+                    QMessageBox.warning(
+                        dlg, "Parse error", "Ammo Profile ID must be an integer"
+                    )
                     return
 
             # persist
             try:
                 from src.utils.chronograph_import import import_velocities
 
-                res = import_velocities(self.db, vals, ap_id, note="Manual entry via UI")
+                res = import_velocities(
+                    self.db, vals, ap_id, note="Manual entry via UI"
+                )
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save velocities: {e}")
                 dlg.reject()
                 return
 
-            stats = res.get('stats', {})
-            QMessageBox.information(self, "Saved", f"Saved {stats.get('count',0)} velocities. Avg: {stats.get('avg')}")
+            stats = res.get("stats", {})
+            QMessageBox.information(
+                self,
+                "Saved",
+                f"Saved {stats.get('count',0)} velocities. Avg: {stats.get('avg')}",
+            )
             dlg.accept()
 
         buttons.accepted.connect(on_accept)
@@ -1036,35 +1742,54 @@ class ModernLoadBuilder(QWidget):
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
-        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
+        cur.execute(
+            "SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,)
+        )
         row = cur.fetchone()
         if not row:
             return
         import json
+
         try:
             velocities = json.loads(row[0]) if row[0] else []
         except Exception:
             velocities = []
 
         if not velocities:
-            QMessageBox.information(self, "No velocities", "Selected import contains no velocity data.")
+            QMessageBox.information(
+                self, "No velocities", "Selected import contains no velocity data."
+            )
             return
 
         pg = getattr(self, "_pg", None)
         # If pyqtgraph is available and we have a plot widget, plot simulated curve and overlay import points
-        if pg and hasattr(self, "velocity_plot") and isinstance(self.velocity_plot, pg.PlotWidget):
+        if (
+            pg
+            and hasattr(self, "velocity_plot")
+            and isinstance(self.velocity_plot, pg.PlotWidget)
+        ):
             try:
                 self.velocity_plot.clear()
                 # First draw simulated curve if present
                 if hasattr(self, "_last_velocity_curve") and self._last_velocity_curve:
                     sim_x, sim_y = self._last_velocity_curve
-                    self.velocity_plot.plot(sim_x, sim_y, pen=pg.mkPen(color="#27ae60", width=3), name='sim')
+                    self.velocity_plot.plot(
+                        sim_x, sim_y, pen=pg.mkPen(color="#27ae60", width=3), name="sim"
+                    )
 
                 # Plot import velocities as points (x = shot index)
                 xs = list(range(1, len(velocities) + 1))
-                self.velocity_plot.plot(xs, velocities, pen=pg.mkPen(color="#34495e", width=2), symbol='o', symbolBrush="#34495e")
+                self.velocity_plot.plot(
+                    xs,
+                    velocities,
+                    pen=pg.mkPen(color="#34495e", width=2),
+                    symbol="o",
+                    symbolBrush="#34495e",
+                )
             except Exception as e:
-                QMessageBox.warning(self, "Plot error", f"Could not plot velocities: {e}")
+                QMessageBox.warning(
+                    self, "Plot error", f"Could not plot velocities: {e}"
+                )
         else:
             # Fallback: show summary text
             avg = sum(velocities) / len(velocities)
@@ -1077,17 +1802,25 @@ class ModernLoadBuilder(QWidget):
         """Attach selected chronograph import to an ammo_profile (create minimal profile if needed)"""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            QMessageBox.warning(
+                self, "No selection", "Select an import from the list first"
+            )
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
 
         # If a current ammo selection exists (we created one when creating batch earlier), attach to it.
         # Otherwise create a minimal ammo_profile from current UI selections.
         cur = self.db.cursor
-        cur.execute("SELECT ammo_profile_id FROM chronograph_imports WHERE id = ?", (import_id,))
+        cur.execute(
+            "SELECT ammo_profile_id FROM chronograph_imports WHERE id = ?", (import_id,)
+        )
         existing = cur.fetchone()
         if existing and existing[0]:
-            QMessageBox.information(self, "Already attached", f"Import already attached to profile id {existing[0]}")
+            QMessageBox.information(
+                self,
+                "Already attached",
+                f"Import already attached to profile id {existing[0]}",
+            )
             return
 
         # Create minimal profile if we have component selections
@@ -1113,34 +1846,51 @@ class ModernLoadBuilder(QWidget):
             ammo_profile_id = cur.lastrowid
         else:
             # Prompt for profile id
-            ap_id, ok = QInputDialog.getInt(self, "Ammo Profile ID", "Enter existing Ammo Profile ID to attach to:")
+            ap_id, ok = QInputDialog.getInt(
+                self, "Ammo Profile ID", "Enter existing Ammo Profile ID to attach to:"
+            )
             if not ok:
                 return
             ammo_profile_id = ap_id
 
         # Update import row
-        cur.execute("UPDATE chronograph_imports SET ammo_profile_id = ? WHERE id = ?", (ammo_profile_id, import_id))
+        cur.execute(
+            "UPDATE chronograph_imports SET ammo_profile_id = ? WHERE id = ?",
+            (ammo_profile_id, import_id),
+        )
         self.db.conn.commit()
-        QMessageBox.information(self, "Attached", f"Import #{import_id} attached to profile {ammo_profile_id}")
+        QMessageBox.information(
+            self,
+            "Attached",
+            f"Import #{import_id} attached to profile {ammo_profile_id}",
+        )
         self.on_refresh_chronograph_list()
 
     def on_save_chronograph_to_test_results(self):
         """Save selected chronograph import statistics into `test_results` linked to a profile or batch."""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            QMessageBox.warning(
+                self, "No selection", "Select an import from the list first"
+            )
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
-        cur.execute("SELECT velocities_json, ammo_profile_id FROM chronograph_imports WHERE id = ?", (import_id,))
+        cur.execute(
+            "SELECT velocities_json, ammo_profile_id FROM chronograph_imports WHERE id = ?",
+            (import_id,),
+        )
         row = cur.fetchone()
         if not row:
             QMessageBox.warning(self, "Not found", "Import row not found in DB")
             return
         import json
+
         velocities = json.loads(row[0]) if row[0] else []
         if not velocities:
-            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
+            QMessageBox.warning(
+                self, "No velocities", "Selected import has no velocities"
+            )
             return
 
         # Determine ammo_profile to attach results
@@ -1148,14 +1898,18 @@ class ModernLoadBuilder(QWidget):
         if not ap_id:
             # try to use currently selected ammo/profile in UI if exists (we created one earlier when creating batch)
             # For simplicity, prompt user for an ammo_profile id
-            ap_id, ok = QInputDialog.getInt(self, "Ammo Profile ID", "Enter Ammo Profile ID to associate test results with:")
+            ap_id, ok = QInputDialog.getInt(
+                self,
+                "Ammo Profile ID",
+                "Enter Ammo Profile ID to associate test results with:",
+            )
             if not ok:
                 return
 
         # Compute stats
         avg = sum(velocities) / len(velocities)
         es = max(velocities) - min(velocities)
-        sd = (statistics.stdev(velocities) if len(velocities) > 1 else 0.0)
+        sd = statistics.stdev(velocities) if len(velocities) > 1 else 0.0
 
         # Insert into test_results: put first up to 3 velocities into velocity_1..3
         v1 = velocities[0] if len(velocities) > 0 else None
@@ -1179,29 +1933,97 @@ class ModernLoadBuilder(QWidget):
         )
         self.db.conn.commit()
         inserted_id = cur.lastrowid
-        QMessageBox.information(self, "Saved", f"Saved test_results id {inserted_id} (avg {avg:.1f} fps, ES {es:.1f})")
+        QMessageBox.information(
+            self,
+            "Saved",
+            f"Saved test_results id {inserted_id} (avg {avg:.1f} fps, ES {es:.1f})",
+        )
+        # Also log predicted pressure for this saved test result (best-effort)
+        try:
+            rifle_id = self.rifle_data["id"] if self.rifle_data else None
+            # determine charge from attached ammo_profile if present
+            chosen_charge = None
+            if ap_id:
+                cur.execute(
+                    "SELECT powder_charge FROM ammo_profiles WHERE id = ?", (ap_id,)
+                )
+                r = cur.fetchone()
+                if r and r[0] is not None:
+                    chosen_charge = float(r[0])
+            if chosen_charge is None:
+                chosen_charge = float(self.current_charge)
+
+            coal = float(self.coal_spin.value()) if hasattr(self, "coal_spin") else None
+            cbto = float(self.cbto_spin.value()) if hasattr(self, "cbto_spin") else None
+            saami = None
+            if self.rifle_data and "caliber" in self.rifle_data:
+                rows = self.db.execute_query(
+                    "SELECT max_pressure_bar FROM calibers WHERE name = ?",
+                    (self.rifle_data["caliber"],),
+                )
+                if rows:
+                    max_bar = rows[0].get("max_pressure_bar")
+                    if max_bar is not None:
+                        saami = float(max_bar) * 14.503773772
+
+            predict_and_log(
+                self.db,
+                self.engine,
+                rifle_id,
+                ap_id,
+                chosen_charge,
+                coal_mm=coal,
+                cbto_mm=cbto,
+                saami_max_psi=saami,
+                note=f"Saved test_results #{inserted_id} from import #{import_id}",
+                temp_c=(
+                    float(self.temp_spin.value())
+                    if hasattr(self, "temp_spin")
+                    else None
+                ),
+                pressure_kpa=(
+                    float(self.pressure_spin.value())
+                    if hasattr(self, "pressure_spin")
+                    else None
+                ),
+                humidity_pct=(
+                    float(self.humidity_spin.value())
+                    if hasattr(self, "humidity_spin")
+                    else None
+                ),
+            )
+        except Exception:
+            pass
 
     def on_analyze_and_suggest(self):
         """Analyze selected import (or current test results) and show recommendations."""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            QMessageBox.warning(
+                self, "No selection", "Select an import from the list first"
+            )
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
-        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
+        cur.execute(
+            "SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,)
+        )
         row = cur.fetchone()
         if not row:
             QMessageBox.warning(self, "Not found", "Import row not found in DB")
             return
         import json
+
         velocities = json.loads(row[0]) if row[0] else []
         if not velocities:
-            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
+            QMessageBox.warning(
+                self, "No velocities", "Selected import has no velocities"
+            )
             return
 
         # Compute stats
         import statistics as _st
+
         avg = _st.mean(velocities)
         es = max(velocities) - min(velocities)
         sd = _st.stdev(velocities) if len(velocities) > 1 else 0.0
@@ -1209,7 +2031,9 @@ class ModernLoadBuilder(QWidget):
         from src.utils.recommender import suggest_adjustments
 
         stats = {"count": len(velocities), "avg": avg, "es": es, "sd": sd}
-        suggestions = suggest_adjustments(stats, self.current_charge, self.coal_mm, self.cbto_mm)
+        suggestions = suggest_adjustments(
+            stats, self.current_charge, self.coal_mm, self.cbto_mm
+        )
 
         # Show suggestions in dialog
         dlg = QDialog(self)
@@ -1238,7 +2062,11 @@ class ModernLoadBuilder(QWidget):
 
         res = suggest_charge_from_history(self.db, rifle_id, bullet_id, powder_id)
         if not res:
-            QMessageBox.information(self, "Insufficient data", "Not enough historical ladder test data to suggest an optimal charge.")
+            QMessageBox.information(
+                self,
+                "Insufficient data",
+                "Not enough historical ladder test data to suggest an optimal charge.",
+            )
             return
 
         suggested = res.get("suggested_charge")
@@ -1250,7 +2078,6 @@ class ModernLoadBuilder(QWidget):
         # Refine suggestion by sampling the quadratic model across observed range
         try:
             min_c, max_c = res.get("observed_range", (suggested - 0.5, suggested + 0.5))
-            import math
 
             samples = []
             best_charge = suggested
@@ -1270,13 +2097,21 @@ class ModernLoadBuilder(QWidget):
 
         # Plot model curve overlay on velocity_plot (uses charge vs predicted group size)
         pg = getattr(self, "_pg", None)
-        if pg and hasattr(self, "velocity_plot") and isinstance(self.velocity_plot, pg.PlotWidget):
+        if (
+            pg
+            and hasattr(self, "velocity_plot")
+            and isinstance(self.velocity_plot, pg.PlotWidget)
+        ):
             try:
                 # prepare curve points
                 xs = [s[0] for s in samples]
                 ys = [s[1] for s in samples]
                 # draw as separate plot (different color)
-                self.velocity_plot.plot(xs, ys, pen=pg.mkPen(color="#8e44ad", width=2, style=Qt.PenStyle.DashLine))
+                self.velocity_plot.plot(
+                    xs,
+                    ys,
+                    pen=pg.mkPen(color="#8e44ad", width=2, style=Qt.PenStyle.DashLine),
+                )
             except Exception:
                 pass
 
@@ -1305,7 +2140,9 @@ class ModernLoadBuilder(QWidget):
                 caliber = self.rifle_data.get("caliber")
             if caliber:
                 cur = self.db.cursor
-                cur.execute("SELECT max_pressure_bar FROM calibers WHERE name = ?", (caliber,))
+                cur.execute(
+                    "SELECT max_pressure_bar FROM calibers WHERE name = ?", (caliber,)
+                )
                 r = cur.fetchone()
                 if r and r[0]:
                     saami_max_psi = float(r[0]) * 14.5037738
@@ -1313,6 +2150,23 @@ class ModernLoadBuilder(QWidget):
             saami_max_psi = None
 
         # If we have predicted pressure and saami, enforce safety
+        # Log the prediction into pressure_history for auditing
+        try:
+            ammo_profile_id = getattr(self, "current_ammo_profile_id", None)
+            predict_and_log(
+                self.db,
+                self.engine,
+                rifle_id,
+                ammo_profile_id,
+                refined,
+                coal_mm=self.coal_mm,
+                cbto_mm=self.cbto_mm,
+                saami_max_psi=saami_max_psi,
+                note="Optimizer suggestion",
+            )
+        except Exception:
+            pass
+
         if predicted_pressure is not None and saami_max_psi is not None:
             if predicted_pressure > saami_max_psi:
                 QMessageBox.critical(
@@ -1343,40 +2197,1441 @@ class ModernLoadBuilder(QWidget):
                 self.current_charge = refined
                 self.charge_label.setText(f"{self.current_charge:.2f} gr")
                 self.update_visualization()
+                # Log predicted pressure for the applied suggestion
+                try:
+                    rifle_id = self.rifle_data["id"] if self.rifle_data else None
+                    ap_id = getattr(self, "current_ammo_profile_id", None)
+                    coal = (
+                        float(self.coal_spin.value())
+                        if hasattr(self, "coal_spin")
+                        else None
+                    )
+                    cbto = (
+                        float(self.cbto_spin.value())
+                        if hasattr(self, "cbto_spin")
+                        else None
+                    )
+                    # saami lookup
+                    saami = None
+                    if self.rifle_data and "caliber" in self.rifle_data:
+                        rows = self.db.execute_query(
+                            "SELECT max_pressure_bar FROM calibers WHERE name = ?",
+                            (self.rifle_data["caliber"],),
+                        )
+                        if rows:
+                            max_bar = rows[0].get("max_pressure_bar")
+                            if max_bar is not None:
+                                saami = float(max_bar) * 14.503773772
+                    predict_and_log(
+                        self.db,
+                        self.engine,
+                        rifle_id,
+                        ap_id,
+                        float(self.current_charge),
+                        coal_mm=coal,
+                        cbto_mm=cbto,
+                        saami_max_psi=saami,
+                        note="Applied optimizer suggestion",
+                        temp_c=(
+                            float(self.temp_spin.value())
+                            if hasattr(self, "temp_spin")
+                            else None
+                        ),
+                        pressure_kpa=(
+                            float(self.pressure_spin.value())
+                            if hasattr(self, "pressure_spin")
+                            else None
+                        ),
+                        humidity_pct=(
+                            float(self.humidity_spin.value())
+                            if hasattr(self, "humidity_spin")
+                            else None
+                        ),
+                    )
+                except Exception:
+                    pass
             except Exception as e:
-                QMessageBox.warning(self, "Apply failed", f"Could not apply suggested charge: {e}")
+                QMessageBox.warning(
+                    self, "Apply failed", f"Could not apply suggested charge: {e}"
+                )
+
+    def on_calibrate_engine_clicked(self):
+        """Run calibration using the selected chronograph import(s)."""
+        # Collect selected import(s)
+        items = [self.chrono_list.item(i) for i in range(self.chrono_list.count())]
+        selected_ids = []
+        for it in items:
+            if it and it.isSelected():
+                iid = it.data(Qt.ItemDataRole.UserRole)
+                if iid:
+                    selected_ids.append(iid)
+
+        if not selected_ids:
+            # fallback: use current item if nothing multi-selected
+            cur_item = self.chrono_list.currentItem()
+            if cur_item:
+                selected_ids = [cur_item.data(Qt.ItemDataRole.UserRole)]
+
+        if not selected_ids:
+            QMessageBox.information(
+                self,
+                "Calibrate",
+                "Select at least one chronograph import to calibrate with.",
+            )
+            return
+
+        try:
+            from src.utils.calibrator import calibrate_engine
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Missing module", f"Calibration module not available: {e}"
+            )
+            return
+
+        res = calibrate_engine(self.db, self.engine, selected_ids)
+        if not res.get("ok"):
+            QMessageBox.warning(
+                self,
+                "Calibration failed",
+                f"Could not calibrate: {res.get('reason')} (used={res.get('used')})",
+            )
+            return
+
+        slope = res.get("slope")
+        intercept = res.get("intercept")
+        mse = res.get("mse")
+        used = res.get("used")
+
+        QMessageBox.information(
+            self,
+            "Calibration Complete",
+            f"Calibration stored. slope={slope:.4f}, intercept={intercept:.2f}, mse={mse:.3f}, used={used}",
+        )
+
+    def on_show_calibration_clicked(self):
+        """Show last calibration info and optionally plot samples from selected imports."""
+        cur = self.db.cursor
+        cur.execute(
+            "SELECT id, slope, intercept, mse, notes, created_date FROM engine_calibrations ORDER BY id DESC LIMIT 1"
+        )
+        row = cur.fetchone()
+        if not row:
+            QMessageBox.information(
+                self, "No calibration", "No calibration records found."
+            )
+            return
+
+        cid, slope, intercept, mse, notes, created = row
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Calibration Details")
+        v = QVBoxLayout()
+        v.addWidget(QLabel(f"Calibration ID: {cid}"))
+        v.addWidget(QLabel(f"Created: {created}"))
+        v.addWidget(
+            QLabel(
+                f"Slope: {slope:.6f}  Intercept: {float(intercept or 0.0):.2f}  MSE: {float(mse or 0.0):.3f}"
+            )
+        )
+        v.addWidget(QLabel(f"Notes: {notes or ''}"))
+
+        # If user has selected imports, offer to plot their samples
+        selected_ids = []
+        if hasattr(self, "chrono_list") and getattr(self, "chrono_list") is not None:
+            try:
+                items = [
+                    self.chrono_list.item(i) for i in range(self.chrono_list.count())
+                ]
+                selected_ids = [
+                    it.data(Qt.ItemDataRole.UserRole)
+                    for it in items
+                    if it and it.isSelected()
+                ]
+            except Exception:
+                selected_ids = []
+
+        # If there are no selected items, ask the user to enter import ids manually
+        if not selected_ids:
+            text, ok = QInputDialog.getText(
+                self,
+                "Select Imports",
+                "Enter chronograph import IDs (comma-separated):",
+            )
+            if ok and text:
+                try:
+                    selected_ids = [
+                        int(x.strip()) for x in text.split(",") if x.strip()
+                    ]
+                except Exception:
+                    selected_ids = []
+
+        if selected_ids:
+            h = QHBoxLayout()
+            plot_btn = QPushButton("Plot selected imports (predicted vs measured)")
+            h.addWidget(plot_btn)
+            v.addLayout(h)
+
+            def do_plot():
+                try:
+                    from src.utils.calibrator import get_calibration_samples
+
+                    samples = get_calibration_samples(
+                        self.db, self.engine, selected_ids
+                    )
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Could not get samples: {e}")
+                    return
+
+                if not samples.get("ok") or not samples.get("preds"):
+                    QMessageBox.information(
+                        self,
+                        "No samples",
+                        "No usable samples found for selected imports.",
+                    )
+                    return
+
+                preds = samples.get("preds")
+                meas = samples.get("meas")
+
+                # Plot in a new dialog using pyqtgraph if available
+                try:
+                    import pyqtgraph as pg
+
+                    pdlg = QDialog(self)
+                    pdlg.setWindowTitle("Calibration Samples")
+                    layout = QVBoxLayout()
+                    pw = pg.PlotWidget()
+                    pw.setLabel("left", "Measured Velocity (fps)")
+                    pw.setLabel("bottom", "Predicted Velocity (fps)")
+                    pw.plot(preds, meas, pen=None, symbol="o")
+                    # fit line
+                    try:
+                        a = float(slope)
+                        b = float(intercept or 0.0)
+                        xs = sorted(preds)
+                        ys = [a * x + b for x in xs]
+                        pw.plot(xs, ys, pen=pg.mkPen(color="y", width=2))
+                    except Exception:
+                        pass
+                    layout.addWidget(pw)
+                    btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+                    btns.accepted.connect(pdlg.accept)
+                    layout.addWidget(btns)
+                    pdlg.setLayout(layout)
+                    pdlg.exec()
+                except Exception:
+                    # Fallback: show textual summary
+                    pairs = "\n".join(
+                        f"pred:{p:.1f} -> meas:{m:.1f}" for p, m in zip(preds, meas)
+                    )
+                    QMessageBox.information(self, "Samples", f"{pairs}")
+
+            plot_btn.clicked.connect(do_plot)
+
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        btns.rejected.connect(dlg.reject)
+        btns.accepted.connect(dlg.accept)
+        v.addWidget(btns)
+        # Accept calibration button
+        accept_btn = QPushButton("Accept Calibration")
+
+        def do_accept():
+            # Prompt user to optionally tie calibration to an ammo_profile
+            try:
+                cur = self.db.cursor
+                cur.execute("SELECT id, name FROM ammo_profiles ORDER BY name")
+                rows = cur.fetchall() or []
+                choices = [r[1] or f"#{r[0]}" for r in rows]
+                ids = [r[0] for r in rows]
+                ammo_id = None
+                if choices:
+                    item, ok = QInputDialog.getItem(
+                        self,
+                        "Tie to ammo profile",
+                        "Select ammo profile (optional)",
+                        choices,
+                        0,
+                        False,
+                    )
+                    if ok and item:
+                        try:
+                            idx = choices.index(item)
+                            ammo_id = ids[idx]
+                        except Exception:
+                            ammo_id = None
+
+                # Update calibration row as accepted
+                try:
+                    if ammo_id:
+                        cur.execute(
+                            "UPDATE engine_calibrations SET accepted=1, accepted_date=CURRENT_TIMESTAMP, ammo_profile_id=? WHERE id = ?",
+                            (ammo_id, cid),
+                        )
+                    else:
+                        cur.execute(
+                            "UPDATE engine_calibrations SET accepted=1, accepted_date=CURRENT_TIMESTAMP WHERE id = ?",
+                            (cid,),
+                        )
+                    self.db.conn.commit()
+                    QMessageBox.information(
+                        self,
+                        "Calibration Accepted",
+                        "Calibration marked as accepted and tied to selected ammo profile.",
+                    )
+                except Exception as e:
+                    QMessageBox.critical(
+                        self, "Error", f"Could not accept calibration: {e}"
+                    )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Error", f"Could not query ammo profiles: {e}"
+                )
+
+        accept_btn.clicked.connect(do_accept)
+        v.addWidget(accept_btn)
+
+        dlg.setLayout(v)
+        dlg.exec()
+
+    def on_open_ai_chat(self):
+        """Open a simple AI chat dialog that uses `src.utils.ai_assistant`."""
+        try:
+            from src.utils.ai_assistant import Assistant
+        except Exception:
+            Assistant = None
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("AI Assistant")
+        v = QVBoxLayout()
+
+        convo = QTextEdit()
+        convo.setReadOnly(True)
+        convo.setPlaceholderText("Assistant conversation")
+        v.addWidget(convo)
+
+        # Load recent chat history into conversation view
+        try:
+            if Assistant is not None:
+                a = Assistant()
+                recent = a.fetch_recent_chats(self.db)
+                for r in reversed(recent):
+                    convo.append(f"You ({r['created_date']}): {r['user']}")
+                    convo.append(f"Assistant ({r['created_date']}): {r['assistant']}")
+        except Exception:
+            pass
+
+        h = QHBoxLayout()
+        inp = QLineEdit()
+        inp.setPlaceholderText("Ask about loads, calibration, or suggest next steps...")
+        send_btn = QPushButton("Send")
+        h.addWidget(inp)
+        h.addWidget(send_btn)
+        v.addLayout(h)
+
+        def append(line: str):
+            convo.append(line)
+            convo.moveCursor(QTextCursor.End)
+
+        assistant = Assistant(db=self.db) if Assistant is not None else None
+
+        def do_send():
+            q = inp.text().strip()
+            if not q:
+                return
+            append(f"You: {q}")
+            inp.clear()
+            append("Assistant: thinking...")
+            try:
+                # Build context for the assistant
+                ctx = {}
+                try:
+                    if getattr(self, "rifle_data", None):
+                        ctx["rifle"] = self.rifle_data.get("name")
+                except Exception:
+                    pass
+                try:
+                    ctx["charge"] = float(self.current_charge)
+                except Exception:
+                    pass
+                try:
+                    if getattr(self, "powder_data", None):
+                        ctx["powder"] = self.powder_data.get("name")
+                except Exception:
+                    pass
+
+                # latest calibration
+                try:
+                    cur = self.db.cursor
+                    cur.execute(
+                        "SELECT id, slope, intercept, mse, created_date FROM engine_calibrations ORDER BY id DESC LIMIT 1"
+                    )
+                    crow = cur.fetchone()
+                    if crow:
+                        ctx["last_calibration"] = {
+                            "id": crow[0],
+                            "slope": crow[1],
+                            "intercept": crow[2],
+                            "mse": float(crow[3] or 0.0),
+                        }
+                except Exception:
+                    pass
+
+                # recent chronograph imports summary
+                try:
+                    cur = self.db.cursor
+                    cur.execute(
+                        "SELECT id, velocity_avg, created_date FROM chronograph_imports ORDER BY created_date DESC LIMIT 5"
+                    )
+                    rows = cur.fetchall() or []
+                    recent = []
+                    for r in rows:
+                        recent.append(
+                            {"id": r[0], "vel": float(r[1] or 0.0), "date": r[2]}
+                        )
+                    if recent:
+                        ctx["recent_imports_summary"] = recent
+                except Exception:
+                    pass
+
+                if assistant:
+                    resp = assistant.chat(q, [], context=ctx)
+                    append(f"Assistant: {resp}")
+                    try:
+                        assistant.persist_chat(self.db, q, resp)
+                    except Exception:
+                        pass
+                else:
+                    append(
+                        "Assistant: (stub) I can help inspect calibration, suggest safe charge ranges, or explain plots. Ask me something specific."
+                    )
+            except Exception as e:
+                append(f"Assistant: Error contacting assistant: {e}")
+
+        send_btn.clicked.connect(do_send)
+        inp.returnPressed.connect(do_send)
+
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        btns.rejected.connect(dlg.reject)
+        v.addWidget(btns)
+        dlg.setLayout(v)
+        dlg.exec()
+
+    def on_explain_plot_clicked(self):
+        """Gather current plot data and ask the assistant to explain it."""
+        try:
+            from src.utils.ai_assistant import Assistant
+        except Exception:
+            Assistant = None
+
+        # Try to capture the last plotted velocity curve and stats
+        ctx = {}
+        try:
+            if hasattr(self, "_last_velocity_curve") and self._last_velocity_curve:
+                xs, ys = self._last_velocity_curve
+                # summarize: min/max/mean
+                import statistics
+
+                ctx["plot_summary"] = {
+                    "n": len(xs),
+                    "x_min": min(xs),
+                    "x_max": max(xs),
+                    "y_min": min(ys),
+                    "y_max": max(ys),
+                    "y_mean": float(statistics.mean(ys)) if ys else None,
+                }
+        except Exception:
+            pass
+
+        # Persist snapshot if we have series data
+        try:
+            if (
+                ctx.get("plot_summary")
+                and hasattr(self, "_last_velocity_curve")
+                and self._last_velocity_curve
+            ):
+                xs, ys = self._last_velocity_curve
+                import json
+
+                meta = json.dumps(ctx.get("plot_summary"))
+                series = json.dumps({"x": xs, "y": ys})
+                try:
+                    cur = self.db.cursor
+                    cur.execute(
+                        "INSERT INTO plot_snapshots (snapshot_type, metadata, series_json) VALUES (?, ?, ?)",
+                        ("velocity_curve", meta, series),
+                    )
+                    self.db.conn.commit()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Explain Plot")
+        v = QVBoxLayout()
+        prompt_edit = QTextEdit()
+        prompt_edit.setPlaceholderText(
+            "Optional question about this plot (e.g., 'What does the slope mean?' )"
+        )
+        v.addWidget(QLabel("Plot summary:"))
+        v.addWidget(QLabel(str(ctx.get("plot_summary", "No plot data available"))))
+        v.addWidget(prompt_edit)
+
+        h = QHBoxLayout()
+        ask_btn = QPushButton("Ask Assistant")
+        h.addWidget(ask_btn)
+        v.addLayout(h)
+
+        result = QTextEdit()
+        result.setReadOnly(True)
+        v.addWidget(result)
+
+        def do_ask():
+            q = prompt_edit.toPlainText().strip() or "Explain the currently shown plot."
+            assistant = Assistant() if Assistant is not None else None
+            try:
+                if assistant:
+                    resp = assistant.chat(
+                        q, [], context={"plot_summary": ctx.get("plot_summary")}
+                    )
+                    result.setPlainText(resp)
+                    try:
+                        assistant.persist_chat(self.db, q, resp)
+                    except Exception:
+                        pass
+                else:
+                    result.setPlainText(
+                        "(stub) No remote assistant available. Plot summary: %s"
+                        % ctx.get("plot_summary")
+                    )
+            except Exception as e:
+                result.setPlainText(f"Error contacting assistant: {e}")
+
+        ask_btn.clicked.connect(do_ask)
+
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        btns.rejected.connect(dlg.reject)
+        v.addWidget(btns)
+        dlg.setLayout(v)
+        dlg.exec()
+
+    def on_open_preferences(self):
+        """Open a small Preferences dialog for UI settings."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Preferences")
+        v = QVBoxLayout()
+
+        # Transonic overlay setting
+        trans_cb = QCheckBox("Show Transonic Margin")
+        trans_margin_label = QLabel("Margin (fps):")
+        trans_spin = QDoubleSpinBox()
+        trans_spin.setRange(0.0, 500.0)
+        trans_spin.setSingleStep(5.0)
+
+        # Load current persisted values
+        try:
+            cur = self.db.cursor
+            cur.execute(
+                "SELECT value FROM ui_settings WHERE key = ?",
+                ("transonic_overlay_enabled",),
+            )
+            r = cur.fetchone()
+            if r and r[0] is not None:
+                try:
+                    trans_cb.setChecked(bool(int(r[0])))
+                except Exception:
+                    trans_cb.setChecked(r[0].lower() in ("1", "true", "yes"))
+            cur.execute(
+                "SELECT value FROM ui_settings WHERE key = ?", ("transonic_margin_fps",)
+            )
+            r2 = cur.fetchone()
+            if r2 and r2[0] is not None:
+                try:
+                    trans_spin.setValue(float(r2[0]))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        v.addWidget(trans_cb)
+        h = QHBoxLayout()
+        h.addWidget(trans_margin_label)
+        h.addWidget(trans_spin)
+        v.addLayout(h)
+
+        # Velocity plot Y-range prefs
+        v.addSpacing(6)
+        v.addWidget(QLabel("Velocity plot Y-range (fps) - optional"))
+        y_h = QHBoxLayout()
+        y_min_label = QLabel("Min:")
+        y_min_spin = QDoubleSpinBox()
+        y_min_spin.setRange(0.0, 5000.0)
+        y_min_spin.setSingleStep(10.0)
+        y_max_label = QLabel("Max:")
+        y_max_spin = QDoubleSpinBox()
+        y_max_spin.setRange(0.0, 10000.0)
+        y_max_spin.setSingleStep(10.0)
+
+        # Load persisted values
+        try:
+            cur = self.db.cursor
+            cur.execute(
+                "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_min",)
+            )
+            rmin = cur.fetchone()
+            if rmin and rmin[0] is not None:
+                try:
+                    y_min_spin.setValue(float(rmin[0]))
+                except Exception:
+                    pass
+            cur.execute(
+                "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_max",)
+            )
+            rmax = cur.fetchone()
+            if rmax and rmax[0] is not None:
+                try:
+                    y_max_spin.setValue(float(rmax[0]))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        y_h.addWidget(y_min_label)
+        y_h.addWidget(y_min_spin)
+        y_h.addWidget(y_max_label)
+        y_h.addWidget(y_max_spin)
+        v.addLayout(y_h)
+
+        # Theme selection + preview
+        v.addSpacing(6)
+        v.addWidget(QLabel("UI Theme"))
+        theme_h = QHBoxLayout()
+        theme_label = QLabel("Theme:")
+        theme_combo = QComboBox()
+        theme_combo.addItems(["System", "Light", "Dark"])
+        theme_h.addWidget(theme_label)
+        theme_h.addWidget(theme_combo)
+        # Preview box
+        theme_preview = QLabel("Preview: Header, buttons and controls")
+        theme_preview.setMinimumHeight(60)
+        theme_preview.setStyleSheet(
+            "padding:8px; border:1px solid #ccc; border-radius:4px;"
+        )
+        v.addLayout(theme_h)
+        v.addWidget(theme_preview)
+
+        # Load persisted theme if present
+        try:
+            cur = self.db.cursor
+            cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("ui_theme",))
+            tr = cur.fetchone()
+            if tr and tr[0]:
+                theme_val = (tr[0] or "").lower()
+                if theme_val == "dark":
+                    theme_combo.setCurrentText("Dark")
+                elif theme_val == "light":
+                    theme_combo.setCurrentText("Light")
+                else:
+                    theme_combo.setCurrentText("System")
+        except Exception:
+            pass
+
+        def _apply_theme_preview(name: str):
+            try:
+                n = (name or "").lower()
+                if n == "dark":
+                    theme_preview.setStyleSheet(
+                        "background:#2c2c2c; color:#f0f0f0; padding:8px; border-radius:4px;"
+                    )
+                elif n == "light" or n == "system":
+                    theme_preview.setStyleSheet(
+                        "background: #ffffff; color: #222; padding:8px; border-radius:4px; border:1px solid #ddd;"
+                    )
+                else:
+                    theme_preview.setStyleSheet(
+                        "padding:8px; border:1px solid #ccc; border-radius:4px;"
+                    )
+            except Exception:
+                pass
+
+        theme_combo.currentTextChanged.connect(_apply_theme_preview)
+        # initialise preview
+        try:
+            _apply_theme_preview(theme_combo.currentText())
+        except Exception:
+            pass
+
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        v.addWidget(btns)
+
+        # Reset to defaults button
+        reset_btn = QPushButton("Reset Preferences")
+
+        def do_reset():
+            try:
+                # remove persisted keys
+                for k in (
+                    "transonic_overlay_enabled",
+                    "transonic_margin_fps",
+                    "velocity_y_min",
+                    "velocity_y_max",
+                    "ui_theme",
+                ):
+                    try:
+                        self._delete_ui_setting(k)
+                    except Exception:
+                        pass
+                # reset UI elements
+                try:
+                    trans_cb.setChecked(False)
+                    trans_spin.setValue(50.0)
+                    y_min_spin.setValue(0.0)
+                    y_max_spin.setValue(0.0)
+                    try:
+                        theme_combo.setCurrentText("System")
+                        _apply_theme_preview("System")
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        reset_btn.clicked.connect(do_reset)
+        v.addWidget(reset_btn)
+
+        def on_ok():
+            try:
+                self._save_ui_setting(
+                    "transonic_overlay_enabled", "1" if trans_cb.isChecked() else "0"
+                )
+                self._save_ui_setting("transonic_margin_fps", str(trans_spin.value()))
+                # velocity y-range
+                try:
+                    self._save_ui_setting("velocity_y_min", str(y_min_spin.value()))
+                    self._save_ui_setting("velocity_y_max", str(y_max_spin.value()))
+                    # update instance values
+                    self.velocity_y_min = float(y_min_spin.value())
+                    self.velocity_y_max = float(y_max_spin.value())
+                except Exception:
+                    pass
+                # UI theme
+                try:
+                    sel = (theme_combo.currentText() or "System").lower()
+                    if sel in ("system", "light", "dark"):
+                        self._save_ui_setting("ui_theme", sel)
+                        # apply immediately to this widget
+                        if sel == "dark":
+                            try:
+                                self.setStyleSheet(
+                                    "background: #2c2c2c; color: #f0f0f0;"
+                                )
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                self.setStyleSheet("")
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+                # apply to live widgets if present
+                try:
+                    if getattr(self, "transonic_cb", None):
+                        self.transonic_cb.setChecked(trans_cb.isChecked())
+                    if getattr(self, "transonic_margin", None):
+                        self.transonic_margin.setValue(trans_spin.value())
+                    self.update_visualization()
+                except Exception:
+                    pass
+            except Exception:
+                pass
+            dlg.accept()
+
+        btns.accepted.connect(on_ok)
+        btns.rejected.connect(dlg.reject)
+
+        dlg.setLayout(v)
+        dlg.exec()
+
+    def on_suggest_next_charge(self):
+        """Gather recent test results and ask GP optimizer to suggest next charge."""
+        try:
+            from src.utils.gp_optimizer import suggest_next_charge
+        except Exception:
+            QMessageBox.critical(self, "Error", "GP optimizer module not available.")
+            return
+
+        # Collect recent results from test_results (use velocity_avg if present)
+        try:
+            cur = self.db.cursor
+            cur.execute(
+                "SELECT charge_weight, velocity_avg FROM test_results WHERE velocity_avg IS NOT NULL ORDER BY id DESC LIMIT 20"
+            )
+            rows = cur.fetchall() or []
+            if not rows:
+                QMessageBox.information(
+                    self,
+                    "No data",
+                    "Not enough recent test results to suggest a charge.",
+                )
+                return
+            charges = []
+            velocities = []
+            # reverse to chronological order
+            for r in reversed(rows):
+                try:
+                    c = float(r[0])
+                    v = float(r[1])
+                except Exception:
+                    continue
+                charges.append(c)
+                velocities.append(v)
+        except Exception as e:
+            QMessageBox.critical(self, "DB Error", f"Could not query test results: {e}")
+            return
+
+        if not charges or not velocities:
+            QMessageBox.information(
+                self, "No usable data", "No usable charge/velocity pairs found."
+            )
+            return
+
+        # Determine bounds from observed charges (expand a bit)
+        min_c = max(0.0, min(charges) - 1.0)
+        max_c = max(charges) + 1.0
+        try:
+            suggestion = suggest_next_charge(charges, velocities, (min_c, max_c))
+        except Exception as e:
+            QMessageBox.critical(self, "Optimizer Error", f"Optimizer failed: {e}")
+            return
+
+        # If subsonic mode is enabled, attempt to adjust suggestion downward until predicted velocity <= target
+        try:
+            if getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked():
+                target_v = float(self.subsonic_target.value())
+                # if engine available, simulate and step down
+                if hasattr(self, "engine") and self.engine:
+                    try:
+                        sim_v = None
+                        # try predict at suggested charge
+                        if hasattr(self.engine, "predict_velocity"):
+                            sim_v = float(self.engine.predict_velocity(suggestion))
+                        elif hasattr(self.engine, "calculate_load"):
+                            res = self.engine.calculate_load(
+                                None, None, None, suggestion, None, None
+                            )
+                            if isinstance(res, dict):
+                                sim_v = float(
+                                    res.get("velocity")
+                                    or res.get("velocity_avg")
+                                    or res.get("predicted_velocity")
+                                )
+                        # if predicted is above target, step down by 0.5gr until within bounds or reach min_c
+                        step = 0.5
+                        attempts = 0
+                        while (
+                            sim_v is not None
+                            and sim_v > target_v
+                            and suggestion > min_c
+                            and attempts < 20
+                        ):
+                            suggestion = round(max(min_c, suggestion - step), 3)
+                            attempts += 1
+                            try:
+                                if hasattr(self.engine, "predict_velocity"):
+                                    sim_v = float(
+                                        self.engine.predict_velocity(suggestion)
+                                    )
+                                elif hasattr(self.engine, "calculate_load"):
+                                    res = self.engine.calculate_load(
+                                        None, None, None, suggestion, None, None
+                                    )
+                                    if isinstance(res, dict):
+                                        sim_v = float(
+                                            res.get("velocity")
+                                            or res.get("velocity_avg")
+                                            or res.get("predicted_velocity")
+                                        )
+                            except Exception:
+                                break
+                        # if we couldn't satisfy target, warn user
+                        if sim_v is not None and sim_v > target_v:
+                            QMessageBox.warning(
+                                self,
+                                "Subsonic",
+                                f"Could not reach target subsonic velocity {target_v}fps within charge bounds. Closest predicted: {sim_v:.1f}fps at {suggestion}gr",
+                            )
+                    except Exception:
+                        pass
+                else:
+                    # without engine, just nudge suggestion lower conservatively
+                    suggestion = round(max(min_c, suggestion - 0.5), 3)
+
+        except Exception:
+            pass
+
+        # Persist suggestion
+        try:
+            import json
+
+            basis = json.dumps({"charges": charges, "velocities": velocities})
+            cur.execute(
+                "INSERT INTO optimizer_suggestions (suggested_charge, basis_text) VALUES (?, ?)",
+                (float(suggestion), basis),
+            )
+            self.db.conn.commit()
+        except Exception:
+            pass
+
+        QMessageBox.information(
+            self, "Suggestion", f"Suggested next charge: {suggestion} gr"
+        )
+
+    def on_manage_suggestions_clicked(self):
+        """Open a dialog to browse/pick past optimizer suggestions."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Optimizer Suggestions")
+        v = QVBoxLayout()
+
+        listw = QListWidget()
+        try:
+            cur = self.db.cursor
+            cur.execute(
+                "SELECT id, suggested_charge, created_date, basis_text FROM optimizer_suggestions ORDER BY id DESC LIMIT 200"
+            )
+            rows = cur.fetchall() or []
+            for r in rows:
+                sid = r[0]
+                sc = r[1]
+                cd = r[2]
+                basis = (r[3] or "")[:200]
+                item = QListWidgetItem(f"#{sid} — {sc}gr — {cd} — {basis}")
+                item.setData(Qt.ItemDataRole.UserRole, sid)
+                listw.addItem(item)
+        except Exception:
+            pass
+
+        v.addWidget(listw)
+
+        h = QHBoxLayout()
+        create_wf_btn = QPushButton("Create Workflow from Suggestion")
+        mark_tested_btn = QPushButton("Mark Suggestion Tested")
+        h.addWidget(create_wf_btn)
+        h.addWidget(mark_tested_btn)
+        v.addLayout(h)
+
+        def create_workflow():
+            it = listw.currentItem()
+            if not it:
+                QMessageBox.information(self, "Select", "Select a suggestion first")
+                return
+            sid = it.data(Qt.ItemDataRole.UserRole)
+            try:
+                cur = self.db.cursor
+                cur.execute(
+                    "SELECT suggested_charge, basis_text FROM optimizer_suggestions WHERE id = ?",
+                    (sid,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    QMessageBox.critical(self, "Error", "Suggestion not found")
+                    return
+                suggested_charge = float(row[0])
+                basis = row[1] or ""
+                name = f"GP Suggestion #{sid}"
+                next_action = f"Test suggested charge {suggested_charge}gr (based on suggestion #{sid})"
+                cur.execute(
+                    "INSERT INTO load_development_workflows (name, status, next_action) VALUES (?, 'suggested', ?)",
+                    (name, next_action),
+                )
+                self.db.conn.commit()
+                QMessageBox.information(
+                    self,
+                    "Workflow Created",
+                    "A load_development_workflow was created for this suggestion.",
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "DB Error", f"Could not create workflow: {e}"
+                )
+
+        def mark_tested():
+            it = listw.currentItem()
+            if not it:
+                QMessageBox.information(self, "Select", "Select a suggestion first")
+                return
+            sid = it.data(Qt.ItemDataRole.UserRole)
+            # Prompt for test_result id (or choose from recent)
+            try:
+                cur = self.db.cursor
+                cur.execute(
+                    "SELECT id, ladder_test_id, charge_weight, velocity_avg FROM test_results ORDER BY id DESC LIMIT 50"
+                )
+                rows = cur.fetchall() or []
+                choices = [f"#{r[0]} charge:{r[2]} vel:{r[3]}" for r in rows]
+                ids = [r[0] for r in rows]
+                if choices:
+                    sel, ok = QInputDialog.getItem(
+                        self,
+                        "Select Test Result",
+                        "Choose test result that tested this suggestion",
+                        choices,
+                        0,
+                        False,
+                    )
+                    if not ok:
+                        return
+                    idx = choices.index(sel)
+                    tr_id = ids[idx]
+                else:
+                    tr_text, ok = QInputDialog.getText(
+                        self,
+                        "Test Result ID",
+                        "Enter test_result id that corresponds to this suggestion:",
+                    )
+                    if not ok:
+                        return
+                    tr_id = int(tr_text.strip())
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Error", f"Could not select test result: {e}"
+                )
+                return
+
+            # Update suggestion record to record tested id and refit GP using all recent test_results
+            try:
+                # append tested marker to basis_text
+                cur.execute(
+                    "SELECT basis_text FROM optimizer_suggestions WHERE id = ?", (sid,)
+                )
+                row = cur.fetchone()
+                basis = (row[0] or "") + f"\nTESTED_WITH:{tr_id}"
+                cur.execute(
+                    "UPDATE optimizer_suggestions SET basis_text = ? WHERE id = ?",
+                    (basis, sid),
+                )
+                self.db.conn.commit()
+            except Exception:
+                pass
+
+            # Re-run suggestion step (same logic as on_suggest_next_charge)
+            try:
+                cur.execute(
+                    "SELECT charge_weight, velocity_avg FROM test_results WHERE velocity_avg IS NOT NULL ORDER BY id DESC LIMIT 200"
+                )
+                rows = cur.fetchall() or []
+                charges = []
+                velocities = []
+                for r in reversed(rows):
+                    try:
+                        c = float(r[0])
+                        v = float(r[1])
+                    except Exception:
+                        continue
+                    charges.append(c)
+                    velocities.append(v)
+                if not charges:
+                    QMessageBox.information(
+                        self, "No data", "No test_results available to refit optimizer."
+                    )
+                    return
+                from src.utils.gp_optimizer import suggest_next_charge
+
+                min_c = max(0.0, min(charges) - 1.0)
+                max_c = max(charges) + 1.0
+                new_sugg = suggest_next_charge(charges, velocities, (min_c, max_c))
+                import json
+
+                cur.execute(
+                    "INSERT INTO optimizer_suggestions (suggested_charge, basis_text) VALUES (?, ?)",
+                    (float(new_sugg), json.dumps({"based_on_rows": len(charges)})),
+                )
+                self.db.conn.commit()
+                QMessageBox.information(
+                    self, "Refit Complete", f"New suggested charge: {new_sugg}gr"
+                )
+                # refresh list
+                listw.clear()
+                cur.execute(
+                    "SELECT id, suggested_charge, created_date, basis_text FROM optimizer_suggestions ORDER BY id DESC LIMIT 200"
+                )
+                rows = cur.fetchall() or []
+                for r in rows:
+                    sid2 = r[0]
+                    sc2 = r[1]
+                    cd2 = r[2]
+                    basis2 = (r[3] or "")[:200]
+                    item2 = QListWidgetItem(f"#{sid2} — {sc2}gr — {cd2} — {basis2}")
+                    item2.setData(Qt.ItemDataRole.UserRole, sid2)
+                    listw.addItem(item2)
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Optimizer Error", f"Could not refit optimizer: {e}"
+                )
+
+        create_wf_btn.clicked.connect(create_workflow)
+        mark_tested_btn.clicked.connect(mark_tested)
+        # Show basis plot for selected suggestion
+        show_basis_btn = QPushButton("Show Basis Plot")
+
+        def show_basis():
+            it = listw.currentItem()
+            if not it:
+                QMessageBox.information(self, "Select", "Select a suggestion first")
+                return
+            sid = it.data(Qt.ItemDataRole.UserRole)
+            try:
+                cur = self.db.cursor
+                cur.execute(
+                    "SELECT basis_text FROM optimizer_suggestions WHERE id = ?", (sid,)
+                )
+                row = cur.fetchone()
+                if not row or not row[0]:
+                    QMessageBox.information(
+                        self, "No basis", "No basis series stored for this suggestion"
+                    )
+                    return
+                import json
+
+                b = row[0]
+                # if basis is JSON of series
+                try:
+                    payload = json.loads(b)
+                    xs = payload.get("x") or payload.get("charges") or []
+                    ys = payload.get("y") or payload.get("velocities") or []
+                except Exception:
+                    QMessageBox.information(
+                        self,
+                        "Unsupported",
+                        "Basis stored but not in expected JSON format.",
+                    )
+                    return
+
+                try:
+                    import pyqtgraph as pg
+
+                    pdlg = QDialog(self)
+                    pdlg.setWindowTitle(f"Basis Plot #{sid}")
+                    lv = QVBoxLayout()
+                    pw = pg.PlotWidget()
+                    pw.plot(xs, ys, pen=None, symbol="o")
+                    pw.setLabel("left", "Velocity (fps)")
+                    pw.setLabel("bottom", "Charge (gr)")
+                    lv.addWidget(pw)
+                    btns2 = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+                    btns2.rejected.connect(pdlg.reject)
+                    lv.addWidget(btns2)
+                    pdlg.setLayout(lv)
+                    pdlg.exec()
+                except Exception:
+                    pairs = "\n".join(f"{x}->{y}" for x, y in zip(xs, ys))
+                    QMessageBox.information(self, "Basis data", pairs)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not load basis: {e}")
+
+        show_basis_btn.clicked.connect(show_basis)
+        h.addWidget(show_basis_btn)
+
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        btns.rejected.connect(dlg.reject)
+        v.addWidget(btns)
+        dlg.setLayout(v)
+        dlg.exec()
+
+    def on_auto_match_suggestions(self):
+        """Attempt to auto-match open suggestions to recent test_results within tolerance, mark tested and refit."""
+        try:
+            cur = self.db.cursor
+            # find suggestions not already marked tested
+            cur.execute(
+                "SELECT id, suggested_charge FROM optimizer_suggestions ORDER BY id DESC LIMIT 200"
+            )
+            rows = cur.fetchall() or []
+            if not rows:
+                QMessageBox.information(
+                    self, "No suggestions", "No optimizer suggestions found."
+                )
+                return
+
+            matched = 0
+            for r in rows:
+                sid = r[0]
+                sugg = float(r[1]) if r[1] is not None else None
+                if sugg is None:
+                    continue
+                # check if already has TESTED_WITH in basis_text
+                cur.execute(
+                    "SELECT basis_text FROM optimizer_suggestions WHERE id = ?", (sid,)
+                )
+                b = cur.fetchone()
+                if b and b[0] and "TESTED_WITH:" in (b[0] or ""):
+                    continue
+
+                # find nearest test_result by charge
+                cur.execute(
+                    "SELECT id, charge_weight, velocity_avg FROM test_results WHERE charge_weight IS NOT NULL ORDER BY id DESC LIMIT 500"
+                )
+                trs = cur.fetchall() or []
+                best = None
+                best_diff = None
+                best_id = None
+                for tr in trs:
+                    try:
+                        c = float(tr[1])
+                    except Exception:
+                        continue
+                    diff = abs(c - sugg)
+                    if best_diff is None or diff < best_diff:
+                        best_diff = diff
+                        best = tr
+                        best_id = tr[0]
+
+                # if close enough (<=0.3gr) mark tested
+                if best_diff is not None and best_diff <= 0.3:
+                    try:
+                        cur.execute(
+                            "SELECT basis_text FROM optimizer_suggestions WHERE id = ?",
+                            (sid,),
+                        )
+                        row = cur.fetchone()
+                        basis = (row[0] or "") + f"\nTESTED_WITH:{best_id}"
+                        cur.execute(
+                            "UPDATE optimizer_suggestions SET basis_text = ? WHERE id = ?",
+                            (basis, sid),
+                        )
+                        self.db.conn.commit()
+                        matched += 1
+                    except Exception:
+                        pass
+
+            # if we matched any, refit GP and produce a new suggestion
+            if matched:
+                try:
+                    cur.execute(
+                        "SELECT charge_weight, velocity_avg FROM test_results WHERE velocity_avg IS NOT NULL ORDER BY id DESC LIMIT 500"
+                    )
+                    rows2 = cur.fetchall() or []
+                    charges = []
+                    velocities = []
+                    for r in reversed(rows2):
+                        try:
+                            charges.append(float(r[0]))
+                            velocities.append(float(r[1]))
+                        except Exception:
+                            continue
+                    if charges:
+                        from src.utils.gp_optimizer import suggest_next_charge
+
+                        min_c = max(0.0, min(charges) - 1.0)
+                        max_c = max(charges) + 1.0
+                        new_sugg = suggest_next_charge(
+                            charges, velocities, (min_c, max_c)
+                        )
+                        import json
+
+                        cur.execute(
+                            "INSERT INTO optimizer_suggestions (suggested_charge, basis_text) VALUES (?, ?)",
+                            (
+                                float(new_sugg),
+                                json.dumps({"based_on_rows": len(charges)}),
+                            ),
+                        )
+                        self.db.conn.commit()
+                        QMessageBox.information(
+                            self,
+                            "Auto-Match",
+                            f"Matched {matched} suggestions. New suggestion: {new_sugg}gr",
+                        )
+                        return
+                except Exception as e:
+                    QMessageBox.information(
+                        self,
+                        "Auto-Match",
+                        f"Matched {matched} suggestions but refit failed: {e}",
+                    )
+                    return
+
+            QMessageBox.information(
+                self,
+                "Auto-Match",
+                f"Auto-match complete. Matched {matched} suggestions.",
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Auto-match failed: {e}")
+
+    def on_toggle_auto_match(self, checked: bool):
+        """Enable or disable the background poller for new test_results."""
+        if checked:
+            # initialize last seen id
+            try:
+                cur = self.db.cursor
+                cur.execute("SELECT MAX(id) FROM test_results")
+                row = cur.fetchone()
+                self._last_test_result_id = (
+                    int(row[0]) if row and row[0] is not None else 0
+                )
+            except Exception:
+                self._last_test_result_id = 0
+            self._auto_match_timer.start()
+            self.auto_match_toggle.setText("Disable Auto-Match")
+        else:
+            self._auto_match_timer.stop()
+            self.auto_match_toggle.setText("Enable Auto-Match")
+
+    def _auto_match_poll(self):
+        """Poll DB for new test_results and process them."""
+        try:
+            cur = self.db.cursor
+            cur.execute("SELECT MAX(id) FROM test_results")
+            row = cur.fetchone()
+            max_id = int(row[0]) if row and row[0] is not None else 0
+            if self._last_test_result_id is None:
+                self._last_test_result_id = max_id
+                return
+            if max_id > self._last_test_result_id:
+                # process new ids
+                for nid in range(self._last_test_result_id + 1, max_id + 1):
+                    try:
+                        self._auto_match_on_new_result(nid)
+                    except Exception:
+                        pass
+                self._last_test_result_id = max_id
+        except Exception:
+            # ignore polling errors
+            return
+
+    def _auto_match_on_new_result(self, tr_id: int):
+        """Try to match a single new test_result to any open suggestions within tolerance."""
+        try:
+            cur = self.db.cursor
+            cur.execute(
+                "SELECT charge_weight, velocity_avg FROM test_results WHERE id = ?",
+                (tr_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return
+            try:
+                charge = float(row[0])
+            except Exception:
+                return
+
+            # find suggestions not yet marked TESTED_WITH
+            cur.execute(
+                "SELECT id, suggested_charge, basis_text FROM optimizer_suggestions ORDER BY id DESC LIMIT 500"
+            )
+            rows = cur.fetchall() or []
+            matched_any = False
+            for r in rows:
+                sid = r[0]
+                try:
+                    sc = float(r[1])
+                except Exception:
+                    continue
+                basis = r[2] or ""
+                if "TESTED_WITH:" in basis:
+                    continue
+                if abs(sc - charge) <= 0.3:
+                    # mark tested
+                    try:
+                        new_basis = basis + f"\nTESTED_WITH:{tr_id}"
+                        cur.execute(
+                            "UPDATE optimizer_suggestions SET basis_text = ? WHERE id = ?",
+                            (new_basis, sid),
+                        )
+                        self.db.conn.commit()
+                        matched_any = True
+                    except Exception:
+                        pass
+
+            if matched_any:
+                # refit GP and persist new suggestion
+                try:
+                    cur.execute(
+                        "SELECT charge_weight, velocity_avg FROM test_results WHERE velocity_avg IS NOT NULL ORDER BY id DESC LIMIT 500"
+                    )
+                    rows2 = cur.fetchall() or []
+                    charges = []
+                    velocities = []
+                    for r in reversed(rows2):
+                        try:
+                            charges.append(float(r[0]))
+                            velocities.append(float(r[1]))
+                        except Exception:
+                            continue
+                    if charges:
+                        from src.utils.gp_optimizer import suggest_next_charge
+
+                        min_c = max(0.0, min(charges) - 1.0)
+                        max_c = max(charges) + 1.0
+                        new_sugg = suggest_next_charge(
+                            charges, velocities, (min_c, max_c)
+                        )
+                        import json
+
+                        cur.execute(
+                            "INSERT INTO optimizer_suggestions (suggested_charge, basis_text) VALUES (?, ?)",
+                            (
+                                float(new_sugg),
+                                json.dumps({"based_on_rows": len(charges)}),
+                            ),
+                        )
+                        self.db.conn.commit()
+                except Exception:
+                    pass
+        except Exception:
+            return
 
     def on_attach_chrono_to_qc_batch(self):
         """Attach selected chronograph import by creating or using existing qc_batch and insert qc_measurements."""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(self, "No selection", "Select an import from the list first")
+            QMessageBox.warning(
+                self, "No selection", "Select an import from the list first"
+            )
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
-        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
+        cur.execute(
+            "SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,)
+        )
         row = cur.fetchone()
         if not row:
             QMessageBox.warning(self, "Not found", "Import row not found in DB")
             return
         import json
+
         velocities = json.loads(row[0]) if row[0] else []
         if not velocities:
-            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
+            QMessageBox.warning(
+                self, "No velocities", "Selected import has no velocities"
+            )
             return
 
         # Ask user to either enter existing qc_batch id or create new
-        batch_id, ok = QInputDialog.getInt(self, "QC Batch ID", "Enter existing QC batch ID to attach to (or 0 to create new):", 0)
+        batch_id, ok = QInputDialog.getInt(
+            self,
+            "QC Batch ID",
+            "Enter existing QC batch ID to attach to (or 0 to create new):",
+            0,
+        )
         if not ok:
             return
 
         if batch_id == 0:
             # create new qc batch
-            name, ok2 = QInputDialog.getText(self, "New QC Batch", "Name for new QC batch:")
+            name, ok2 = QInputDialog.getText(
+                self, "New QC Batch", "Name for new QC batch:"
+            )
             if not ok2 or not name:
                 QMessageBox.warning(self, "Cancelled", "Batch creation cancelled")
                 return
-            batch_size, ok3 = QInputDialog.getInt(self, "Batch Size", "How many rounds in batch?", len(velocities), 1)
+            batch_size, ok3 = QInputDialog.getInt(
+                self, "Batch Size", "How many rounds in batch?", len(velocities), 1
+            )
             if not ok3:
                 return
             cur.execute(
@@ -1390,17 +3645,32 @@ class ModernLoadBuilder(QWidget):
         for i, v in enumerate(velocities, start=1):
             cur.execute(
                 "INSERT INTO qc_measurements (batch_id, patron_number, measurement_type, value, target_value, delta, is_outlier, notes) VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
-                (batch_id, i, 'velocity', float(v), None, None, f"Imported from chronograph_imports #{import_id}"),
+                (
+                    batch_id,
+                    i,
+                    "velocity",
+                    float(v),
+                    None,
+                    None,
+                    f"Imported from chronograph_imports #{import_id}",
+                ),
             )
 
         # Optionally mark batch completed if we've inserted >= batch_size
         cur.execute("SELECT batch_size FROM qc_batches WHERE id = ?", (batch_id,))
         b = cur.fetchone()
         if b and b[0] and int(b[0]) <= len(velocities):
-            cur.execute("UPDATE qc_batches SET status = 'completed', completed_date = datetime('now') WHERE id = ?", (batch_id,))
+            cur.execute(
+                "UPDATE qc_batches SET status = 'completed', completed_date = datetime('now') WHERE id = ?",
+                (batch_id,),
+            )
 
         self.db.conn.commit()
-        QMessageBox.information(self, "QC Batch Updated", f"Inserted {len(velocities)} measurements into QC batch {batch_id}")
+        QMessageBox.information(
+            self,
+            "QC Batch Updated",
+            f"Inserted {len(velocities)} measurements into QC batch {batch_id}",
+        )
         self.on_refresh_chronograph_list()
 
     def toggle_chat(self):
@@ -1715,6 +3985,12 @@ class ModernLoadBuilder(QWidget):
         self.step2_widget.hide()
         self.layout().removeWidget(self.step2_widget)
         self.step1_widget.show()
+        # persist last-open step
+        try:
+            self.current_step = 1
+            self._save_ui_setting("last_step", "1")
+        except Exception:
+            pass
 
     def initialize_step2(self):
         """Initialize step 2 with rifle data"""
@@ -1823,10 +4099,106 @@ class ModernLoadBuilder(QWidget):
         if "error" in result:
             return
 
-        # Update graphs
-        self.update_pressure_graph(result)
-        self.update_velocity_graph(result)
-        self.update_stats(result)
+        # Apply environmental corrections and calibration (best-effort)
+        try:
+            from src.utils.env_corrections import air_density_ratio
+
+            temp_c = (
+                float(self.temp_spin.value()) if hasattr(self, "temp_spin") else None
+            )
+            pressure_kpa = (
+                float(self.pressure_spin.value())
+                if hasattr(self, "pressure_spin")
+                else None
+            )
+            humidity_pct = (
+                float(self.humidity_spin.value())
+                if hasattr(self, "humidity_spin")
+                else None
+            )
+
+            ratio = None
+            if (
+                temp_c is not None
+                and pressure_kpa is not None
+                and humidity_pct is not None
+            ):
+                try:
+                    ratio = air_density_ratio(temp_c, pressure_kpa, humidity_pct)
+                except Exception:
+                    ratio = None
+
+            # copy result so we don't mutate engine internals
+            scaled = dict(result)
+
+            # scale pressure and velocity curves conservatively if ratio available
+            if ratio is not None:
+                try:
+                    scale = 1.0 + (ratio - 1.0) * 0.5
+                    # pressure_curve: list of (time, pressure)
+                    if "pressure_curve" in scaled and scaled["pressure_curve"]:
+                        scaled_pc = [
+                            (t, float(p) * scale) for (t, p) in scaled["pressure_curve"]
+                        ]
+                        scaled["pressure_curve"] = scaled_pc
+                        # adjust numeric peak/max fields if present
+                        if "max_pressure_psi" in scaled:
+                            scaled["max_pressure_psi"] = (
+                                float(scaled["max_pressure_psi"]) * scale
+                            )
+                        if "peak_pressure_psi" in scaled:
+                            scaled["peak_pressure_psi"] = (
+                                float(scaled["peak_pressure_psi"]) * scale
+                            )
+
+                    # velocity_curve: list of (position, vel)
+                    if "velocity_curve" in scaled and scaled["velocity_curve"]:
+                        scaled_vc = [
+                            (x, float(v) * scale) for (x, v) in scaled["velocity_curve"]
+                        ]
+                        scaled["velocity_curve"] = scaled_vc
+                        if "muzzle_velocity_fps" in scaled:
+                            scaled["muzzle_velocity_fps"] = (
+                                float(scaled["muzzle_velocity_fps"]) * scale
+                            )
+                except Exception:
+                    pass
+
+            # Apply linear calibration (predicted -> measured) if available
+            try:
+                cur = self.db.cursor
+                cur.execute(
+                    "SELECT slope, intercept, mse FROM engine_calibrations ORDER BY id DESC LIMIT 1"
+                )
+                row = cur.fetchone()
+                if row and row[0] is not None:
+                    slope = float(row[0])
+                    intercept = float(row[1] or 0.0)
+                    mse = float(row[2]) if row[2] is not None else None
+                    # apply to velocity numbers
+                    if "velocity_curve" in scaled and scaled["velocity_curve"]:
+                        scaled["velocity_curve"] = [
+                            (x, slope * float(v) + intercept)
+                            for (x, v) in scaled["velocity_curve"]
+                        ]
+                    if "muzzle_velocity_fps" in scaled:
+                        scaled["muzzle_velocity_fps"] = (
+                            slope * float(scaled.get("muzzle_velocity_fps", 0))
+                            + intercept
+                        )
+                    # attach mse for plotting uncertainty bands
+                    if mse is not None:
+                        scaled["_calibration_mse"] = mse
+            except Exception:
+                pass
+
+        except Exception:
+            scaled = result
+
+        # Update graphs with scaled/calibrated result
+        self.update_pressure_graph(scaled)
+        self.update_velocity_graph(scaled)
+        self.update_stats(scaled)
 
     def update_pressure_graph(self, result):
         """Update pressure curve"""
@@ -1839,16 +4211,57 @@ class ModernLoadBuilder(QWidget):
         if not pg:
             return
 
-        self.pressure_plot.plot(
+        main_curve = self.pressure_plot.plot(
             times, pressures, pen=pg.mkPen(color="#e74c3c", width=3)
         )
 
+        # If calibration MSE present, draw uncertainty band around pressure curve
+        try:
+            mse = result.get("_calibration_mse")
+            if mse is not None:
+                import math
+
+                vel_unc = math.sqrt(mse)
+                # approximate pressure uncertainty by scaling relative to peak velocity
+                peak_vel = (
+                    float(result.get("muzzle_velocity_fps", 0))
+                    if result.get("muzzle_velocity_fps")
+                    else 0.0
+                )
+                peak_p = (
+                    float(result.get("max_pressure_psi", 0))
+                    if result.get("max_pressure_psi")
+                    else 0.0
+                )
+                scale_p = (peak_p / peak_vel) if peak_vel > 0 else 0.0
+                p_unc = vel_unc * scale_p
+
+                upper = [p + p_unc for p in pressures]
+                lower = [p - p_unc for p in pressures]
+
+                up_curve = self.pressure_plot.plot(
+                    times, upper, pen=pg.mkPen(color=(231, 76, 60, 80), width=0)
+                )
+                low_curve = self.pressure_plot.plot(
+                    times, lower, pen=pg.mkPen(color=(231, 76, 60, 80), width=0)
+                )
+                try:
+                    fill = pg.FillBetweenItem(
+                        up_curve, low_curve, brush=(231, 76, 60, 50)
+                    )
+                    self.pressure_plot.addItem(fill)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         # Add SAAMI line
-        max_pressure = result["max_pressure_psi"]
-        self.pressure_plot.addLine(
-            y=max_pressure,
-            pen=pg.mkPen(color="#95a5a6", width=2, style=Qt.PenStyle.DashLine),
-        )
+        max_pressure = result.get("max_pressure_psi")
+        if max_pressure is not None:
+            self.pressure_plot.addLine(
+                y=max_pressure,
+                pen=pg.mkPen(color="#95a5a6", width=2, style=Qt.PenStyle.DashLine),
+            )
 
     def update_velocity_graph(self, result):
         """Update velocity curve"""
@@ -1864,7 +4277,120 @@ class ModernLoadBuilder(QWidget):
         if not pg:
             return
 
-        self.velocity_plot.plot(positions, velocities, pen=pg.mkPen(color="#27ae60", width=3))
+        main_curve = self.velocity_plot.plot(
+            positions, velocities, pen=pg.mkPen(color="#27ae60", width=3)
+        )
+
+        # If calibration MSE present, draw uncertainty band around velocity curve
+        try:
+            mse = result.get("_calibration_mse")
+            if mse is not None:
+                import math
+
+                vel_unc = math.sqrt(mse)
+                upper = [v + vel_unc for v in velocities]
+                lower = [v - vel_unc for v in velocities]
+
+                up_curve = self.velocity_plot.plot(
+                    positions, upper, pen=pg.mkPen(color=(39, 174, 96, 80), width=0)
+                )
+                low_curve = self.velocity_plot.plot(
+                    positions, lower, pen=pg.mkPen(color=(39, 174, 96, 80), width=0)
+                )
+                try:
+                    fill = pg.FillBetweenItem(
+                        up_curve, low_curve, brush=(39, 174, 96, 50)
+                    )
+                    self.velocity_plot.addItem(fill)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Apply persisted velocity y-range if available
+        try:
+            if (
+                getattr(self, "velocity_y_min", None) is not None
+                and getattr(self, "velocity_y_max", None) is not None
+            ):
+                try:
+                    self.velocity_plot.setYRange(
+                        float(self.velocity_y_min), float(self.velocity_y_max)
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Draw transonic speed-of-sound line and optional margin band
+        try:
+            if getattr(self, "transonic_cb", None) and self.transonic_cb.isChecked():
+                try:
+                    from src.utils.ballistics_utils import speed_of_sound_fps
+
+                    temp_c = (
+                        float(self.temp_spin.value())
+                        if hasattr(self, "temp_spin")
+                        else 15.0
+                    )
+                    sos = float(speed_of_sound_fps(temp_c))
+                    margin = float(
+                        getattr(self, "transonic_margin", None)
+                        or self.transonic_margin.value()
+                    )
+
+                    # horizontal lines drawn as flat curves for FillBetween
+                    xs = positions if positions else [0, 1]
+                    top = [sos + margin for _ in xs]
+                    bot = [sos - margin for _ in xs]
+
+                    top_curve = self.velocity_plot.plot(
+                        xs, top, pen=pg.mkPen(color=(52, 152, 219, 120), width=0)
+                    )
+                    bot_curve = self.velocity_plot.plot(
+                        xs, bot, pen=pg.mkPen(color=(52, 152, 219, 120), width=0)
+                    )
+                    try:
+                        band = pg.FillBetweenItem(
+                            top_curve, bot_curve, brush=(52, 152, 219, 40)
+                        )
+                        self.velocity_plot.addItem(band)
+                    except Exception:
+                        pass
+
+                    # Draw SOS line
+                    self.velocity_plot.addLine(
+                        y=sos,
+                        pen=pg.mkPen(
+                            color="#2980b9", width=2, style=Qt.PenStyle.DashLine
+                        ),
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def _save_ui_setting(self, key: str, value: str):
+        """Persist a small UI setting into `ui_settings` table."""
+        try:
+            cur = self.db.cursor
+            # Use INSERT OR REPLACE to upsert by key
+            cur.execute(
+                "INSERT OR REPLACE INTO ui_settings (key, value, updated_date) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                (key, value),
+            )
+            self.db.conn.commit()
+        except Exception:
+            pass
+
+    def _delete_ui_setting(self, key: str):
+        """Delete a UI setting by key from `ui_settings`."""
+        try:
+            cur = self.db.cursor
+            cur.execute("DELETE FROM ui_settings WHERE key = ?", (key,))
+            self.db.conn.commit()
+        except Exception:
+            pass
 
     def update_stats(self, result):
         """Update statistics display"""
@@ -3339,6 +5865,107 @@ NÅR DU VIL MER PRESISJON:
 • Annealing + chronograph = biggest improvements"""
 
     # ==================== PROSESS HELPER ====================
+    def refresh_pressure_log(self):
+        """Refresh the pressure log list from the DB."""
+        try:
+            entries = query_recent_pressures(self.db, limit=100)
+        except Exception:
+            entries = []
+
+        self.pressure_list.clear()
+        for e in entries:
+            ts = e.get("timestamp")
+            rifle = e.get("rifle_id")
+            profile = e.get("ammo_profile_id")
+            charge = e.get("charge_weight")
+            pred = e.get("predicted_pressure_psi")
+            saami = e.get("saami_max_psi")
+            text = f"{ts} | rifle:{rifle} profile:{profile} charge:{charge}gr pred:{pred} psi saami:{saami}"
+            item = QListWidgetItem(text)
+            try:
+                if pred is not None and saami is not None:
+                    if float(pred) >= float(saami):
+                        item.setBackground(Qt.GlobalColor.red)
+                    elif float(pred) >= 0.95 * float(saami):
+                        item.setBackground(Qt.GlobalColor.yellow)
+            except Exception:
+                pass
+            self.pressure_list.addItem(item)
+
+    def on_log_predicted_pressure(self):
+        """Predict pressure via the engine and log it to `pressure_history`."""
+        rifle_id = self.rifle_data["id"] if self.rifle_data else None
+        ammo_profile_id = getattr(self, "current_ammo_profile_id", None)
+        charge = float(self.current_charge)
+        coal = float(self.coal_spin.value()) if hasattr(self, "coal_spin") else None
+        cbto = float(self.cbto_spin.value()) if hasattr(self, "cbto_spin") else None
+
+        saami = None
+        try:
+            if self.rifle_data and "caliber" in self.rifle_data:
+                rows = self.db.execute_query(
+                    "SELECT max_pressure_bar FROM calibers WHERE name = ?",
+                    (self.rifle_data["caliber"],),
+                )
+                if rows:
+                    max_bar = rows[0].get("max_pressure_bar")
+                    if max_bar is not None:
+                        saami = float(max_bar) * 14.503773772
+        except Exception:
+            saami = None
+
+        rowid = predict_and_log(
+            self.db,
+            self.engine,
+            rifle_id,
+            ammo_profile_id,
+            charge,
+            coal_mm=coal,
+            cbto_mm=cbto,
+            saami_max_psi=saami,
+            note="UI log",
+        )
+
+        # Refresh and show alert if necessary
+        self.refresh_pressure_log()
+        try:
+            cur = self.db.cursor
+            cur.execute(
+                "SELECT predicted_pressure_psi, saami_max_psi FROM pressure_history WHERE id = ?",
+                (rowid,),
+            )
+            r = cur.fetchone()
+            predicted = r["predicted_pressure_psi"] if r else None
+            saami_v = r["saami_max_psi"] if r else None
+            if predicted and saami_v:
+                if float(predicted) >= float(saami_v):
+                    QMessageBox.critical(
+                        self,
+                        "Pressure Alert",
+                        f"Predicted pressure {predicted:.1f} PSI exceeds SAAMI {saami_v:.1f} PSI — stop!",
+                    )
+                elif float(predicted) >= 0.95 * float(saami_v):
+                    QMessageBox.warning(
+                        self,
+                        "Pressure Warning",
+                        f"Predicted {predicted:.1f} PSI is >=95% of SAAMI {saami_v:.1f} PSI",
+                    )
+                else:
+                    QMessageBox.information(
+                        self,
+                        "Pressure Logged",
+                        f"Predicted {predicted:.1f} PSI (SAAMI {saami_v:.1f} PSI)",
+                    )
+            else:
+                QMessageBox.information(
+                    self,
+                    "Pressure Logged",
+                    "Predicted pressure logged (no SAAMI available).",
+                )
+        except Exception:
+            QMessageBox.information(
+                self, "Pressure Logged", "Predicted pressure logged."
+            )
 
     def explain_reloading_process(self):
         """Explain the complete reloading process"""
