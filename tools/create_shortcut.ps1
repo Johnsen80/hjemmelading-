@@ -26,7 +26,7 @@ if (Test-Path $venvPythonw) {
 }
 
 $desktop = [Environment]::GetFolderPath('Desktop')
-$linkPath = Join-Path $desktop 'Hjemmelading.lnk'
+$linkPath = Join-Path $desktop 'Valkyrie Ballistics.lnk'
 
 $wsh = New-Object -ComObject WScript.Shell
 $shortcut = $wsh.CreateShortcut($linkPath)

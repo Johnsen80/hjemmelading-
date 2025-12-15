@@ -1,4 +1,4 @@
-Inventory & QC Design — Hjemmelading
+Inventory & QC Design — Valkyrie Ballistics
 
 Goals
 - Allow users to add components (bullets, powders, cases, primers) and register inventory lots.

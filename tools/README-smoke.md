@@ -20,4 +20,4 @@ On Unix-like systems:
 ./tools/run_smoke.sh create
 ```
 
-If the test prints that fonts are missing, the project bundles DejaVu fonts under `HjemmeladingApp/resources/fonts` and the smoke test registers them, but Qt may still print an informational warning about its own font search path. We filter that warning in the smoke test to keep logs clean.
+If the test prints that fonts are missing, the project (Valkyrie Ballistics) bundles DejaVu fonts under `HjemmeladingApp/resources/fonts` and the smoke test registers them, but Qt may still print an informational warning about its own font search path. We filter that warning in the smoke test to keep logs clean.

@@ -93,7 +93,7 @@ def fetch_weather_data_yr(
     lat: float,
     lon: float,
     timeout: int = 10,
-    user_agent: str = "Hjemmelading/1.0 (+https://example.local)",
+    user_agent: str = "ValkyrieBallistics/1.0 (+https://example.local)",
 ) -> Optional[dict]:
     """Fetch weather from met.no / YR (locationforecast compact).
 
@@ -154,7 +154,7 @@ def fetch_weather(
         return fetch_weather_data_owm(lat, lon, api_key=api_key, timeout=timeout)
     if p in ("yr", "metno", "met"):
         # allow custom user_agent via kwargs
-        ua = kwargs.get("user_agent", "Hjemmelading/1.0 (+https://example.local)")
+        ua = kwargs.get("user_agent", "ValkyrieBallistics/1.0 (+https://example.local)")
         return fetch_weather_data_yr(lat, lon, timeout=timeout, user_agent=ua)
     if p in ("manual",):
         return manual_data

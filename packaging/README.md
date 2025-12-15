@@ -1,7 +1,7 @@
 # Packaging notes
 
 This folder contains helper scripts and notes for producing a Windows
-build of Hjemmelading using PyInstaller.
+build of Valkyrie Ballistics using PyInstaller.
 
 Quick steps (from repo root, PowerShell):
 

@@ -76,7 +76,7 @@ class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         # Wrap initialization so any unexpected error doesn't crash the whole app.
-        self.setWindowTitle("Innstillinger — Hjemmelading")
+        self.setWindowTitle("Innstillinger — Valkyrie Ballistics")
         self.resize(600, 420)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -645,7 +645,7 @@ class SettingsDialog(QtWidgets.QDialog):
                     )
                 )
             else:
-                self.logo_label.setText("HJEMMELADING")
+                self.logo_label.setText("VALKYRIE BALLISTICS")
         except (OSError, RuntimeError, TypeError):
             try:
                 if _logger:
@@ -696,7 +696,7 @@ class SettingsDialog(QtWidgets.QDialog):
                         pass
                 pass
             try:
-                self.logo_label.setText("HJEMMELADING")
+                self.logo_label.setText("VALKYRIE BALLISTICS")
             except Exception as _suppressed_exc:
                 try:
                     _mod_logger = globals().get("_logger") or globals().get("logger")

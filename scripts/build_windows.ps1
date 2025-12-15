@@ -9,7 +9,7 @@ Usage (from project root, venv activated):
   .\scripts\build_windows.ps1
 
 #>
-Write-Host "Hjemmelading: onedir build helper (PyInstaller)"
+Write-Host "Valkyrie Ballistics: onedir build helper (PyInstaller)"
 
 # Try to prefer the venv python if present
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -69,7 +69,7 @@ if ($pluginPath) {
 Write-Host "Preparing PyInstaller args..."
 
 # Base args
-$pyInstallerArgs = @('--onedir','--noconfirm','--name','Hjemmelading','--windowed','--log-level=DEBUG')
+$pyInstallerArgs = @('--onedir','--noconfirm','--name','VALKYRIE_BALLISTICS','--windowed','--log-level=DEBUG')
 
 foreach ($a in $addDataArgs) { $pyInstallerArgs += $a }
 foreach ($b in $addBinaryArgs) { $pyInstallerArgs += $b }
@@ -97,7 +97,7 @@ if ($exit -ne 0) {
     exit $exit
 }
 
-Write-Host "Build complete. Check the 'dist\\Hjemmelading' folder and $buildLog for details."
+Write-Host "Build complete. Check the 'dist\\VALKYRIE_BALLISTICS' folder and $buildLog for details."
 <#
 Build script for Windows using PyInstaller.
 
