@@ -55,16 +55,16 @@ logger = get_logger(__name__)
 
 class Dashboard(QWidget):
     def create_ai_tips_widget(self):
-        widget = QGroupBox("AI-tips og ammo-match")
+        widget = QGroupBox("AI-tips og ammo-match", self)
         layout = QVBoxLayout()
         widget.setLayout(layout)
-        self.ai_input = QLineEdit()
+        self.ai_input = QLineEdit(widget)
         self.ai_input.setPlaceholderText("Spør AI om ammo, batch, test...")
         layout.addWidget(self.ai_input)
-        ai_btn = QPushButton("Få AI-anbefaling")
+        ai_btn = QPushButton("Få AI-anbefaling", widget)
         ai_btn.clicked.connect(self.get_ai_tip)
         layout.addWidget(ai_btn)
-        self.ai_output = QTextEdit()
+        self.ai_output = QTextEdit(widget)
         self.ai_output.setReadOnly(True)
         layout.addWidget(self.ai_output)
         # Demo: vis beste ammo/batch
@@ -72,7 +72,8 @@ class Dashboard(QWidget):
         if best:
             layout.addWidget(
                 QLabel(
-                    f"Beste ammo: {best['ammo']} batch {best['batch']} ({best['group']} mm samling)"
+                    f"Beste ammo: {best['ammo']} batch {best['batch']} ({best['group']} mm samling)",
+                    widget,
                 )
             )
         return widget
@@ -153,11 +154,11 @@ class Dashboard(QWidget):
         # ...existing code...
         # ...existing code...
         # Scroll area for å håndtere mye innhold
-        scroll = QScrollArea()
+        scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        container = QWidget()
+        container = QWidget(self)
         layout = QVBoxLayout()
         container.setLayout(layout)
         scroll.setWidget(container)
@@ -172,12 +173,12 @@ class Dashboard(QWidget):
         layout.addWidget(self.create_batch_analysis_widget())
 
     def create_quick_stats_widget(self):
-        widget = QGroupBox("Hurtigstatistikk")
+        widget = QGroupBox("Hurtigstatistikk", self)
         layout = QHBoxLayout()
         widget.setLayout(layout)
         lots = getattr(self, "test_history", [])
         if not lots:
-            layout.addWidget(QLabel("Ingen testdata tilgjengelig."))
+            layout.addWidget(QLabel("Ingen testdata tilgjengelig.", widget))
             return widget
         # Statistikk: beste gruppe, snitt MOA, total treff
         best_group = min(
@@ -197,19 +198,22 @@ class Dashboard(QWidget):
             [int(e.get("shot_count", 0)) for e in lots if e.get("shot_count")]
         )
         layout.addWidget(
-            QLabel(f"Beste gruppe: {best_group if best_group is not None else '-'} mm")
+            QLabel(
+                f"Beste gruppe: {best_group if best_group is not None else '-'} mm",
+                widget,
+            )
         )
-        layout.addWidget(QLabel(f"Snitt MOA: {avg_moa}"))
-        layout.addWidget(QLabel(f"Totalt antall treff: {total_hits}"))
+        layout.addWidget(QLabel(f"Snitt MOA: {avg_moa}", widget))
+        layout.addWidget(QLabel(f"Totalt antall treff: {total_hits}", widget))
         return widget
 
     def create_ammo_comparison_widget(self):
-        widget = QGroupBox("Ammo-sammenligning")
+        widget = QGroupBox("Ammo-sammenligning", self)
         layout = QVBoxLayout()
         widget.setLayout(layout)
         lots = getattr(self, "test_history", [])
         if not lots:
-            layout.addWidget(QLabel("Ingen testdata tilgjengelig."))
+            layout.addWidget(QLabel("Ingen testdata tilgjengelig.", widget))
             return widget
         # Sammenlign ammo på gruppe og MOA
         ammo_stats = {}
@@ -221,7 +225,7 @@ class Dashboard(QWidget):
                 ammo_stats[ammo]["groups"].append(float(e["group_size_mm"]))
             if e.get("moa"):
                 ammo_stats[ammo]["moas"].append(float(e["moa"]))
-        table = QTableWidget()
+        table = QTableWidget(widget)
         table.setColumnCount(3)
         table.setHorizontalHeaderLabels(["Ammo", "Snitt gruppe (mm)", "Snitt MOA"])
         table.setRowCount(len(ammo_stats))

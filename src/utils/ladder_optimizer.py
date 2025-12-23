@@ -4,7 +4,8 @@ Optimize charge using historical ladder test results.
 Fits a quadratic model to (charge, group_size_mm) pairs and returns a suggested
 charge that minimizes the model within observed bounds.
 """
-from typing import List, Dict, Optional, Tuple
+
+from typing import Dict, List, Optional
 
 
 def _solve_3x3(mat: List[List[float]], rhs: List[float]) -> Optional[List[float]]:
@@ -48,8 +49,8 @@ def fit_quadratic(charges: List[float], groups: List[float]) -> Optional[Dict]:
     n = len(charges)
     s1 = sum(charges)
     s2 = sum(x * x for x in charges)
-    s3 = sum(x ** 3 for x in charges)
-    s4 = sum(x ** 4 for x in charges)
+    s3 = sum(x**3 for x in charges)
+    s4 = sum(x**4 for x in charges)
     sy = sum(groups)
     sxy = sum(x * y for x, y in zip(charges, groups))
     sx2y = sum((x * x) * y for x, y in zip(charges, groups))
@@ -72,7 +73,12 @@ def fit_quadratic(charges: List[float], groups: List[float]) -> Optional[Dict]:
     return {"a": a, "b": b, "c": c, "r2": r2}
 
 
-def suggest_charge_from_history(db, rifle_id: Optional[int] = None, bullet_id: Optional[int] = None, powder_id: Optional[int] = None) -> Optional[Dict]:
+def suggest_charge_from_history(
+    db,
+    rifle_id: Optional[int] = None,
+    bullet_id: Optional[int] = None,
+    powder_id: Optional[int] = None,
+) -> Optional[Dict]:
     """Query historical ladder test results and propose a charge.
 
     Returns dict with suggested_charge and model info or None if insufficient data.
@@ -116,4 +122,8 @@ def suggest_charge_from_history(db, rifle_id: Optional[int] = None, bullet_id: O
     if suggested > max_c:
         suggested = max_c
 
-    return {"suggested_charge": suggested, "model": model, "observed_range": (min_c, max_c)}
+    return {
+        "suggested_charge": suggested,
+        "model": model,
+        "observed_range": (min_c, max_c),
+    }

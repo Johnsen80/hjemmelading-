@@ -4,8 +4,7 @@ param(
     [string]$IconPath = ''
 )
 
-# Resolve repo root
-$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition | Join-Path -ChildPath '..' | Resolve-Path -Relative
+# Resolve repo root (set current location to repository root)
 Set-Location (Join-Path $PSScriptRoot '..')
 
 # Prefer the distributed exe if present
@@ -76,7 +75,7 @@ if (Test-Path $conflictingFolder -PathType Container) {
         Remove-Item -LiteralPath $conflictingFolder -Recurse -Force -ErrorAction Stop
         Write-Host "Removed existing Desktop folder: $conflictingFolder"
     } catch {
-        Write-Host "Warning: could not remove Desktop folder $conflictingFolder: $_"
+        Write-Host ("Warning: could not remove Desktop folder {0}: {1}" -f $conflictingFolder, $_)
     }
 }
 
@@ -90,7 +89,7 @@ if (-not [string]::IsNullOrWhiteSpace($IconPath) -and (Test-Path $IconPath)) {
     try {
         $lnk.IconLocation = $IconPath
     } catch {
-        Write-Host "Warning: failed to set IconLocation to $IconPath: $_"
+        Write-Host ("Warning: failed to set IconLocation to {0}: {1}" -f $IconPath, $_)
     }
 } else {
     try {

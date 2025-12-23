@@ -111,6 +111,37 @@ class ReloadingTheme:
             gridline-color: #15181a;
         }
 
+        /* Landing page big buttons */
+        QPushButton.landingBig {
+            background: rgba(35, 38, 42, 0.86);
+            color: #fbfbfb;
+            border: 1px solid rgba(255,107,53,0.10);
+            border-radius: 10px;
+            padding: 14px 22px;
+            font-size: 15px;
+            font-weight: 800;
+            min-width: 260px;
+            min-height: 64px;
+            /* backdrop-filter is unsupported in many Qt style engines; remove it */
+            /* fallback: slightly translucent background already provides visual depth */
+        }
+        QPushButton.landingBig:hover {
+            border: 1px solid rgba(255,107,53,0.45);
+            background: rgba(40,48,52,0.92);
+        }
+        QPushButton.landingBig:pressed {
+            background: #16181a;
+            color: #e8eef2;
+        }
+
+        /* Make prominent headings light and slightly luminous */
+        QLabel#landingHeader {
+            color: #f5f8fa;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
         /* Image preview styling for small thumbnails */
         QLabel#imagePreview {
             border: 1px solid #888;

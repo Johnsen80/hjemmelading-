@@ -50,7 +50,7 @@ class BallisticsSimulator(QWidget):
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("🔬 Real-Time Ballistics Simulator")
+        title = QLabel("🔬 Real-Time Ballistics Simulator", self)
         title.setStyleSheet(
             "font-size: 18pt; font-weight: bold; color: #2c3e50; padding: 10px;"
         )
@@ -65,7 +65,7 @@ class BallisticsSimulator(QWidget):
         layout.addWidget(slider_group)
 
         # Tabs for different graphs
-        self.tabs = QTabWidget()
+        self.tabs = QTabWidget(self)
 
         # Tab 1: Pressure Curve
         self.pressure_tab = self.create_pressure_tab()
@@ -93,33 +93,33 @@ class BallisticsSimulator(QWidget):
 
     def create_selection_panel(self):
         """Create component selection panel"""
-        group = QGroupBox("🎯 Load Components")
+        group = QGroupBox("🎯 Load Components", self)
         layout = QHBoxLayout()
 
         # Rifle selection
         rifle_layout = QFormLayout()
-        self.rifle_combo = QComboBox()
+        self.rifle_combo = QComboBox(group)
         self.rifle_combo.currentIndexChanged.connect(self.on_rifle_changed)
         rifle_layout.addRow("Rifle:", self.rifle_combo)
         layout.addLayout(rifle_layout)
 
         # Bullet selection
         bullet_layout = QFormLayout()
-        self.bullet_combo = QComboBox()
+        self.bullet_combo = QComboBox(group)
         self.bullet_combo.currentIndexChanged.connect(self.update_simulation)
         bullet_layout.addRow("Bullet:", self.bullet_combo)
         layout.addLayout(bullet_layout)
 
         # Powder selection
         powder_layout = QFormLayout()
-        self.powder_combo = QComboBox()
+        self.powder_combo = QComboBox(group)
         self.powder_combo.currentIndexChanged.connect(self.update_simulation)
         powder_layout.addRow("Powder:", self.powder_combo)
         layout.addLayout(powder_layout)
 
         # COAL input
         coal_layout = QFormLayout()
-        self.coal_spin = QDoubleSpinBox()
+        self.coal_spin = QDoubleSpinBox(group)
         self.coal_spin.setRange(30.0, 100.0)
         self.coal_spin.setValue(70.0)
         self.coal_spin.setDecimals(2)
@@ -139,19 +139,19 @@ class BallisticsSimulator(QWidget):
 
     def create_slider_panel(self):
         """Create charge weight slider"""
-        group = QGroupBox("⚖️ Charge Weight Control")
+        group = QGroupBox("⚖️ Charge Weight Control", self)
         layout = QVBoxLayout()
 
         # Slider with value display
         slider_row = QHBoxLayout()
 
-        self.charge_label = QLabel(f"{self.current_charge:.1f} gr")
+        self.charge_label = QLabel(f"{self.current_charge:.1f} gr", group)
         self.charge_label.setStyleSheet(
             "font-size: 16pt; font-weight: bold; color: #27ae60;"
         )
         slider_row.addWidget(self.charge_label)
 
-        self.charge_slider = QSlider(Qt.Orientation.Horizontal)
+        self.charge_slider = QSlider(Qt.Orientation.Horizontal, group)
         self.charge_slider.setMinimum(200)  # 20.0 gr
         self.charge_slider.setMaximum(600)  # 60.0 gr
         self.charge_slider.setValue(420)  # 42.0 gr
@@ -164,9 +164,9 @@ class BallisticsSimulator(QWidget):
 
         # Min/Max labels
         limits_row = QHBoxLayout()
-        limits_row.addWidget(QLabel("20.0 gr"))
+        limits_row.addWidget(QLabel("20.0 gr", group))
         limits_row.addStretch()
-        limits_row.addWidget(QLabel("60.0 gr"))
+        limits_row.addWidget(QLabel("60.0 gr", group))
         layout.addLayout(limits_row)
 
         group.setLayout(layout)
@@ -174,11 +174,11 @@ class BallisticsSimulator(QWidget):
 
     def create_pressure_tab(self):
         """Create pressure curve graph"""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
 
         # PyQtGraph plot widget
-        self.pressure_plot = pg.PlotWidget()
+        self.pressure_plot = pg.PlotWidget(widget)
         self.pressure_plot.setBackground("w")
         self.pressure_plot.setLabel("left", "Pressure", units="PSI")
         self.pressure_plot.setLabel("bottom", "Time", units="ms")
@@ -200,10 +200,10 @@ class BallisticsSimulator(QWidget):
 
     def create_velocity_tab(self):
         """Create velocity curve graph"""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
 
-        self.velocity_plot = pg.PlotWidget()
+        self.velocity_plot = pg.PlotWidget(widget)
         self.velocity_plot.setBackground("w")
         self.velocity_plot.setLabel("left", "Velocity", units="fps")
         self.velocity_plot.setLabel("bottom", "Barrel Position", units="inches")
@@ -216,11 +216,11 @@ class BallisticsSimulator(QWidget):
 
     def create_combined_tab(self):
         """Create combined analysis view"""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
 
         # Multi-charge comparison
-        self.comparison_plot = pg.PlotWidget()
+        self.comparison_plot = pg.PlotWidget(widget)
         self.comparison_plot.setBackground("w")
         self.comparison_plot.setLabel("left", "Pressure", units="PSI")
         self.comparison_plot.setLabel("bottom", "Charge Weight", units="grains")
@@ -240,7 +240,7 @@ class BallisticsSimulator(QWidget):
         layout.addWidget(self.comparison_plot)
 
         # Velocity vs charge
-        self.velocity_comparison_plot = pg.PlotWidget()
+        self.velocity_comparison_plot = pg.PlotWidget(widget)
         self.velocity_comparison_plot.setBackground("w")
         self.velocity_comparison_plot.setLabel("left", "Velocity", units="fps")
         self.velocity_comparison_plot.setLabel(
@@ -257,10 +257,10 @@ class BallisticsSimulator(QWidget):
 
     def create_harmonics_tab(self):
         """Create barrel harmonics visualization (placeholder)"""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
 
-        self.harmonics_plot = pg.PlotWidget()
+        self.harmonics_plot = pg.PlotWidget(widget)
         self.harmonics_plot.setBackground("w")
         self.harmonics_plot.setLabel("left", "Muzzle Displacement", units="mm")
         self.harmonics_plot.setLabel("bottom", "Time", units="ms")
@@ -271,7 +271,8 @@ class BallisticsSimulator(QWidget):
         info = QLabel(
             "🎵 Barrel harmonics visualization\n\n"
             "Shows optimal charge windows (OCW nodes) where bullet exits at same point in vibration cycle.\n"
-            "Coming soon: Animated barrel vibration with bullet travel."
+            "Coming soon: Animated barrel vibration with bullet travel.",
+            widget,
         )
         info.setStyleSheet("padding: 20px; color: #7f8c8d;")
         info.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -284,14 +285,14 @@ class BallisticsSimulator(QWidget):
 
     def create_stats_panel(self):
         """Create statistics display panel"""
-        group = QGroupBox("📊 Current Load Statistics")
+        group = QGroupBox("📊 Current Load Statistics", self)
         layout = QHBoxLayout()
 
-        self.stat_pressure = QLabel("Pressure: -- PSI")
-        self.stat_velocity = QLabel("Velocity: -- fps")
-        self.stat_energy = QLabel("Energy: -- ft-lbs")
-        self.stat_barrel_time = QLabel("Barrel Time: -- ms")
-        self.stat_safety = QLabel("Safety Margin: --%")
+        self.stat_pressure = QLabel("Pressure: -- PSI", group)
+        self.stat_velocity = QLabel("Velocity: -- fps", group)
+        self.stat_energy = QLabel("Energy: -- ft-lbs", group)
+        self.stat_barrel_time = QLabel("Barrel Time: -- ms", group)
+        self.stat_safety = QLabel("Safety Margin: --%", group)
 
         for label in [
             self.stat_pressure,

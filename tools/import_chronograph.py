@@ -5,7 +5,9 @@ Usage:
     python tools/import_chronograph.py path/to/velocities.csv [ammo_profile_id]
 
 """
+
 import sys
+
 from src.database.database import Database
 from src.utils.chronograph_import import import_chronograph_csv
 
@@ -23,5 +25,5 @@ def main(argv):
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main(sys.argv))

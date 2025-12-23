@@ -22,10 +22,33 @@ def load_logo_pixmap(width: int | None = None) -> Optional[QPixmap]:
     unavailable in this environment.
     """
     try:
+        tried = []
+        # 1) repo-relative (source)
         base = Path(__file__).resolve().parents[2]
         logo_path = base / "Logo" / "logo.png"
-        if not logo_path.exists():
+        tried.append(logo_path)
+        # 2) PyInstaller _MEIPASS (onefile)
+        import sys
+
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            tried.append(Path(meipass) / "Logo" / "logo.png")
+        # 3) executable-relative (one-dir/installed)
+        try:
+            exe_based = Path(sys.argv[0]).resolve().parent / "Logo" / "logo.png"
+            tried.append(exe_based)
+        except Exception:
+            pass
+
+        # Try all candidates
+        found = None
+        for p in tried:
+            if p and p.exists():
+                found = p
+                break
+        if not found:
             return None
+        logo_path = found
         if not _HAS_QT:
             # Qt not available (tests/headless). Don't raise — caller should
             # gracefully handle a missing pixmap.

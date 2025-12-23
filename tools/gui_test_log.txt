@@ -1,1 +1,3 @@
-GUI test finished, wrote gui_test_log.txt
+Starting GUI test...
+Window shown (show() called)
+Event loop exited with code: 0

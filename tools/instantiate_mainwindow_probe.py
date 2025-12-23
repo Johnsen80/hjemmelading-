@@ -54,7 +54,7 @@ try:
     from PyQt6.QtCore import QSettings
 
     try:
-        s = QSettings("VALKYRIE", "Hjemmelading")
+        s = QSettings("Valkyrie", "ValkyrieBallistics")
         s.setValue("onboarding_seen", True)
     except Exception:
         pass

@@ -1,12 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_data_files, collect_submodules
+
 
 a = Analysis(
-    ['..\\main.py'],
-    pathex=[],
-    binaries=[],
-    datas=[('c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\Logo\\logo.ico', 'Logo'), ('c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\data\\reloading.db', 'data')],
-    hiddenimports=['src.ui.main_window'],
+    ['..\\HjemmeladingApp\\main.py'],
+    pathex=[r'C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading'],
+    binaries=collect_dynamic_libs('PyQt6'),
+    datas=[('c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\Logo\\logo.ico', 'Logo'), ('c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\Logo\\logo.png', 'Logo'), ('c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\data\\reloading.db', 'data')] + collect_data_files('PyQt6'),
+    hiddenimports=(
+        collect_submodules('modules')
+        + collect_submodules('src.modules')
+        + collect_submodules('src.ui')
+        + collect_submodules('src')
+        + ['src.ui.main_window']
+    ),
     hookspath=['hooks'],
     hooksconfig={},
     runtime_hooks=[],

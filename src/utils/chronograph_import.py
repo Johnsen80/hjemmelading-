@@ -4,12 +4,13 @@ Chronograph CSV import helpers.
 Parses common CSV outputs from chronographs (simple CSV with a velocity column)
 and stores an import summary in `chronograph_imports` table.
 """
+
 from __future__ import annotations
 
 import csv
 import json
 import statistics
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 
 def _extract_velocities_from_csv(path: str) -> List[float]:
@@ -44,7 +45,7 @@ def _extract_velocities_from_csv(path: str) -> List[float]:
         else:
             # find first numeric token
             for tok in r:
-                t = tok.strip().replace('"', '').replace("'", "")
+                t = tok.strip().replace('"', "").replace("'", "")
                 try:
                     float(t)
                     val = t
@@ -73,7 +74,12 @@ def summarize_velocities(velocities: List[float]) -> Dict:
     return {"count": len(velocities), "avg": avg, "es": es, "sd": sd}
 
 
-def import_chronograph_csv(db, file_path: str, ammo_profile_id: Optional[int] = None, note: Optional[str] = None) -> Dict:
+def import_chronograph_csv(
+    db,
+    file_path: str,
+    ammo_profile_id: Optional[int] = None,
+    note: Optional[str] = None,
+) -> Dict:
     """
     Parse a chronograph CSV and persist an import summary in the database.
 
@@ -120,7 +126,12 @@ def import_chronograph_csv(db, file_path: str, ammo_profile_id: Optional[int] = 
     return {"ok": True, "import_id": import_id, "stats": stats}
 
 
-def import_velocities(db, velocities: List[float], ammo_profile_id: Optional[int] = None, note: Optional[str] = None) -> Dict:
+def import_velocities(
+    db,
+    velocities: List[float],
+    ammo_profile_id: Optional[int] = None,
+    note: Optional[str] = None,
+) -> Dict:
     """
     Persist a list of velocities into `chronograph_imports` and return stats.
     """

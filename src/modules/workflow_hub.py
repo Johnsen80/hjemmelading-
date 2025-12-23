@@ -69,7 +69,7 @@ class WorkflowCard(QFrame):
         # Icon + Status
         header_layout = QHBoxLayout()
 
-        icon_label = QLabel(icon)
+        icon_label = QLabel(icon, self)
         icon_label.setStyleSheet(
             "font-size: 36px; background: transparent; border: none;"
         )
@@ -79,7 +79,7 @@ class WorkflowCard(QFrame):
 
         # Status badge
         if status == "in_progress":
-            status_label = QLabel("🔄 Aktiv")
+            status_label = QLabel("🔄 Aktiv", self)
             status_label.setStyleSheet(
                 """
                 background-color: #f39c12;
@@ -92,7 +92,7 @@ class WorkflowCard(QFrame):
             )
             header_layout.addWidget(status_label)
         elif status == "completed":
-            status_label = QLabel("✅ Done")
+            status_label = QLabel("✅ Done", self)
             status_label.setStyleSheet(
                 """
                 background-color: #27ae60;
@@ -108,7 +108,7 @@ class WorkflowCard(QFrame):
         layout.addLayout(header_layout)
 
         # Title
-        title_label = QLabel(title)
+        title_label = QLabel(title, self)
         title_label.setStyleSheet(
             """
             font-size: 16px;
@@ -122,7 +122,7 @@ class WorkflowCard(QFrame):
         layout.addWidget(title_label)
 
         # Description
-        desc_label = QLabel(description)
+        desc_label = QLabel(description, self)
         desc_label.setStyleSheet(
             """
             font-size: 11px;
@@ -167,18 +167,166 @@ class WorkflowHub(QWidget):
 
     workflow_selected = pyqtSignal(str)  # workflow_id
 
-    def __init__(self, state_manager=None, mode_manager=None, parent=None):
+    def __init__(
+        self, state_manager=None, mode_manager=None, parent=None, defer_ui: bool = True
+    ):
+        # Force deferred UI creation to avoid accidental top-level widget
+        # construction during import/instantiation. Ignore caller's
+        # `defer_ui` argument and require an explicit `ensure_ui()` call
+        # from well-behaved callers when they actually want the UI built.
+        defer_ui = True
+
+        # If instantiated without an explicit parent, prefer attaching
+        # to the main application window (if available) to avoid creating
+        # transient top-level widgets. This is a best-effort guard when
+        # callers forget to pass `parent=`.
+        try:
+            if parent is None:
+                try:
+                    from PyQt6.QtWidgets import QApplication, QMainWindow
+
+                    app = QApplication.instance()
+                    if app:
+                        for w in app.topLevelWidgets():
+                            if isinstance(w, QMainWindow):
+                                parent = w
+                                break
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         super().__init__(parent)
         self.state_manager = state_manager
         self.mode_manager = mode_manager
         # Track active workflows for compact display
         self.active_workflows: dict[str, str] = {}
-        self.init_ui()
+        # For safety, always defer heavy UI construction by default to avoid
+        # accidental top-level widget creation during imports/instantiation.
+        # Callers should explicitly call `ensure_ui()` to initialize the UI.
+        self._ui_deferred = True
+        # Remember caller preference; if caller requested immediate init
+        # (defer_ui=False), schedule a single-shot initialization so the
+        # event loop (and any parenting/guards) is in place.
+        self._defer_requested = bool(defer_ui)
+        if defer_ui is False:
+            try:
+                from PyQt6.QtCore import QTimer
+
+                QTimer.singleShot(0, self.ensure_ui)
+            except Exception:
+                # Best-effort: leave UI deferred if scheduling fails
+                pass
+
+    def ensure_ui(self):
+        """Force initialization of the UI if it was deferred."""
+        # Flip the deferred flag before calling init_ui so init_ui can
+        # reliably check the flag and avoid accidental construction when
+        # the object was instantiated during import/early startup.
+        if getattr(self, "_ui_deferred", False):
+            self._ui_deferred = False
+            try:
+                self.init_ui()
+            except Exception:
+                # Keep behavior best-effort: if init fails, ensure flag
+                # is left cleared so future calls will still attempt init.
+                raise
 
     def init_ui(self):
-        scroll = QScrollArea()
+        # Prevent accidental UI construction if this object is still
+        # marked as deferred. Some callers may instantiate the hub during
+        # startup; this guard ensures UI only builds when `ensure_ui()`
+        # explicitly allows it.
+        if getattr(self, "_ui_deferred", False):
+            return
+
+        scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
-        content = QWidget()
+        content = QWidget(scroll)
+        # Local shims: ensure common lightweight widgets created without an
+        # explicit parent are attached to the content widget. This prevents
+        # accidental transient top-level windows during deferred initialization.
+        _orig_QLabel = QLabel
+        _orig_QPushButton = QPushButton
+        _orig_QWidget = QWidget
+        _orig_QGroupBox = QGroupBox
+        _orig_QRadioButton = QRadioButton
+        _orig_QScrollArea = QScrollArea
+        _orig_QFrame = QFrame
+
+        def _needs_parent_arg(a, kw):
+            if "parent" in kw:
+                return False
+            if len(a) > 0 and isinstance(a[0], _orig_QWidget):
+                return False
+            return True
+
+        def _local_label(*a, **kw):
+            try:
+                if not _needs_parent_arg(a, kw):
+                    return _orig_QLabel(*a, **kw)
+                # default parent -> content
+                if len(a) == 0:
+                    return _orig_QLabel(content)
+                return _orig_QLabel(a[0], content)
+            except Exception:
+                return _orig_QLabel(*a, **kw)
+
+        def _local_button(*a, **kw):
+            try:
+                if not _needs_parent_arg(a, kw):
+                    return _orig_QPushButton(*a, **kw)
+                if len(a) == 0:
+                    return _orig_QPushButton("", content)
+                return _orig_QPushButton(a[0], content)
+            except Exception:
+                return _orig_QPushButton(*a, **kw)
+
+        def _local_widget(*a, **kw):
+            try:
+                if not _needs_parent_arg(a, kw):
+                    return _orig_QWidget(*a, **kw)
+                return _orig_QWidget(content)
+            except Exception:
+                return _orig_QWidget(*a, **kw)
+
+        def _local_groupbox(*a, **kw):
+            try:
+                if not _needs_parent_arg(a, kw):
+                    return _orig_QGroupBox(*a, **kw)
+                if len(a) == 0:
+                    return _orig_QGroupBox("", content)
+                return _orig_QGroupBox(a[0], content)
+            except Exception:
+                return _orig_QGroupBox(*a, **kw)
+
+        def _local_radiobutton(*a, **kw):
+            try:
+                if not _needs_parent_arg(a, kw):
+                    return _orig_QRadioButton(*a, **kw)
+                if len(a) == 0:
+                    return _orig_QRadioButton("", content)
+                return _orig_QRadioButton(a[0], content)
+            except Exception:
+                return _orig_QRadioButton(*a, **kw)
+
+        def _local_frame(*a, **kw):
+            try:
+                if not _needs_parent_arg(a, kw):
+                    return _orig_QFrame(*a, **kw)
+                return _orig_QFrame(content)
+            except Exception:
+                return _orig_QFrame(*a, **kw)
+
+        # Shadow local names so subsequent constructions in this function
+        # without explicit parents attach to `content`.
+        globals()["QLabel"] = _local_label  # type: ignore
+        globals()["QPushButton"] = _local_button  # type: ignore
+        globals()["QWidget"] = _local_widget  # type: ignore
+        globals()["QGroupBox"] = _local_groupbox  # type: ignore
+        globals()["QRadioButton"] = _local_radiobutton  # type: ignore
+        globals()["QFrame"] = _local_frame  # type: ignore
+
         layout = QVBoxLayout(content)
         layout.setContentsMargins(20, 15, 20, 15)
         layout.setSpacing(15)
@@ -187,10 +335,10 @@ class WorkflowHub(QWidget):
         # Hero header: vis faktisk logo og tydelig tittel
         from PyQt6.QtWidgets import QSizePolicy
 
-        hero = QWidget()
+        hero = QWidget(content)
         hero_layout = QHBoxLayout()
         hero.setLayout(hero_layout)
-        logo_label = QLabel()
+        logo_label = QLabel(hero)
         pix = load_logo_pixmap(160)
         if pix:
             logo_label.setPixmap(pix)
@@ -199,14 +347,15 @@ class WorkflowHub(QWidget):
         )
         hero_layout.addWidget(logo_label, stretch=1)
         hero_text = QVBoxLayout()
-        title = QLabel("VALKYRIE BALLISTICS")
+        title = QLabel("VALKYRIE BALLISTICS", hero)
         title.setStyleSheet(
             "font-size: 32px; font-weight: bold; color: #e0e0e0; margin-bottom: 0px; letter-spacing: 2px;"
         )
         title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         hero_text.addWidget(title)
         subtitle = QLabel(
-            "Premium reloading, ballistics & analysis. Velg modul for å komme i gang."
+            "Premium reloading, ballistics & analysis. Velg modul for å komme i gang.",
+            hero,
         )
         subtitle.setStyleSheet(
             "font-size: 17px; color: #ffd700; margin-bottom: 10px; font-weight: 600;"
@@ -219,10 +368,10 @@ class WorkflowHub(QWidget):
         layout.addWidget(hero)
 
         # Mode selector
-        mode_group = QGroupBox("⚙ Brukermodus")
+        mode_group = QGroupBox("⚙ Brukermodus", content)
         mode_layout = QHBoxLayout()
-        self.radio_beginner = QRadioButton("▶ Nybegynner (Guidet)")
-        self.radio_expert = QRadioButton("▶▶ Ekspert (Hurtig tilgang)")
+        self.radio_beginner = QRadioButton("▶ Nybegynner (Guidet)", mode_group)
+        self.radio_expert = QRadioButton("▶▶ Ekspert (Hurtig tilgang)", mode_group)
         if self.mode_manager:
             if self.mode_manager.is_beginner():
                 self.radio_beginner.setChecked(True)
@@ -233,7 +382,7 @@ class WorkflowHub(QWidget):
         self.radio_beginner.toggled.connect(self.on_mode_toggled)
         mode_layout.addWidget(self.radio_beginner)
         mode_layout.addWidget(self.radio_expert)
-        self.mode_description = QLabel()
+        self.mode_description = QLabel(mode_group)
         self.mode_description.setStyleSheet(
             "color: #7f8c8d; font-size: 11px; font-style: italic;"
         )
@@ -278,7 +427,7 @@ class WorkflowHub(QWidget):
             ),
         ]
         for i, (wf_id, title, desc, color, icon_file) in enumerate(premium_mods):
-            card = QWidget()
+            card = QWidget(content)
             card_layout = QVBoxLayout()
             card.setLayout(card_layout)
             card.setStyleSheet(
@@ -286,7 +435,7 @@ class WorkflowHub(QWidget):
             )
             # Ikon
             # Prefer module-specific icon; fall back to central Logo at different sizes, then empty text
-            icon_label = QLabel()
+            icon_label = QLabel(card)
             pixmap = None
             try:
                 if wf_id == "dashboard":
@@ -322,21 +471,21 @@ class WorkflowHub(QWidget):
             icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             card_layout.addWidget(icon_label)
             # Tittel
-            title_label = QLabel(title)
+            title_label = QLabel(title, card)
             title_label.setStyleSheet(
                 f"font-size: 22px; font-weight: bold; color: {color}; margin-top: 8px;"
             )
             title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             card_layout.addWidget(title_label)
             # Beskrivelse
-            desc_label = QLabel(desc)
+            desc_label = QLabel(desc, card)
             desc_label.setStyleSheet(
                 "font-size: 13px; color: #e0e0e0; margin-bottom: 8px;"
             )
             desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             card_layout.addWidget(desc_label)
             # Start-knapp
-            btn = QPushButton("Start")
+            btn = QPushButton("Start", card)
             style = (
                 f"background-color: {color}; color: #23242b; font-weight: bold; "
                 f"border-radius: 8px; padding: 10px 24px; font-size: 15px;"
@@ -364,7 +513,7 @@ class WorkflowHub(QWidget):
             ),
         ]
         for wf_id, icon, title, desc in workflows:
-            btn = self._create_list_button(wf_id, icon, title, desc)
+            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
             main_layout.addWidget(btn)
 
         self._add_category_compact(main_layout, "▶ TESTING & OPTIMIZATION")
@@ -384,7 +533,7 @@ class WorkflowHub(QWidget):
             ),
         ]
         for wf_id, icon, title, desc in testing:
-            btn = self._create_list_button(wf_id, icon, title, desc)
+            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
             main_layout.addWidget(btn)
 
         self._add_category_compact(main_layout, "▶ COMPONENTS & DATABASE")
@@ -409,7 +558,7 @@ class WorkflowHub(QWidget):
             ),
         ]
         for wf_id, icon, title, desc in components:
-            btn = self._create_list_button(wf_id, icon, title, desc)
+            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
             main_layout.addWidget(btn)
 
         self._add_category_compact(main_layout, "🥉 Komponenter")
@@ -435,7 +584,7 @@ class WorkflowHub(QWidget):
             ("primer_manager", "💥", "Primer Manager", "Lot variasjon, pocket sizing"),
         ]
         for wf_id, icon, title, desc in components:
-            btn = self._create_list_button(wf_id, icon, title, desc)
+            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
             main_layout.addWidget(btn)
 
         self._add_category_compact(main_layout, "🔫 Rifles & Utstyr")
@@ -460,12 +609,15 @@ class WorkflowHub(QWidget):
             ),
         ]
         for wf_id, icon, title, desc in equipment:
-            btn = self._create_list_button(wf_id, icon, title, desc)
+            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
             main_layout.addWidget(btn)
         # VIS KUN LOGOEN SENTRERT (flyttet til topp i layout)
+        # Ensure the main_layout is attached to the content layout so
+        # widgets created with the content as parent are properly parented.
+        layout.addLayout(main_layout)
         logo_layout = QVBoxLayout()
         logo_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        logo_label = QLabel()
+        logo_label = QLabel(content)
         pixmap = load_logo_pixmap(256)
         if pixmap:
             logo_label.setPixmap(pixmap)
@@ -473,19 +625,38 @@ class WorkflowHub(QWidget):
         logo_layout.addWidget(logo_label)
         layout.addLayout(logo_layout)
 
+        # Finalize scroll/content parenting and attach scroll into this widget
+        try:
+            scroll.setWidget(content)
+        except Exception:
+            pass
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scroll)
+        self.setLayout(outer)
+
     def _add_category_compact(self, layout, title: str):
         """Add a compact category header used to separate groups of workflows."""
-        header = QLabel(title)
+        header = QLabel(title, self)
         header.setStyleSheet(
             "font-size:14px; font-weight:700; color: #ffd700; margin-top:12px; margin-bottom:6px;"
         )
         layout.addWidget(header)
 
     def _create_list_button(
-        self, workflow_id: str, icon: str, title: str, description: str
+        self,
+        workflow_id: str,
+        icon: str,
+        title: str,
+        description: str,
+        parent: QWidget | None = None,
     ):
         """Create compact list-style button"""
-        btn = QPushButton(f"{icon}  {title}")
+        if parent is None:
+            btn = QPushButton(f"{icon}  {title}", self)
+        else:
+            btn = QPushButton(f"{icon}  {title}", parent)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setToolTip(description)
 
@@ -520,7 +691,7 @@ class WorkflowHub(QWidget):
 
     def _add_category(self, layout: QVBoxLayout, title: str, description: str):
         """Add category header"""
-        category_frame = QFrame()
+        category_frame = QFrame(self)
         category_frame.setStyleSheet(
             """
             QFrame {
@@ -535,13 +706,13 @@ class WorkflowHub(QWidget):
 
         category_layout = QVBoxLayout()
 
-        title_label = QLabel(title)
+        title_label = QLabel(title, category_frame)
         title_label.setStyleSheet(
             "font-size: 16px; font-weight: bold; color: #2c3e50; background: transparent; border: none;"
         )
         category_layout.addWidget(title_label)
 
-        desc_label = QLabel(description)
+        desc_label = QLabel(description, category_frame)
         desc_label.setStyleSheet(
             "font-size: 12px; color: #7f8c8d; background: transparent; border: none;"
         )
@@ -596,6 +767,8 @@ class WorkflowHub(QWidget):
 
         col = 0
         for workflow_id, title in self.active_workflows.items():
+            # Ensure the card is parented to this hub so it is not created
+            # as a transient top-level widget before being added to layouts.
             card = WorkflowCard(
                 workflow_id,
                 title,
@@ -603,6 +776,7 @@ class WorkflowHub(QWidget):
                 "🔄",
                 "#f39c12",
                 status="in_progress",
+                parent=self,
             )
             card.clicked.connect(self.workflow_selected.emit)
             self.active_layout.addWidget(card, 0, col)
@@ -615,7 +789,8 @@ if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
-    window = WorkflowHub()
+    # When run as a script, force UI initialization.
+    window = WorkflowHub(defer_ui=False)
     window.setMinimumSize(1200, 800)
     window.show()
     sys.exit(app.exec())

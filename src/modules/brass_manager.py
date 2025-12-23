@@ -44,13 +44,14 @@ class BrassManager(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🥉 Brass/Hylse Manager")
+        header = QLabel("🥉 Brass/Hylse Manager", self)
         header.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
         layout.addWidget(header)
 
         info = QLabel(
             "Spor lifecycle av hylser: Kjøp → Firing → Annealing → Trimming → Retirement\n"
-            "Hold oversikt over lot numbers, målinger, og prep history."
+            "Hold oversikt over lot numbers, målinger, og prep history.",
+            self,
         )
         info.setWordWrap(True)
         info.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
@@ -59,40 +60,40 @@ class BrassManager(QWidget):
         # Toolbar
         toolbar = QHBoxLayout()
 
-        btn_add = QPushButton("➕ Nytt Hylse-Lot")
+        btn_add = QPushButton("➕ Nytt Hylse-Lot", self)
         btn_add.clicked.connect(self.add_case_lot)
         toolbar.addWidget(btn_add)
 
-        btn_fire = QPushButton("🔥 Logg Skyting (+1 Firing)")
+        btn_fire = QPushButton("🔥 Logg Skyting (+1 Firing)", self)
         btn_fire.clicked.connect(self.log_firing)
         toolbar.addWidget(btn_fire)
 
-        btn_anneal = QPushButton("♨️ Logg Annealing")
+        btn_anneal = QPushButton("♨️ Logg Annealing", self)
         btn_anneal.clicked.connect(self.log_annealing)
         toolbar.addWidget(btn_anneal)
 
-        btn_prep = QPushButton("🔧 Logg Prep (Trim/Uniform)")
+        btn_prep = QPushButton("🔧 Logg Prep (Trim/Uniform)", self)
         btn_prep.clicked.connect(self.log_prep)
         toolbar.addWidget(btn_prep)
 
-        btn_measure = QPushButton("📏 Legg til Måling")
+        btn_measure = QPushButton("📏 Legg til Måling", self)
         btn_measure.clicked.connect(self.add_measurement)
         toolbar.addWidget(btn_measure)
 
-        btn_retire = QPushButton("🗑️ Retirer Hylser")
+        btn_retire = QPushButton("🗑️ Retirer Hylser", self)
         btn_retire.clicked.connect(self.retire_cases)
         toolbar.addWidget(btn_retire)
 
         toolbar.addStretch()
 
-        btn_refresh = QPushButton("🔄 Oppdater")
+        btn_refresh = QPushButton("🔄 Oppdater", self)
         btn_refresh.clicked.connect(self.load_data)
         toolbar.addWidget(btn_refresh)
 
         layout.addLayout(toolbar)
 
         # Main table
-        self.table = QTableWidget()
+        self.table = QTableWidget(self)
         self.table.setColumnCount(12)
         self.table.setHorizontalHeaderLabels(
             [
@@ -116,7 +117,7 @@ class BrassManager(QWidget):
         layout.addWidget(self.table)
 
         # Status bar
-        self.status_label = QLabel("Klar")
+        self.status_label = QLabel("Klar", self)
         self.status_label.setStyleSheet("color: #7f8c8d; padding: 5px;")
         layout.addWidget(self.status_label)
 

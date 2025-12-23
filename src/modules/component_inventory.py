@@ -60,7 +60,7 @@ class InventoryDashboard(QWidget):
         self.setLayout(layout)
 
         # Header
-        header = QLabel("💰 Component Inventory & Cost Tracking")
+        header = QLabel("💰 Component Inventory & Cost Tracking", self)
         header.setStyleSheet(
             "font-size: 20px; font-weight: bold; color: #2c3e50; padding: 10px;"
         )
@@ -96,29 +96,29 @@ class InventoryDashboard(QWidget):
         layout.addLayout(stats_layout)
 
         # Component overview (grid of progress bars)
-        component_group = QGroupBox("📊 Component Stock Levels")
+        component_group = QGroupBox("📊 Component Stock Levels", self)
         component_layout = QGridLayout()
         component_group.setLayout(component_layout)
 
         # Bullets
-        component_layout.addWidget(QLabel("<b>Bullets:</b>"), 0, 0)
+        component_layout.addWidget(QLabel("<b>Bullets:</b>", self), 0, 0)
         self.bullets_bar = self.create_stock_bar(850, 1000, "Berger 140gr Hybrid")
         component_layout.addLayout(self.bullets_bar, 0, 1)
 
         # Powder
-        component_layout.addWidget(QLabel("<b>Powder:</b>"), 1, 0)
+        component_layout.addWidget(QLabel("<b>Powder:</b>", self), 1, 0)
         self.powder_bar = self.create_stock_bar(
             420, 500, "Vihtavuori N140 (420gr / 8lb)"
         )
         component_layout.addLayout(self.powder_bar, 1, 1)
 
         # Primers
-        component_layout.addWidget(QLabel("<b>Primers:</b>"), 2, 0)
+        component_layout.addWidget(QLabel("<b>Primers:</b>", self), 2, 0)
         self.primers_bar = self.create_stock_bar(87, 1000, "CCI BR-2 (⚠️ LOW!)")
         component_layout.addLayout(self.primers_bar, 2, 1)
 
         # Brass
-        component_layout.addWidget(QLabel("<b>Brass:</b>"), 3, 0)
+        component_layout.addWidget(QLabel("<b>Brass:</b>", self), 3, 0)
         self.brass_bar = self.create_stock_bar(200, 200, "Lapua 6.5 CM")
         component_layout.addLayout(self.brass_bar, 3, 1)
 
@@ -127,7 +127,7 @@ class InventoryDashboard(QWidget):
         # Action buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_add_component = QPushButton("➕ Add Component")
+        self.btn_add_component = QPushButton("➕ Add Component", self)
         self.btn_add_component.setStyleSheet(
             """
             QPushButton {
@@ -146,26 +146,26 @@ class InventoryDashboard(QWidget):
         self.btn_add_component.clicked.connect(self.add_component)
         btn_layout.addWidget(self.btn_add_component)
 
-        self.btn_record_purchase = QPushButton("🛒 Record Purchase")
+        self.btn_record_purchase = QPushButton("🛒 Record Purchase", self)
         self.btn_record_purchase.clicked.connect(self.record_purchase)
         btn_layout.addWidget(self.btn_record_purchase)
 
-        self.btn_usage_history = QPushButton("📊 Usage History")
+        self.btn_usage_history = QPushButton("📊 Usage History", self)
         self.btn_usage_history.clicked.connect(self.show_usage_history)
         btn_layout.addWidget(self.btn_usage_history)
 
-        self.btn_cost_analysis = QPushButton("💰 Cost Analysis")
+        self.btn_cost_analysis = QPushButton("💰 Cost Analysis", self)
         self.btn_cost_analysis.clicked.connect(self.show_cost_analysis)
         btn_layout.addWidget(self.btn_cost_analysis)
 
         layout.addLayout(btn_layout)
 
         # Detailed inventory table
-        table_label = QLabel("<b>📋 Detailed Inventory</b>")
+        table_label = QLabel("<b>📋 Detailed Inventory</b>", self)
         table_label.setStyleSheet("font-size: 14px; margin-top: 10px;")
         layout.addWidget(table_label)
 
-        self.inventory_table = QTableWidget()
+        self.inventory_table = QTableWidget(self)
         self.inventory_table.setColumnCount(10)
         self.inventory_table.setHorizontalHeaderLabels(
             [
@@ -186,7 +186,7 @@ class InventoryDashboard(QWidget):
 
     def create_stat_card(self, title: str, value: str, color: str) -> QFrame:
         """Create colored stat card"""
-        card = QFrame()
+        card = QFrame(self)
         card.setStyleSheet(
             f"""
             QFrame {{
@@ -201,11 +201,11 @@ class InventoryDashboard(QWidget):
         card_layout = QVBoxLayout()
         card.setLayout(card_layout)
 
-        title_label = QLabel(title)
+        title_label = QLabel(title, self)
         title_label.setStyleSheet("font-size: 12px; color: rgba(255, 255, 255, 0.9);")
         card_layout.addWidget(title_label)
 
-        value_label = QLabel(value)
+        value_label = QLabel(value, self)
         value_label.setStyleSheet("font-size: 24px; font-weight: bold; color: white;")
         card_layout.addWidget(value_label)
 
@@ -214,13 +214,17 @@ class InventoryDashboard(QWidget):
     def create_stock_bar(self, current: int, maximum: int, label: str) -> QHBoxLayout:
         """Create stock level progress bar with label"""
         layout = QHBoxLayout()
+        # Descriptive label (parented) placed next to the progress bar
+        desc = QLabel(label, self)
+        desc.setStyleSheet("font-size: 12px; margin-right: 8px;")
 
-        bar = QProgressBar()
+        bar = QProgressBar(self)
         bar.setMinimum(0)
         bar.setMaximum(maximum)
         bar.setValue(current)
         bar.setTextVisible(True)
-        bar.setFormat(f"{current}/{maximum} - {label}")
+        # Keep the progress text compact; the descriptive label is shown separately
+        bar.setFormat(f"{current}/{maximum}")
 
         # Color code based on level
         percentage = (current / maximum) * 100
@@ -246,6 +250,7 @@ class InventoryDashboard(QWidget):
             """
             )
 
+        layout.addWidget(desc)
         layout.addWidget(bar)
 
         return layout

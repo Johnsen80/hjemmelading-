@@ -162,6 +162,50 @@ def _run_modal(dialog: Any) -> None:
     """
     if _HEADLESS:
         try:
+            # Local shims: ensure lightweight widgets created during settings
+            # application are parented to the main window to avoid stray
+            # top-level widgets appearing during startup.
+            try:
+                _orig_QLabel = QLabel
+                _orig_QPushButton = QPushButton
+                _orig_QMenu = QMenu
+                _orig_QWidget = QWidget
+
+                def _make_label(*a, **kw):
+                    try:
+                        if "parent" in kw:
+                            return _orig_QLabel(*a, **kw)
+                        if len(a) > 0 and isinstance(a[0], _orig_QWidget):
+                            return _orig_QLabel(*a, **kw)
+                        return _orig_QLabel(self)
+                    except Exception:
+                        return _orig_QLabel(*a, **kw)
+
+                def _make_button(*a, **kw):
+                    try:
+                        if "parent" in kw:
+                            return _orig_QPushButton(*a, **kw)
+                        if len(a) > 0 and isinstance(a[0], _orig_QWidget):
+                            return _orig_QPushButton(*a, **kw)
+                        return _orig_QPushButton(*a, **{**kw, "parent": self})
+                    except Exception:
+                        return _orig_QPushButton(*a, **kw)
+
+                def _make_menu(*a, **kw):
+                    try:
+                        if "parent" in kw:
+                            return _orig_QMenu(*a, **kw)
+                        if len(a) > 0 and isinstance(a[0], _orig_QWidget):
+                            return _orig_QMenu(*a, **kw)
+                        return _orig_QMenu(self)
+                    except Exception:
+                        return _orig_QMenu(*a, **kw)
+
+                globals()["QLabel"] = _make_label  # type: ignore
+                globals()["QPushButton"] = _make_button  # type: ignore
+                globals()["QMenu"] = _make_menu  # type: ignore
+            except Exception:
+                pass
             # Non-blocking show() is better for CI/offscreen environments
             dialog.show()
         except Exception:
@@ -218,14 +262,144 @@ QTabWidget::pane {{ background: {win_hex}; }}
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("VALKYRIE BALLISTICS - Hjemmelading")
+        # Guard to avoid double-initializing the UI (prevents duplicate menus/windows)
+        self._ui_initialized = False
+        self.setWindowTitle("Valkyrie Ballistics")
         self.setMinimumSize(900, 600)
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint)
-        central = QWidget()
+        # Apply app theme early so initial landing UI matches saved appearance.
+        # Read minimal saved theme values from QSettings synchronously to
+        # avoid a visual flash from default -> user theme during startup.
+        try:
+            try:
+                from PyQt6.QtCore import QSettings
+
+                qs = QSettings("ReloadingWorkshop", "ReloadingManager")
+                theme = qs.value("theme", None)
+                rgb = qs.value("rgb", None)
+                btn_style = qs.value("button_style", None)
+                cfg = {}
+                if theme is not None:
+                    cfg["theme"] = theme
+                if isinstance(rgb, dict):
+                    cfg["rgb"] = rgb
+                if btn_style is not None:
+                    cfg["button_style"] = btn_style
+
+                # Start from the baseline theme and merge user CSS
+                base_css = ""
+                try:
+                    base_css = ReloadingTheme.get_stylesheet() or ""
+                except Exception:
+                    base_css = ""
+
+                try:
+                    user_css = _build_theme_css_from_cfg(cfg) if cfg else ""
+                except Exception:
+                    user_css = ""
+
+                combined = base_css + "\n" + user_css if user_css else base_css
+                if combined:
+                    self.setStyleSheet(combined)
+                else:
+                    # Fallback to baseline
+                    try:
+                        self.setStyleSheet(ReloadingTheme.get_stylesheet())
+                    except Exception:
+                        pass
+            except Exception:
+                # If QSettings or theme merging fails, fall back gracefully
+                try:
+                    self.setStyleSheet(ReloadingTheme.get_stylesheet())
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        central = QWidget(self)
+        central.setObjectName("landingCentral")
         layout = QVBoxLayout()
-        label = QLabel("Hovedvinduet er oppe og kjører!\nUtvid funksjonalitet her.")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
+        # place items toward top so buttons appear higher on the page
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.setContentsMargins(36, 18, 36, 18)
+        layout.setSpacing(12)
+
+        # subtle logo shown near the top as a faint, non-interactive element
+        try:
+            logo_lbl = QLabel(central)
+            logo_pix = load_logo_pixmap(420)
+            if logo_pix:
+                try:
+
+                    logo_lbl.setPixmap(logo_pix)
+                except Exception:
+                    logo_lbl.setPixmap(logo_pix)
+            logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # make logo non-interactive so clicks reach buttons
+            try:
+                from PyQt6.QtWidgets import QGraphicsOpacityEffect
+
+                eff = QGraphicsOpacityEffect(logo_lbl)
+                eff.setOpacity(0.10)
+                logo_lbl.setGraphicsEffect(eff)
+                logo_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            except Exception:
+                pass
+            # limit vertical space so it doesn't dominate the page
+            logo_lbl.setMaximumHeight(160)
+            layout.addWidget(logo_lbl)
+        except Exception:
+            # ignore failures to render logo and continue
+            pass
+
+        # Quick-launch shortcuts: provide direct buttons to important modules
+        try:
+            row = QWidget(central)
+            row_layout = QHBoxLayout()
+            row_layout.setSpacing(16)
+            row_layout.setContentsMargins(0, 4, 0, 4)
+            row.setLayout(row_layout)
+
+            def _make_btn(text, slot):
+                b = QPushButton(text, row)
+                b.setMinimumHeight(64)
+                b.setProperty("class", "landingBig")
+                try:
+                    b.clicked.connect(slot)
+                except Exception:
+                    pass
+                return b
+
+            btn_weapon = _make_btn("Våpenprofiler", self.show_weapon_profile_editor)
+            btn_load = _make_btn(
+                "Reloading",
+                lambda: self.launch_workflow("load_development_workflow"),
+            )
+            btn_ballistics = _make_btn(
+                "Ballistics / Terrengkart", self.show_ballistics_simulator
+            )
+
+            # center the buttons row visually
+            row_layout.addStretch(1)
+            row_layout.addWidget(btn_weapon)
+            row_layout.addWidget(btn_load)
+            row_layout.addWidget(btn_ballistics)
+            row_layout.addStretch(1)
+
+            layout.addWidget(row)
+        except Exception:
+            layout.addWidget(QLabel("Snarveier: (knapper utilgjengelige)"))
+
+        # add a flexible spacer so content hugs the top
+        try:
+            from PyQt6.QtWidgets import QSizePolicy, QSpacerItem
+
+            spacer = QSpacerItem(
+                20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
+            layout.addItem(spacer)
+        except Exception:
+            pass
+
         central.setLayout(layout)
         self.setCentralWidget(central)
 
@@ -272,9 +446,10 @@ class MainWindow(QMainWindow):
 
         # Check for saved workflows after UI is ready — schedule to avoid blocking
         try:
-            from PyQt6.QtCore import QTimer
-
-            QTimer.singleShot(200, self.check_saved_workflows)
+            # Do not auto-check saved workflows at startup; this can trigger
+            # late imports that create top-level widgets. Make resume available
+            # via the File menu instead.
+            pass
         except Exception:
             try:
                 self.check_saved_workflows()
@@ -351,8 +526,100 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """Initialiserer brukergrensesnittet"""
-        self.setWindowTitle("HJEMMELADING - Precision Reloading System")
+        # Avoid running initialization twice (guards duplicate menus/windows)
+        if getattr(self, "_ui_initialized", False):
+            return
+        self._ui_initialized = True
+        self.setWindowTitle("Valkyrie Ballistics - Precision Reloading System")
         self.setGeometry(100, 100, 1400, 900)
+
+        # Safety: locally shadow QLabel/QPushButton to ensure widgets
+        # created without an explicit parent default to the main window.
+        # This reduces transient top-level widgets during startup.
+        try:
+            _orig_QLabel = QLabel
+            _orig_QPushButton = QPushButton
+            _orig_QMenu = QMenu
+            _orig_QGroupBox = QGroupBox
+            _orig_QRadioButton = QRadioButton
+            _orig_QTabWidget = QTabWidget
+
+            def _make_label(*a, **kw):
+                try:
+                    if "parent" in kw:
+                        return _orig_QLabel(*a, **kw)
+                    if len(a) > 0 and isinstance(a[0], QWidget):
+                        return _orig_QLabel(*a, **kw)
+                    if len(a) == 0:
+                        return _orig_QLabel(self)
+                    return _orig_QLabel(a[0], self)
+                except Exception:
+                    return _orig_QLabel(*a, **kw)
+
+            def _make_button(*a, **kw):
+                try:
+                    if "parent" in kw:
+                        return _orig_QPushButton(*a, **kw)
+                    if len(a) > 0 and isinstance(a[0], QWidget):
+                        return _orig_QPushButton(*a, **kw)
+                    if len(a) == 0:
+                        return _orig_QPushButton("", self)
+                    return _orig_QPushButton(a[0], self)
+                except Exception:
+                    return _orig_QPushButton(*a, **kw)
+
+            def _make_menu(*a, **kw):
+                try:
+                    if "parent" in kw:
+                        return _orig_QMenu(*a, **kw)
+                    if len(a) > 0 and isinstance(a[0], QWidget):
+                        return _orig_QMenu(*a, **kw)
+                    return _orig_QMenu(self)
+                except Exception:
+                    return _orig_QMenu(*a, **kw)
+
+            def _make_groupbox(*a, **kw):
+                try:
+                    if "parent" in kw:
+                        return _orig_QGroupBox(*a, **kw)
+                    if len(a) > 0 and isinstance(a[0], QWidget):
+                        return _orig_QGroupBox(*a, **kw)
+                    if len(a) == 0:
+                        return _orig_QGroupBox("", self)
+                    return _orig_QGroupBox(a[0], self)
+                except Exception:
+                    return _orig_QGroupBox(*a, **kw)
+
+            def _make_radiobutton(*a, **kw):
+                try:
+                    if "parent" in kw:
+                        return _orig_QRadioButton(*a, **kw)
+                    if len(a) > 0 and isinstance(a[0], QWidget):
+                        return _orig_QRadioButton(*a, **kw)
+                    if len(a) == 0:
+                        return _orig_QRadioButton("", self)
+                    return _orig_QRadioButton(a[0], self)
+                except Exception:
+                    return _orig_QRadioButton(*a, **kw)
+
+            def _make_tabwidget(*a, **kw):
+                try:
+                    if "parent" in kw:
+                        return _orig_QTabWidget(*a, **kw)
+                    if len(a) > 0 and isinstance(a[0], QWidget):
+                        return _orig_QTabWidget(*a, **kw)
+                    return _orig_QTabWidget(self)
+                except Exception:
+                    return _orig_QTabWidget(*a, **kw)
+
+            globals()["QLabel"] = _make_label  # type: ignore
+            globals()["QPushButton"] = _make_button  # type: ignore
+            globals()["QMenu"] = _make_menu  # type: ignore
+            globals()["QGroupBox"] = _make_groupbox  # type: ignore
+            globals()["QRadioButton"] = _make_radiobutton  # type: ignore
+            globals()["QTabWidget"] = _make_tabwidget  # type: ignore
+        except Exception:
+            pass
 
         # Set professional skull icon (use central helper)
         from PyQt6.QtGui import QIcon
@@ -368,33 +635,31 @@ class MainWindow(QMainWindow):
         self.create_menu()
 
         # Show onboarding modal on first run
+        # NOTE: avoid auto-showing the onboarding dialog at startup to prevent
+        # creating a second top-level window immediately after the main window
+        # is shown. The onboarding can be launched from the Help menu instead.
         try:
             from PyQt6.QtCore import QSettings
 
-            from src.ui.onboarding import OnboardingDialog
-
-            settings = QSettings("VALKYRIE", "Hjemmelading")
+            settings = QSettings("Valkyrie", "ValkyrieBallistics")
             seen = settings.value("onboarding_seen", False)
             if not seen:
                 try:
-                    dlg = OnboardingDialog(self)
-                    # Don't block startup in headless or test environments — schedule
-                    # the modal exec to run after the event loop starts.
-                    from PyQt6.QtCore import QTimer
-
-                    QTimer.singleShot(0, lambda d=dlg: _run_modal(d))
+                    # Mark onboarding as seen so it won't pop up automatically.
+                    # This avoids the transient second window on startup.
+                    settings.setValue("onboarding_seen", True)
                 except Exception:
                     pass
         except Exception:
             pass
 
         # Opprett status bar
-        self.statusBar = QStatusBar()
+        self.statusBar = QStatusBar(self)
         self.setStatusBar(self.statusBar)
         self._show_status_message("Klar")
 
         # Opprett sentralt widget med stacked layout
-        self.central_widget = QWidget()
+        self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
         self.apply_global_button_style()
         # Show banner if optional dependencies are missing (matplotlib/OpenCV)
@@ -438,14 +703,14 @@ class MainWindow(QMainWindow):
         self.central_widget.setLayout(layout)
 
         # Navigation bar
-        nav_bar = QWidget()
+        nav_bar = QWidget(self.central_widget)
         # Use centralized navbar style
         nav_bar.setStyleSheet(ReloadingTheme.get_navbar_style())
         nav_layout = QHBoxLayout()
         nav_bar.setLayout(nav_layout)
 
         # Home button with modern project logo (small)
-        self.btn_home = QPushButton("Workflow Hub")
+        self.btn_home = QPushButton("Workflow Hub", nav_bar)
         # Prefer a small logo PNG if available, otherwise fall back to tactical icon
         try:
             pix_home = load_logo_pixmap(24)
@@ -465,7 +730,7 @@ class MainWindow(QMainWindow):
         try:
             from src.ui.icon_registry import get_icon
 
-            self.btn_measurement_wizard = QPushButton("Measurement Wizard")
+            self.btn_measurement_wizard = QPushButton("Measurement Wizard", nav_bar)
             # Use themed selector for measurement wizard
             self.btn_measurement_wizard.setObjectName("measurementWizardButton")
             self.btn_measurement_wizard.setMinimumHeight(36)
@@ -478,7 +743,7 @@ class MainWindow(QMainWindow):
             pass
 
         # All Tools button
-        self.btn_all_tools = QPushButton("🔧 All Tools (Legacy)")
+        self.btn_all_tools = QPushButton("🔧 All Tools (Legacy)", nav_bar)
         # Use themed selector for all tools button
         self.btn_all_tools.setObjectName("allToolsButton")
         self.btn_all_tools.clicked.connect(self.show_all_tools)
@@ -487,25 +752,98 @@ class MainWindow(QMainWindow):
         nav_layout.addStretch()
 
         # Current workflow label
-        self.label_current_workflow = QLabel("")
+        self.label_current_workflow = QLabel("", nav_bar)
         # Use themed selector for current workflow label
         self.label_current_workflow.setObjectName("currentWorkflowLabel")
         nav_layout.addWidget(self.label_current_workflow)
 
         layout.addWidget(nav_bar)
 
-        # Vis hovedlogo øverst (bruker din logo-fil)
-        pix = load_logo_pixmap(120)
-        if pix:
-            logo_lbl = QLabel()
-            logo_lbl.setPixmap(pix)
-            # Keep logo background transparent but avoid inline stylesheet
-            logo_lbl.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-            layout.addWidget(logo_lbl, alignment=Qt.AlignmentFlag.AlignHCenter)
+        # Landing area: large faint logo background with big quick-action buttons
+        try:
+            from PyQt6.QtGui import QFont
+            from PyQt6.QtWidgets import QGraphicsOpacityEffect, QSizePolicy
 
-        # Stacked widget for switching between workflow hub and tools
-        self.stacked_widget = QStackedWidget()
-        layout.addWidget(self.stacked_widget)
+            pix = load_logo_pixmap(420)
+            if pix:
+                logo_lbl = QLabel(self.central_widget)
+                logo_lbl.setPixmap(pix)
+                logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                logo_lbl.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+                )
+                try:
+                    op = QGraphicsOpacityEffect(logo_lbl)
+                    op.setOpacity(0.12)
+                    logo_lbl.setGraphicsEffect(op)
+                except Exception:
+                    pass
+                layout.addWidget(logo_lbl)
+
+            # Centered big buttons overlay (stacked into main area)
+            landing = QWidget(self.central_widget)
+            landing_layout = QVBoxLayout()
+            landing.setLayout(landing_layout)
+
+            landing_layout.addStretch()
+
+            def _big_btn(text, slot):
+                b = QPushButton(text, landing)
+                try:
+                    b.setProperty("class", "landingBig")
+                except Exception:
+                    pass
+                b.setMinimumSize(320, 90)
+                try:
+                    f = QFont()
+                    f.setPointSize(14)
+                    f.setBold(True)
+                    b.setFont(f)
+                except Exception:
+                    pass
+                try:
+                    b.clicked.connect(slot)
+                except Exception:
+                    pass
+                return b
+
+            b_weapon = _big_btn("Våpenprofiler", self.show_weapon_profile_editor)
+            b_reloading = _big_btn(
+                "Reloading (Load Builder)",
+                lambda: self.launch_workflow("load_development_workflow"),
+            )
+            b_ballistics = _big_btn(
+                "Ballistics / Terrengkart", self.show_ballistics_simulator
+            )
+
+            # Arrange buttons in a vertical column centered
+            btn_container = QWidget(landing)
+            btn_layout = QVBoxLayout()
+            btn_container.setLayout(btn_layout)
+            btn_layout.setSpacing(18)
+            btn_layout.addWidget(b_weapon, alignment=Qt.AlignmentFlag.AlignHCenter)
+            btn_layout.addWidget(b_reloading, alignment=Qt.AlignmentFlag.AlignHCenter)
+            btn_layout.addWidget(b_ballistics, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+            landing_layout.addWidget(
+                btn_container, alignment=Qt.AlignmentFlag.AlignHCenter
+            )
+            landing_layout.addStretch()
+
+            # Add landing page as first stacked widget so it's shown on startup
+            self.stacked_widget = QStackedWidget(self.central_widget)
+            self.stacked_widget.addWidget(landing)
+            layout.addWidget(self.stacked_widget)
+        except Exception:
+            # Fallback to original simple logo + stacked widget
+            pix = load_logo_pixmap(120)
+            if pix:
+                logo_lbl = QLabel(self.central_widget)
+                logo_lbl.setPixmap(pix)
+                logo_lbl.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+                layout.addWidget(logo_lbl, alignment=Qt.AlignmentFlag.AlignHCenter)
+            self.stacked_widget = QStackedWidget(self.central_widget)
+            layout.addWidget(self.stacked_widget)
 
     def apply_theme_from_settings(self) -> None:
         """Read saved settings and apply a matching stylesheet to the app.
@@ -557,6 +895,8 @@ class MainWindow(QMainWindow):
         Uses archived logic but provides safe fallbacks if modules are missing.
         """
         try:
+            # No local shims here — rely on module-level widget classes.
+
             # Try to import an application-provided UserModeManager
             try:
                 from src.modules.mode_manager import UserMode, UserModeManager
@@ -637,9 +977,10 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
 
-            # Finally, initialize the full UI
+            # Finally, initialize the full UI (only once)
             try:
-                self.init_ui()
+                if not getattr(self, "_ui_initialized", False):
+                    self.init_ui()
             except Exception:
                 # re-raise to be handled by caller
                 raise
@@ -653,25 +994,56 @@ class MainWindow(QMainWindow):
             # Let caller handle logging and UI notification
             raise
 
-        # Page 1: Workflow Hub (imported lazily so startup can proceed if module fails)
+        # Create a workspace area where dialogs/widgets can be embedded
+        # This prevents code from creating new top-level windows and allows
+        # show_* helpers to add widgets into a stacked area instead of
+        # calling .show() which would create transient top-levels.
         try:
-            from src.modules.workflow_hub import WorkflowHub
+            from PyQt6.QtWidgets import QStackedWidget
 
-            self.workflow_hub = WorkflowHub(self.state_manager, self.mode_manager)
-            self.workflow_hub.workflow_selected.connect(self.launch_workflow)
-            self.stacked_widget.addWidget(self.workflow_hub)
+            central_layout = None
+            try:
+                central_layout = self.central_widget.layout()
+            except Exception:
+                central_layout = None
+
+            try:
+                if central_layout is not None and hasattr(central_layout, "addWidget"):
+                    self.workspace_area = QStackedWidget(self.central_widget)
+                    central_layout.addWidget(self.workspace_area)
+                else:
+                    # Fall back to parent the workspace area on the main window
+                    self.workspace_area = QStackedWidget(self)
+            except Exception:
+                self.workspace_area = QStackedWidget(self)
+        except Exception:
+            # If Qt isn't available, provide a simple stub so attribute exists
+            class _StubWS:
+                def addWidget(self, *_a, **_k):
+                    return None
+
+                def setCurrentWidget(self, *_a, **_k):
+                    return None
+
+            self.workspace_area = _StubWS()
+
+        # Page 1: Workflow Hub placeholder — create the heavy hub lazily
+        try:
+            placeholder = QWidget(self.stacked_widget)
+            placeholder.setObjectName("workflowHubPlaceholder")
+            ph_layout = QVBoxLayout()
+            ph_lbl = QLabel("Workflow Hub (loading on demand)", placeholder)
+            ph_layout.addWidget(ph_lbl)
+            placeholder.setLayout(ph_layout)
+            self.stacked_widget.addWidget(placeholder)
+            # Do not instantiate the real WorkflowHub now; create on-demand.
+            self.workflow_hub = None
         except Exception as e:
-            logger.exception("Failed to create WorkflowHub: %s", e)
-            fallback = QWidget()
-            lbl = QLabel("Workflow Hub unavailable")
-            fl = QVBoxLayout()
-            fl.addWidget(lbl)
-            fallback.setLayout(fl)
-            self.stacked_widget.addWidget(fallback)
+            logger.exception("Failed to add WorkflowHub placeholder: %s", e)
             self.workflow_hub = None
 
         # Page 2: All Tools (legacy tabs)
-        self.tabs_widget = QWidget()
+        self.tabs_widget = QWidget(self.stacked_widget)
         tabs_layout = QVBoxLayout()
         self.tabs_widget.setLayout(tabs_layout)
 
@@ -683,8 +1055,11 @@ class MainWindow(QMainWindow):
         # Legg til tabs
         self.create_tabs()
 
-        # Start on workflow hub
-        self.show_workflow_hub()
+        # Start on landing page (do not instantiate heavy hub at startup)
+        try:
+            self.stacked_widget.setCurrentIndex(0)
+        except Exception:
+            pass
 
     def create_menu(self):
         """Oppretter menylinjen"""
@@ -701,6 +1076,11 @@ class MainWindow(QMainWindow):
         export_action = QAction(tr("menu_export"), self)
         export_action.setShortcut("Ctrl+E")
         file_menu.addAction(export_action)
+
+        # Resume saved workflows (user-triggered)
+        resume_action = QAction("Resume Saved Workflows...", self)
+        resume_action.triggered.connect(self.open_resume_dialog)
+        file_menu.addAction(resume_action)
 
         file_menu.addSeparator()
 
@@ -760,25 +1140,61 @@ class MainWindow(QMainWindow):
                 super().__init__(parent)
                 self._factory = factory
                 self._loaded = False
+                self._layout = None
                 try:
                     self._layout = QVBoxLayout()
                     self.setLayout(self._layout)
-                    self._loading_label = QLabel("Loading…")
+                    self._loading_label = QLabel("Loading…", self)
                     self._layout.addWidget(self._loading_label)
                 except Exception:
-                    # In stubbed/headless situations, layout ops may fail; ignore
                     self._layout = None
+
+                # If no parent supplied, try to attach to main window shortly
+                # after construction to avoid becoming a transient top-level.
+                if parent is None:
+                    try:
+                        from PyQt6.QtCore import QTimer
+                        from PyQt6.QtWidgets import QApplication, QMainWindow
+
+                        def _attach():
+                            try:
+                                app = QApplication.instance()
+                                if not app:
+                                    return
+                                for w in app.topLevelWidgets():
+                                    if isinstance(w, QMainWindow):
+                                        try:
+                                            self.setParent(w)
+                                        except Exception:
+                                            pass
+                                        break
+                            except Exception:
+                                pass
+
+                        QTimer.singleShot(0, _attach)
+                    except Exception:
+                        pass
 
             def _load(self):
                 if self._loaded:
                     return
                 self._loaded = True
                 try:
-                    widget = self._factory()
-                    if isinstance(widget, QWidget) and self._layout is not None:
-                        # Replace placeholder with the real widget
+                    widget = None
+                    try:
+                        widget = self._factory(self)
+                    except TypeError:
                         try:
-                            # remove placeholder
+                            widget = self._factory(parent=self)
+                        except TypeError:
+                            widget = self._factory()
+
+                    if isinstance(widget, QWidget) and self._layout is not None:
+                        try:
+                            widget.setParent(self)
+                        except Exception:
+                            pass
+                        try:
                             while self._layout.count():
                                 item = self._layout.takeAt(0)
                                 w = item.widget()
@@ -794,15 +1210,14 @@ class MainWindow(QMainWindow):
                         except Exception:
                             pass
                     else:
-                        # If factory returned non-widget, show text fallback
                         if self._layout is not None:
                             try:
-                                self._layout.addWidget(QLabel("(Loaded content)"))
+                                self._layout.addWidget(QLabel("(Loaded content)", self))
                             except Exception:
                                 pass
-                except Exception as e:
+                except Exception:
                     try:
-                        logger.exception("LazyLoadWidget factory failed: %s", e)
+                        logger.exception("LazyLoadWidget factory failed")
                     except Exception:
                         pass
                     if self._layout is not None:
@@ -823,43 +1238,69 @@ class MainWindow(QMainWindow):
 
         # Dashboard tab (lazy-loaded)
         self.tabs.addTab(
-            LazyLoadWidget(self.create_dashboard_tab), _tr("tab_dashboard")
+            LazyLoadWidget(self.create_dashboard_tab, parent=self.tabs),
+            _tr("tab_dashboard"),
         )
 
         # Test Lab tab (lazy-loaded)
-        self.tabs.addTab(LazyLoadWidget(self.create_test_lab_tab), _tr("tab_test_lab"))
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_test_lab_tab, parent=self.tabs),
+            _tr("tab_test_lab"),
+        )
 
         # Ammunisjon tab (lazy-loaded)
-        self.tabs.addTab(LazyLoadWidget(self.create_ammo_tab), _tr("tab_ammunition"))
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_ammo_tab, parent=self.tabs),
+            _tr("tab_ammunition"),
+        )
 
         # Rifles & Optikk tab (lazy-loaded)
-        self.tabs.addTab(LazyLoadWidget(self.create_rifles_tab), _tr("tab_rifles"))
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_rifles_tab, parent=self.tabs), _tr("tab_rifles")
+        )
 
         # Lager tab (lazy-loaded)
         self.tabs.addTab(
-            LazyLoadWidget(self.create_inventory_tab), _tr("tab_inventory")
+            LazyLoadWidget(self.create_inventory_tab, parent=self.tabs),
+            _tr("tab_inventory"),
         )
 
         # Logg tab (lazy-loaded)
-        self.tabs.addTab(LazyLoadWidget(self.create_log_tab), _tr("tab_log"))
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_log_tab, parent=self.tabs), _tr("tab_log")
+        )
 
         # Analyse tab (lazy-loaded)
-        self.tabs.addTab(LazyLoadWidget(self.create_analysis_tab), _tr("tab_analysis"))
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_analysis_tab, parent=self.tabs),
+            _tr("tab_analysis"),
+        )
 
         # Innstillinger tab (lazy-loaded)
-        self.tabs.addTab(LazyLoadWidget(self.create_settings_tab), _tr("tab_settings"))
+        self.tabs.addTab(
+            LazyLoadWidget(self.create_settings_tab, parent=self.tabs),
+            _tr("tab_settings"),
+        )
 
     def create_dashboard_tab(self):
         """Oppretter dashboard-fanen"""
         try:
             from src.modules.dashboard import Dashboard
 
-            return Dashboard()
+            # Prefer passing this loader as parent to avoid creating
+            # intermediate top-level widgets during module initialization.
+            try:
+                return Dashboard(self)
+            except TypeError:
+                try:
+                    return Dashboard(parent=self)
+                except TypeError:
+                    return Dashboard()
         except Exception as e:
             logger.exception("Failed to import Dashboard: %s", e)
             w = QWidget()
             layout = QVBoxLayout()
-            layout.addWidget(QLabel("Dashboard unavailable"))
+            layout.addWidget(QLabel("Dashboard unavailable", w))
             w.setLayout(layout)
             return w
 
@@ -868,12 +1309,18 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.ladder_test_lab import LadderTestLab
 
-            return LadderTestLab()
+            try:
+                return LadderTestLab(self)
+            except TypeError:
+                try:
+                    return LadderTestLab(parent=self)
+                except TypeError:
+                    return LadderTestLab()
         except Exception as e:
             logger.exception("Failed to import LadderTestLab: %s", e)
             w = QWidget()
             layout = QVBoxLayout()
-            layout.addWidget(QLabel("Test Lab unavailable"))
+            layout.addWidget(QLabel("Test Lab unavailable", w))
             w.setLayout(layout)
             return w
 
@@ -882,12 +1329,18 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.ammo_profile_manager import AmmoProfileManager
 
-            return AmmoProfileManager()
+            try:
+                return AmmoProfileManager(self)
+            except TypeError:
+                try:
+                    return AmmoProfileManager(parent=self)
+                except TypeError:
+                    return AmmoProfileManager()
         except Exception as e:
             logger.exception("Failed to import AmmoProfileManager: %s", e)
             w = QWidget()
             layout = QVBoxLayout()
-            layout.addWidget(QLabel("Ammunisjon unavailable"))
+            layout.addWidget(QLabel("Ammunisjon unavailable", w))
             w.setLayout(layout)
             return w
 
@@ -905,7 +1358,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.rifle_database_manager import RifleDatabaseManager
 
-            tabs.addTab(RifleDatabaseManager(), "🎯 Våpen Database")
+            try:
+                tabs.addTab(RifleDatabaseManager(self), "🎯 Våpen Database")
+            except TypeError:
+                try:
+                    tabs.addTab(RifleDatabaseManager(parent=self), "🎯 Våpen Database")
+                except TypeError:
+                    tabs.addTab(RifleDatabaseManager(), "🎯 Våpen Database")
         except Exception as e:
             logger.exception("RifleDatabaseManager import failed: %s", e)
 
@@ -913,7 +1372,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.rifle_optic_manager import RifleOpticManager
 
-            tabs.addTab(RifleOpticManager(), "🔭 Rifle & Optikk")
+            try:
+                tabs.addTab(RifleOpticManager(self), "🔭 Rifle & Optikk")
+            except TypeError:
+                try:
+                    tabs.addTab(RifleOpticManager(parent=self), "🔭 Rifle & Optikk")
+                except TypeError:
+                    tabs.addTab(RifleOpticManager(), "🔭 Rifle & Optikk")
         except Exception as e:
             logger.exception("RifleOpticManager import failed: %s", e)
 
@@ -921,7 +1386,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.rifle_performance_tracker import RiflePerformanceTracker
 
-            tabs.addTab(RiflePerformanceTracker(), "📈 Performance")
+            try:
+                tabs.addTab(RiflePerformanceTracker(self), "📈 Performance")
+            except TypeError:
+                try:
+                    tabs.addTab(RiflePerformanceTracker(parent=self), "📈 Performance")
+                except TypeError:
+                    tabs.addTab(RiflePerformanceTracker(), "📈 Performance")
         except Exception as e:
             logger.exception("RiflePerformanceTracker import failed: %s", e)
 
@@ -932,12 +1403,18 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.inventory_manager import InventoryManager
 
-            return InventoryManager()
+            try:
+                return InventoryManager(self)
+            except TypeError:
+                try:
+                    return InventoryManager(parent=self)
+                except TypeError:
+                    return InventoryManager()
         except Exception as e:
             logger.exception("InventoryManager import failed: %s", e)
             w = QWidget()
             layout = QVBoxLayout()
-            layout.addWidget(QLabel("Inventory unavailable"))
+            layout.addWidget(QLabel("Inventory unavailable", w))
             w.setLayout(layout)
             return w
 
@@ -946,12 +1423,18 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.session_logger import SessionLogger
 
-            return SessionLogger()
+            try:
+                return SessionLogger(self)
+            except TypeError:
+                try:
+                    return SessionLogger(parent=self)
+                except TypeError:
+                    return SessionLogger()
         except Exception as e:
             logger.exception("SessionLogger import failed: %s", e)
             w = QWidget()
             layout = QVBoxLayout()
-            layout.addWidget(QLabel("Log unavailable"))
+            layout.addWidget(QLabel("Log unavailable", w))
             w.setLayout(layout)
             return w
 
@@ -969,7 +1452,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.target_analyzer import TargetAnalyzer
 
-            tabs.addTab(TargetAnalyzer(), "📷 Target Analyzer")
+            try:
+                tabs.addTab(TargetAnalyzer(self), "📷 Target Analyzer")
+            except TypeError:
+                try:
+                    tabs.addTab(TargetAnalyzer(parent=self), "📷 Target Analyzer")
+                except TypeError:
+                    tabs.addTab(TargetAnalyzer(), "📷 Target Analyzer")
         except Exception as e:
             logger.exception("TargetAnalyzer import failed: %s", e)
             w = QWidget()
@@ -982,7 +1471,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.precision_tracker import PrecisionTracker
 
-            tabs.addTab(PrecisionTracker(), "📊 Precision Tracker")
+            try:
+                tabs.addTab(PrecisionTracker(self), "📊 Precision Tracker")
+            except TypeError:
+                try:
+                    tabs.addTab(PrecisionTracker(parent=self), "📊 Precision Tracker")
+                except TypeError:
+                    tabs.addTab(PrecisionTracker(), "📊 Precision Tracker")
         except Exception as e:
             logger.exception("PrecisionTracker import failed: %s", e)
             w = QWidget()
@@ -995,7 +1490,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.safety_dashboard import SafetyDashboard
 
-            tabs.addTab(SafetyDashboard(), "⚠️ Sikkerhet")
+            try:
+                tabs.addTab(SafetyDashboard(self), "⚠️ Sikkerhet")
+            except TypeError:
+                try:
+                    tabs.addTab(SafetyDashboard(parent=self), "⚠️ Sikkerhet")
+                except TypeError:
+                    tabs.addTab(SafetyDashboard(), "⚠️ Sikkerhet")
         except Exception as e:
             logger.exception("SafetyDashboard import failed: %s", e)
             w = QWidget()
@@ -1046,7 +1547,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.environmental_logger import EnvironmentalLogger
 
-            tabs.addTab(EnvironmentalLogger(), "🌡️ Værdata")
+            try:
+                tabs.addTab(EnvironmentalLogger(self), "🌡️ Værdata")
+            except TypeError:
+                try:
+                    tabs.addTab(EnvironmentalLogger(parent=self), "🌡️ Værdata")
+                except TypeError:
+                    tabs.addTab(EnvironmentalLogger(), "🌡️ Værdata")
         except Exception as e:
             logger.exception("EnvironmentalLogger import failed: %s", e)
             w = QWidget()
@@ -1059,7 +1566,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.drop_chart_generator import DropChartGenerator
 
-            tabs.addTab(DropChartGenerator(), "📊 Drop/Wind")
+            try:
+                tabs.addTab(DropChartGenerator(self), "📊 Drop/Wind")
+            except TypeError:
+                try:
+                    tabs.addTab(DropChartGenerator(parent=self), "📊 Drop/Wind")
+                except TypeError:
+                    tabs.addTab(DropChartGenerator(), "📊 Drop/Wind")
         except Exception as e:
             logger.exception("DropChartGenerator import failed: %s", e)
             w = QWidget()
@@ -1072,7 +1585,15 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.rifle_performance_tracker import RiflePerformanceTracker
 
-            tabs.addTab(RiflePerformanceTracker(), "🎯 Rifle Performance")
+            try:
+                tabs.addTab(RiflePerformanceTracker(self), "🎯 Rifle Performance")
+            except TypeError:
+                try:
+                    tabs.addTab(
+                        RiflePerformanceTracker(parent=self), "🎯 Rifle Performance"
+                    )
+                except TypeError:
+                    tabs.addTab(RiflePerformanceTracker(), "🎯 Rifle Performance")
         except Exception as e:
             logger.exception("RiflePerformanceTracker import failed: %s", e)
             w = QWidget()
@@ -1085,7 +1606,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.chronograph_importer import ChronographImporter
 
-            tabs.addTab(ChronographImporter(), "📊 Chronograph")
+            try:
+                tabs.addTab(ChronographImporter(self), "📊 Chronograph")
+            except TypeError:
+                try:
+                    tabs.addTab(ChronographImporter(parent=self), "📊 Chronograph")
+                except TypeError:
+                    tabs.addTab(ChronographImporter(), "📊 Chronograph")
         except Exception as e:
             logger.exception("ChronographImporter import failed: %s", e)
             w = QWidget()
@@ -1098,7 +1625,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.grt_importer import GRTImporter
 
-            tabs.addTab(GRTImporter(), "📦 GRT Import")
+            try:
+                tabs.addTab(GRTImporter(self), "📦 GRT Import")
+            except TypeError:
+                try:
+                    tabs.addTab(GRTImporter(parent=self), "📦 GRT Import")
+                except TypeError:
+                    tabs.addTab(GRTImporter(), "📦 GRT Import")
         except Exception as e:
             logger.exception("GRTImporter import failed: %s", e)
             w = QWidget()
@@ -1111,7 +1644,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.grt_integration import GRTIntegration
 
-            tabs.addTab(GRTIntegration(), "🔗 GRT Integrasjon")
+            try:
+                tabs.addTab(GRTIntegration(self), "🔗 GRT Integrasjon")
+            except TypeError:
+                try:
+                    tabs.addTab(GRTIntegration(parent=self), "🔗 GRT Integrasjon")
+                except TypeError:
+                    tabs.addTab(GRTIntegration(), "🔗 GRT Integrasjon")
         except Exception as e:
             logger.exception("GRTIntegration import failed: %s", e)
             w = QWidget()
@@ -1124,7 +1663,13 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.temperature_ladder_test import TemperatureLadderTest
 
-            tabs.addTab(TemperatureLadderTest(), "🌡️ Temp Test")
+            try:
+                tabs.addTab(TemperatureLadderTest(self), "🌡️ Temp Test")
+            except TypeError:
+                try:
+                    tabs.addTab(TemperatureLadderTest(parent=self), "🌡️ Temp Test")
+                except TypeError:
+                    tabs.addTab(TemperatureLadderTest(), "🌡️ Temp Test")
         except Exception as e:
             logger.exception("TemperatureLadderTest import failed: %s", e)
             w = QWidget()
@@ -1299,10 +1844,81 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentWidget(harmonic_widget)
 
     def show_workflow_hub(self):
-        """Show workflow hub landing page"""
-        self.stacked_widget.setCurrentIndex(0)
-        self.label_current_workflow.setText("")
-        self.statusBar.showMessage("Workflow Hub - Velg hva du vil gjøre")
+        """Show workflow hub landing page (lazy init).
+
+        Instantiate `WorkflowHub` on first request to avoid heavy UI
+        construction during MainWindow.__init__ and prevent transient
+        top-level windows at startup.
+        """
+        try:
+            # Lazy-create the WorkflowHub and parent it to the main window so
+            # created widgets are not top-levels. Prefer the newer signature
+            # that accepts `defer_ui=True` to avoid immediate heavy init.
+            if getattr(self, "workflow_hub", None) is None:
+                try:
+                    from src.modules.workflow_hub import WorkflowHub
+
+                    try:
+                        self.workflow_hub = WorkflowHub(
+                            self.state_manager,
+                            self.mode_manager,
+                            parent=self,
+                            defer_ui=True,
+                        )
+                    except TypeError:
+                        # Fallback if older ctor signature doesn't accept defer_ui
+                        try:
+                            self.workflow_hub = WorkflowHub(
+                                self.state_manager, self.mode_manager, parent=self
+                            )
+                        except TypeError:
+                            # Last resort: no args
+                            self.workflow_hub = WorkflowHub()
+
+                    try:
+                        self.workflow_hub.workflow_selected.connect(
+                            self.launch_workflow
+                        )
+                    except Exception:
+                        pass
+
+                    try:
+                        self.stacked_widget.addWidget(self.workflow_hub)
+                    except Exception:
+                        pass
+                except Exception as e:
+                    logger.exception("WorkflowHub import/creation failed: %s", e)
+                    self._show_status_message("Kunne ikke laste Workflow Hub")
+                    return
+
+            # Ensure the deferred UI is created now that the user explicitly
+            # requested it (no-op if already initialized).
+            try:
+                if getattr(self.workflow_hub, "ensure_ui", None):
+                    self.workflow_hub.ensure_ui()
+            except Exception:
+                pass
+
+            # Show the hub in the stacked widget
+            try:
+                self.stacked_widget.setCurrentWidget(self.workflow_hub)
+            except Exception:
+                try:
+                    idx = self.stacked_widget.indexOf(self.workflow_hub)
+                    if idx != -1:
+                        self.stacked_widget.setCurrentIndex(idx)
+                    else:
+                        self.stacked_widget.setCurrentIndex(0)
+                except Exception:
+                    self.stacked_widget.setCurrentIndex(0)
+
+            self.label_current_workflow.setText("Workflow Hub")
+            try:
+                self._show_status_message("Workflow Hub - Velg hva du vil gjøre")
+            except Exception:
+                pass
+        except Exception as e:
+            logger.exception("Failed to show WorkflowHub: %s", e)
 
     def show_all_tools(self):
         """Show all tools (legacy tab view)"""
@@ -1456,21 +2072,26 @@ class MainWindow(QMainWindow):
             return
 
         active_states = self.state_manager.get_all_active()
-
-        if active_states:
-            # Show resume dialog (import lazily to avoid startup import failures)
-            try:
-                from src.modules.workflow_resume_dialog import WorkflowResumeDialog
-
-                dialog = WorkflowResumeDialog(self.state_manager, self)
-                dialog.workflow_selected.connect(self.resume_workflow)
-                # Show dialog after a short delay so main window is visible
-                from PyQt6.QtCore import QTimer
-
-                QTimer.singleShot(500, lambda d=dialog: _run_modal(d))
-            except Exception as e:
-                logger.exception("Failed to show WorkflowResumeDialog: %s", e)
-                return
+        # If there are saved workflows, record that fact but do NOT auto-show
+        # a separate modal at startup. Users can open the resume dialog from
+        # the File menu (Resume Saved Workflows...) to avoid a transient
+        # second top-level window.
+        try:
+            if active_states:
+                self._saved_workflows_available = True
+                self._saved_states_preview = active_states
+                try:
+                    self.statusBar.showMessage(
+                        f"{len(active_states)} saved workflow(s) available — File → Resume Saved Workflows..."
+                    )
+                except Exception:
+                    pass
+            else:
+                self._saved_workflows_available = False
+                self._saved_states_preview = []
+        except Exception:
+            self._saved_workflows_available = False
+            self._saved_states_preview = []
 
     def resume_workflow(self, workflow_id: str):
         """Resume a saved workflow"""
@@ -1494,6 +2115,32 @@ class MainWindow(QMainWindow):
                 "Resume Failed",
                 "Could not resume workflow (see debug_err.log in %LOCALAPPDATA%\\Hjemmelading\\logs)",
             )
+
+    def open_resume_dialog(self):
+        """User-invoked: open the resume dialog if saved workflows exist."""
+        try:
+            if not getattr(self, "_saved_workflows_available", False):
+                QMessageBox.information(
+                    self,
+                    "No Saved Workflows",
+                    "There are no saved workflows to resume.",
+                )
+                return
+            from src.modules.workflow_resume_dialog import WorkflowResumeDialog
+
+            dialog = WorkflowResumeDialog(self.state_manager, self)
+            dialog.workflow_selected.connect(self.resume_workflow)
+            _run_modal(dialog)
+        except Exception as e:
+            logger.exception("Failed to open resume dialog: %s", e)
+            try:
+                QMessageBox.warning(
+                    self,
+                    "Error",
+                    "Kunne ikke åpne Resume dialog (se logg).",
+                )
+            except Exception:
+                pass
 
     def show_weapon_profile_editor(self):
         """Open the Weapon Profile Editor dialog (loads/saves JSON)."""
@@ -1556,7 +2203,13 @@ class MainWindow(QMainWindow):
         """Show primer tools dialog"""
         from src.modules.primer_tools import PrimerToolsHub
 
-        dialog = PrimerToolsHub()
+        try:
+            dialog = PrimerToolsHub(self)
+        except TypeError:
+            try:
+                dialog = PrimerToolsHub(parent=self)
+            except TypeError:
+                dialog = PrimerToolsHub()
         dialog.setWindowTitle("🔥 Primer Selection & Analysis Tools")
         dialog.resize(1000, 600)
         dialog.show()
@@ -1600,14 +2253,20 @@ class MainWindow(QMainWindow):
 
     def show_brass_manager(self):
         """Show brass/case lifecycle manager"""
-        dialog = QWidget()
+        dialog = QWidget(self)
         dialog.setWindowTitle("🥉 Brass/Hylse Manager")
         dialog.resize(1400, 900)
         layout = QVBoxLayout()
         try:
             from src.modules.brass_manager import BrassManager
 
-            manager = BrassManager()
+            try:
+                manager = BrassManager(self)
+            except TypeError:
+                try:
+                    manager = BrassManager(parent=self)
+                except TypeError:
+                    manager = BrassManager()
             layout.addWidget(manager)
         except Exception as e:
             logger.exception("BrassManager import failed: %s", e)
@@ -1630,111 +2289,172 @@ class MainWindow(QMainWindow):
 
     def show_rifle_optic_manager(self):
         """Show rifles and optics manager"""
-        dialog = QWidget()
+        dialog = QWidget(self)
         dialog.setWindowTitle("🎯 Rifles & Optikk")
         dialog.resize(1200, 800)
         layout = QVBoxLayout()
         try:
             from src.modules.rifle_optic_manager import RifleOpticManager
 
-            manager = RifleOpticManager()
+            try:
+                manager = RifleOpticManager(self)
+            except TypeError:
+                try:
+                    manager = RifleOpticManager(parent=self)
+                except TypeError:
+                    manager = RifleOpticManager()
             layout.addWidget(manager)
         except Exception as e:
             logger.exception("RifleOpticManager import failed: %s", e)
-            layout.addWidget(QLabel("Rifle & Optic Manager unavailable"))
+            layout.addWidget(QLabel("Rifle & Optic Manager unavailable", dialog))
         dialog.setLayout(layout)
-        dialog.show()
+        # Add to workspace area instead of showing as a separate top-level window
+        try:
+            self.workspace_area.addWidget(dialog)
+            self.workspace_area.setCurrentWidget(dialog)
+        except Exception:
+            dialog.show()
         self.statusBar.showMessage("📍 Rifles & Optikk Manager")
 
     def show_ammo_profile_manager(self):
         """Show ammo profiles manager"""
-        dialog = QWidget()
+        dialog = QWidget(self)
         dialog.setWindowTitle("📦 Ammunisjonsprofiler")
         dialog.resize(1200, 800)
         layout = QVBoxLayout()
         try:
             from src.modules.ammo_profile_manager import AmmoProfileManager
 
-            manager = AmmoProfileManager()
+            try:
+                manager = AmmoProfileManager(self)
+            except TypeError:
+                try:
+                    manager = AmmoProfileManager(parent=self)
+                except TypeError:
+                    manager = AmmoProfileManager()
             layout.addWidget(manager)
         except Exception as e:
             logger.exception("AmmoProfileManager import failed: %s", e)
-            layout.addWidget(QLabel("Ammo Profile Manager unavailable"))
+            layout.addWidget(QLabel("Ammo Profile Manager unavailable", dialog))
         dialog.setLayout(layout)
-        dialog.show()
+        try:
+            self.workspace_area.addWidget(dialog)
+            self.workspace_area.setCurrentWidget(dialog)
+        except Exception:
+            dialog.show()
         self.statusBar.showMessage("📍 Ammunisjonsprofil Manager")
 
     def show_rifle_performance(self):
         """Show rifle performance tracker"""
-        dialog = QWidget()
+        dialog = QWidget(self)
         dialog.setWindowTitle("📊 Rifle Performance Tracker")
         dialog.resize(1200, 800)
         layout = QVBoxLayout()
         try:
             from src.modules.rifle_performance_tracker import RiflePerformanceTracker
 
-            tracker = RiflePerformanceTracker()
+            try:
+                tracker = RiflePerformanceTracker(self)
+            except TypeError:
+                try:
+                    tracker = RiflePerformanceTracker(parent=self)
+                except TypeError:
+                    tracker = RiflePerformanceTracker()
             layout.addWidget(tracker)
         except Exception as e:
             logger.exception("RiflePerformanceTracker import failed: %s", e)
-            layout.addWidget(QLabel("Rifle Performance Tracker unavailable"))
+            layout.addWidget(QLabel("Rifle Performance Tracker unavailable", dialog))
         dialog.setLayout(layout)
-        dialog.show()
+        try:
+            self.workspace_area.addWidget(dialog)
+            self.workspace_area.setCurrentWidget(dialog)
+        except Exception:
+            dialog.show()
         self.statusBar.showMessage("📍 Rifle Performance Tracker")
 
     def show_ballistics_simulator(self):
         """Show real-time ballistics simulator"""
         from src.modules.ballistics_simulator import BallisticsSimulator
 
-        dialog = QWidget()
+        dialog = QWidget(self)
         dialog.setWindowTitle("🔬 Real-Time Ballistics Simulator")
         dialog.resize(1600, 1000)
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
 
-        simulator = BallisticsSimulator()
+        try:
+            simulator = BallisticsSimulator(self)
+        except TypeError:
+            try:
+                simulator = BallisticsSimulator(parent=self)
+            except TypeError:
+                simulator = BallisticsSimulator()
         layout.addWidget(simulator)
 
         dialog.setLayout(layout)
-        dialog.show()
+        try:
+            self.workspace_area.addWidget(dialog)
+            self.workspace_area.setCurrentWidget(dialog)
+        except Exception:
+            dialog.show()
         self.statusBar.showMessage(
             "🔬 Ballistics Simulator - Physics-based load prediction"
         )
 
     def show_precision_tracker(self):
         """Show precision tracker"""
-        dialog = QWidget()
+        dialog = QWidget(self)
         dialog.setWindowTitle("🎯 Precision Tracker")
         dialog.resize(1200, 800)
         layout = QVBoxLayout()
         try:
             from src.modules.precision_tracker import PrecisionTracker
 
-            tracker = PrecisionTracker()
+            try:
+                tracker = PrecisionTracker(self)
+            except TypeError:
+                try:
+                    tracker = PrecisionTracker(parent=self)
+                except TypeError:
+                    tracker = PrecisionTracker()
             layout.addWidget(tracker)
         except Exception as e:
             logger.exception("PrecisionTracker import failed: %s", e)
-            layout.addWidget(QLabel("Precision Tracker unavailable"))
+            layout.addWidget(QLabel("Precision Tracker unavailable", dialog))
         dialog.setLayout(layout)
-        dialog.show()
+        try:
+            self.workspace_area.addWidget(dialog)
+            self.workspace_area.setCurrentWidget(dialog)
+        except Exception:
+            dialog.show()
         self.statusBar.showMessage("📍 Precision Tracker")
 
     def show_target_analyzer(self):
         """Show target analyzer"""
-        dialog = QWidget()
+        dialog = QWidget(self)
         dialog.setWindowTitle("📸 Target Analyzer")
         dialog.resize(1200, 800)
         layout = QVBoxLayout()
         try:
             from src.modules.target_analyzer import TargetAnalyzer
 
-            analyzer = TargetAnalyzer()
+            try:
+                analyzer = TargetAnalyzer(self)
+            except TypeError:
+                try:
+                    analyzer = TargetAnalyzer(parent=self)
+                except TypeError:
+                    analyzer = TargetAnalyzer()
             layout.addWidget(analyzer)
         except Exception as e:
             logger.exception("TargetAnalyzer import failed: %s", e)
-            layout.addWidget(QLabel("Target Analyzer unavailable"))
+            layout.addWidget(QLabel("Target Analyzer unavailable", dialog))
         dialog.setLayout(layout)
-        dialog.show()
+        try:
+            self.workspace_area.addWidget(dialog)
+            self.workspace_area.setCurrentWidget(dialog)
+        except Exception:
+            dialog.show()
         self.statusBar.showMessage("📍 Target Analyzer")
 
     def show_load_development_workflow(self):
@@ -1754,7 +2474,13 @@ class MainWindow(QMainWindow):
             layout.setContentsMargins(0, 0, 0, 0)
 
             try:
-                workflow = LoadDevelopmentWorkflow()
+                try:
+                    workflow = LoadDevelopmentWorkflow(self)
+                except TypeError:
+                    try:
+                        workflow = LoadDevelopmentWorkflow(parent=self)
+                    except TypeError:
+                        workflow = LoadDevelopmentWorkflow()
                 layout.addWidget(workflow)
                 dialog.setLayout(layout)
                 self.statusBar.showMessage(
@@ -1812,7 +2538,13 @@ class MainWindow(QMainWindow):
             layout.setContentsMargins(0, 0, 0, 0)
 
             logger.info("Creating ModernLoadBuilder widget...")
-            builder = ModernLoadBuilder()
+            try:
+                builder = ModernLoadBuilder(self)
+            except TypeError:
+                try:
+                    builder = ModernLoadBuilder(parent=self)
+                except TypeError:
+                    builder = ModernLoadBuilder()
             layout.addWidget(builder)
 
             dialog.setLayout(layout)
@@ -1835,14 +2567,18 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.saami_compliance_checker import SAAMIComplianceChecker
 
-            dialog = QWidget()
+            dialog = QWidget(self)
             dialog.setWindowTitle("✅ SAAMI/CIP Compliance Checker")
             dialog.resize(900, 700)
             layout = QVBoxLayout()
             checker = SAAMIComplianceChecker()
             layout.addWidget(checker)
             dialog.setLayout(layout)
-            dialog.show()
+            try:
+                self.workspace_area.addWidget(dialog)
+                self.workspace_area.setCurrentWidget(dialog)
+            except Exception:
+                dialog.show()
             self.statusBar.showMessage("📍 SAAMI/CIP Checker")
         except Exception as e:
             logger.exception("SAAMIComplianceChecker import failed: %s", e)
@@ -1857,14 +2593,24 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.grt_integration import GRTIntegration
 
-            dialog = QWidget()
+            dialog = QWidget(self)
             dialog.setWindowTitle("🔗 Gordon Reloading Tool Integration")
             dialog.resize(1200, 800)
             layout = QVBoxLayout()
-            grt = GRTIntegration()
+            try:
+                grt = GRTIntegration(self)
+            except TypeError:
+                try:
+                    grt = GRTIntegration(parent=self)
+                except TypeError:
+                    grt = GRTIntegration()
             layout.addWidget(grt)
             dialog.setLayout(layout)
-            dialog.show()
+            try:
+                self.workspace_area.addWidget(dialog)
+                self.workspace_area.setCurrentWidget(dialog)
+            except Exception:
+                dialog.show()
             self.statusBar.showMessage("📍 GRT Integration")
         except Exception as e:
             logger.exception("GRTIntegration import failed: %s", e)
@@ -1879,14 +2625,24 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.safety_dashboard import SafetyDashboard
 
-            dialog = QWidget()
+            dialog = QWidget(self)
             dialog.setWindowTitle("⚠️ Safety Dashboard")
             dialog.resize(1200, 800)
             layout = QVBoxLayout()
-            dashboard = SafetyDashboard()
+            try:
+                dashboard = SafetyDashboard(self)
+            except TypeError:
+                try:
+                    dashboard = SafetyDashboard(parent=self)
+                except TypeError:
+                    dashboard = SafetyDashboard()
             layout.addWidget(dashboard)
             dialog.setLayout(layout)
-            dialog.show()
+            try:
+                self.workspace_area.addWidget(dialog)
+                self.workspace_area.setCurrentWidget(dialog)
+            except Exception:
+                dialog.show()
             self.statusBar.showMessage("📍 Safety Dashboard")
         except Exception as e:
             logger.exception("SafetyDashboard import failed: %s", e)
@@ -1901,14 +2657,24 @@ class MainWindow(QMainWindow):
         try:
             from src.modules.drop_chart_generator import DropChartGenerator
 
-            dialog = QWidget()
+            dialog = QWidget(self)
             dialog.setWindowTitle("📉 Dope Card Generator")
             dialog.resize(1000, 700)
             layout = QVBoxLayout()
-            generator = DropChartGenerator()
+            try:
+                generator = DropChartGenerator(self)
+            except TypeError:
+                try:
+                    generator = DropChartGenerator(parent=self)
+                except TypeError:
+                    generator = DropChartGenerator()
             layout.addWidget(generator)
             dialog.setLayout(layout)
-            dialog.show()
+            try:
+                self.workspace_area.addWidget(dialog)
+                self.workspace_area.setCurrentWidget(dialog)
+            except Exception:
+                dialog.show()
             self.statusBar.showMessage("📍 Dope Card Generator")
         except Exception as e:
             logger.exception("DropChartGenerator import failed: %s", e)
@@ -1920,6 +2686,44 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Håndterer lukking av vinduet"""
+        # In headless/offscreen environments we cannot show modal
+        # confirmation dialogs; accept the close immediately to avoid
+        # blocking the event loop (used by probes/tests).
+        try:
+            headless_flag = globals().get("_HEADLESS", False)
+        except Exception:
+            headless_flag = False
+
+        # Also treat explicit QT_QPA_PLATFORM or the Qt platform name as headless
+        try:
+            import os
+
+            qp = os.environ.get("QT_QPA_PLATFORM", "").lower()
+            if qp in ("offscreen", "minimal"):
+                headless_flag = True
+        except Exception:
+            pass
+
+        try:
+            from PyQt6.QtGui import QGuiApplication
+
+            try:
+                pname = QGuiApplication.platformName().lower()
+                if pname in ("offscreen", "minimal"):
+                    headless_flag = True
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+        if headless_flag:
+            try:
+                self.db.close()
+            except Exception:
+                pass
+            event.accept()
+            return
+
         reply = QMessageBox.question(
             self,
             "Bekreft avslutning",
@@ -1930,7 +2734,10 @@ class MainWindow(QMainWindow):
 
         if reply == QMessageBox.StandardButton.Yes:
             # Lukk database
-            self.db.close()
+            try:
+                self.db.close()
+            except Exception:
+                pass
             event.accept()
         else:
             event.ignore()

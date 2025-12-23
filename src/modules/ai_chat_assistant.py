@@ -44,12 +44,12 @@ class AIMessage(QFrame):
         self.setLayout(layout)
 
         # Message container
-        container = QFrame()
+        container = QFrame(self)
         container_layout = QVBoxLayout()
         container.setLayout(container_layout)
 
         # Header (timestamp + role)
-        header = QLabel()
+        header = QLabel(container)
         if self.is_user:
             header.setText(f"<b>You</b> • {self.timestamp}")
             container.setStyleSheet(
@@ -79,7 +79,7 @@ class AIMessage(QFrame):
         container_layout.addWidget(header)
 
         # Message text
-        message_label = QLabel(self.text)
+        message_label = QLabel(self.text, container)
         message_label.setWordWrap(True)
         message_label.setTextFormat(Qt.TextFormat.RichText)
         message_label.setOpenExternalLinks(True)
@@ -354,18 +354,18 @@ class AIChatAssistant(QWidget):
         self.setLayout(layout)
 
         # Header
-        header = QLabel("🤖 AI Load Development Assistant")
+        header = QLabel("🤖 AI Load Development Assistant", self)
         header.setStyleSheet(
             "font-size: 18px; font-weight: bold; color: #2c3e50; padding: 10px;"
         )
         layout.addWidget(header)
 
         # Chat area (scrollable)
-        scroll = QScrollArea()
+        scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.chat_container = QWidget()
+        self.chat_container = QWidget(scroll)
         self.chat_layout = QVBoxLayout()
         self.chat_container.setLayout(self.chat_layout)
         self.chat_layout.addStretch()
@@ -389,11 +389,11 @@ class AIChatAssistant(QWidget):
 
         # Quick prompts
         quick_layout = QVBoxLayout()
-        quick_label = QLabel("<b>Quick ask:</b>")
+        quick_label = QLabel("<b>Quick ask:</b>", input_frame)
         quick_label.setStyleSheet("font-size: 11px;")
         quick_layout.addWidget(quick_label)
 
-        btn_sd = QPushButton("What's SD?")
+        btn_sd = QPushButton("What's SD?", input_frame)
         btn_sd.clicked.connect(
             lambda: self.send_quick_prompt(
                 "What is Standard Deviation and what's a good SD for precision shooting?"
@@ -401,13 +401,13 @@ class AIChatAssistant(QWidget):
         )
         quick_layout.addWidget(btn_sd)
 
-        btn_pressure = QPushButton("Pressure signs?")
+        btn_pressure = QPushButton("Pressure signs?", input_frame)
         btn_pressure.clicked.connect(
             lambda: self.send_quick_prompt("How do I interpret pressure signs?")
         )
         quick_layout.addWidget(btn_pressure)
 
-        btn_recommend = QPushButton("Best load?")
+        btn_recommend = QPushButton("Best load?", input_frame)
         btn_recommend.clicked.connect(
             lambda: self.send_quick_prompt(
                 "Recommend the best load based on my historical data"
@@ -418,7 +418,7 @@ class AIChatAssistant(QWidget):
         input_layout.addLayout(quick_layout)
 
         # Text input
-        self.input_text = QLineEdit()
+        self.input_text = QLineEdit(input_frame)
         self.input_text.setPlaceholderText("Ask me anything about load development...")
         self.input_text.returnPressed.connect(self.send_message)
         self.input_text.setStyleSheet(
@@ -434,7 +434,7 @@ class AIChatAssistant(QWidget):
         input_layout.addWidget(self.input_text)
 
         # Send button
-        self.btn_send = QPushButton("Send")
+        self.btn_send = QPushButton("Send", input_frame)
         self.btn_send.setStyleSheet(
             """
             QPushButton {

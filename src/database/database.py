@@ -773,6 +773,25 @@ class Database:
         """
         )
 
+        # Backwards-compatible legacy table: inventory_lots
+        # Some older code and packaged builds expect this table name.
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS inventory_lots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_type TEXT,
+                item_id INTEGER,
+                lot_number TEXT,
+                purchase_date TEXT,
+                quantity_initial REAL,
+                quantity_remaining REAL,
+                location TEXT,
+                notes TEXT,
+                created_date TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
         # QC Measurements
         self.cursor.execute(
             """
@@ -938,6 +957,64 @@ class Database:
                 FOREIGN KEY (shooting_session_id) REFERENCES shooting_sessions (id)
             )
         """
+        )
+
+        # Engine calibrations (mapping predicted -> measured)
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS engine_calibrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                engine_name TEXT,
+                ammo_profile_id INTEGER,
+                slope REAL,
+                intercept REAL,
+                sample_count INTEGER,
+                mse REAL,
+                notes TEXT,
+                accepted BOOLEAN DEFAULT 0,
+                accepted_date TEXT,
+                created_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (ammo_profile_id) REFERENCES ammo_profiles(id)
+            )
+            """
+        )
+
+        # AI assistant settings (persisted configuration)
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ai_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                enabled BOOLEAN DEFAULT 0,
+                model TEXT,
+                api_key TEXT,
+                created_date TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # Plot snapshots (store summarized or full series for later analysis)
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS plot_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                snapshot_type TEXT,
+                metadata TEXT,
+                series_json TEXT,
+                created_date TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # Optimizer suggestions (record suggested next charges and basis)
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS optimizer_suggestions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                suggested_charge REAL,
+                basis_text TEXT,
+                created_date TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
         )
 
         # Cold Bore Shots (Første skudd fra kald rifle)
@@ -1108,6 +1185,50 @@ class Database:
                 FOREIGN KEY (powder_id) REFERENCES powder (id)
             )
         """
+        )
+
+        # Pressure history log (predicted pressures from simulations and imports)
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pressure_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+                rifle_id INTEGER,
+                ammo_profile_id INTEGER,
+                charge_weight REAL,
+                coal_mm REAL,
+                cbto_mm REAL,
+                predicted_pressure_psi REAL,
+                saami_max_psi REAL,
+                note TEXT
+            )
+            """
+        )
+
+        # UI settings - small key/value store for lightweight persistent UI options
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ui_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_date TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # Engine calibration records (slope/intercept for predicted -> measured mapping)
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS engine_calibrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                slope REAL,
+                intercept REAL,
+                sample_count INTEGER,
+                mse REAL,
+                notes TEXT
+            )
+            """
         )
 
         # ========================================================================

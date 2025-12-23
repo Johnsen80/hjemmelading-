@@ -121,32 +121,33 @@ class BatchQCDashboard(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🎯 Batch QC Dashboard")
+        header = QLabel("🎯 Batch QC Dashboard", self)
         header.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
         layout.addWidget(header)
 
         desc = QLabel(
             "Production Quality Control - Real-time QC during loading.\n"
-            "Ammofabrikker måler 10-20% av hver batch. Du bør gjøre det samme!"
+            "Ammofabrikker måler 10-20% av hver batch. Du bør gjøre det samme!",
+            self,
         )
         desc.setWordWrap(True)
         desc.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
         layout.addWidget(desc)
 
         # Batch setup section
-        setup_group = QGroupBox("📦 Batch Setup")
+        setup_group = QGroupBox("📦 Batch Setup", self)
         setup_layout = QVBoxLayout()
 
         # Batch info
         info_layout = QHBoxLayout()
 
-        info_layout.addWidget(QLabel("Batch navn:"))
-        self.edit_batch_name = QLineEdit()
+        info_layout.addWidget(QLabel("Batch navn:", setup_group))
+        self.edit_batch_name = QLineEdit(setup_group)
         self.edit_batch_name.setPlaceholderText("6.5CM 140gr 43.5gr N140")
         info_layout.addWidget(self.edit_batch_name)
 
-        info_layout.addWidget(QLabel("Antall patroner:"))
-        self.spin_batch_size = QSpinBox()
+        info_layout.addWidget(QLabel("Antall patroner:", setup_group))
+        self.spin_batch_size = QSpinBox(setup_group)
         self.spin_batch_size.setRange(10, 1000)
         self.spin_batch_size.setValue(100)
         info_layout.addWidget(self.spin_batch_size)
@@ -156,16 +157,16 @@ class BatchQCDashboard(QWidget):
         # Target specs
         specs_layout = QHBoxLayout()
 
-        specs_layout.addWidget(QLabel("Target Charge:"))
-        self.spin_target_charge = QDoubleSpinBox()
+        specs_layout.addWidget(QLabel("Target Charge:", setup_group))
+        self.spin_target_charge = QDoubleSpinBox(setup_group)
         self.spin_target_charge.setRange(20, 80)
         self.spin_target_charge.setDecimals(1)
         self.spin_target_charge.setSuffix(" gr")
         self.spin_target_charge.setValue(43.5)
         specs_layout.addWidget(self.spin_target_charge)
 
-        specs_layout.addWidget(QLabel("Tolerance:"))
-        self.spin_charge_tolerance = QDoubleSpinBox()
+        specs_layout.addWidget(QLabel("Tolerance:", setup_group))
+        self.spin_charge_tolerance = QDoubleSpinBox(setup_group)
         self.spin_charge_tolerance.setRange(0.01, 1.0)
         self.spin_charge_tolerance.setDecimals(2)
         self.spin_charge_tolerance.setSuffix(" gr")
@@ -178,16 +179,16 @@ class BatchQCDashboard(QWidget):
         # COAL specs
         coal_layout = QHBoxLayout()
 
-        coal_layout.addWidget(QLabel("Target COAL:"))
-        self.spin_target_coal = QDoubleSpinBox()
+        coal_layout.addWidget(QLabel("Target COAL:", setup_group))
+        self.spin_target_coal = QDoubleSpinBox(setup_group)
         self.spin_target_coal.setRange(2.0, 4.0)
         self.spin_target_coal.setDecimals(3)
         self.spin_target_coal.setSuffix(' "')
         self.spin_target_coal.setValue(2.800)
         coal_layout.addWidget(self.spin_target_coal)
 
-        coal_layout.addWidget(QLabel("Tolerance:"))
-        self.spin_coal_tolerance = QDoubleSpinBox()
+        coal_layout.addWidget(QLabel("Tolerance:", setup_group))
+        self.spin_coal_tolerance = QDoubleSpinBox(setup_group)
         self.spin_coal_tolerance.setRange(0.001, 0.050)
         self.spin_coal_tolerance.setDecimals(3)
         self.spin_coal_tolerance.setSuffix(' "')
@@ -199,7 +200,7 @@ class BatchQCDashboard(QWidget):
 
         # Start button
         btn_layout = QHBoxLayout()
-        self.btn_start_batch = QPushButton("🚀 Start Batch QC")
+        self.btn_start_batch = QPushButton("🚀 Start Batch QC", setup_group)
         self.btn_start_batch.clicked.connect(self.start_batch)
         self.btn_start_batch.setStyleSheet(
             """
@@ -223,27 +224,27 @@ class BatchQCDashboard(QWidget):
         layout.addWidget(setup_group)
 
         # Progress section
-        progress_group = QGroupBox("📊 Batch Progress")
+        progress_group = QGroupBox("📊 Batch Progress", self)
         progress_layout = QVBoxLayout()
 
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(progress_group)
         self.progress_bar.setVisible(False)
         progress_layout.addWidget(self.progress_bar)
 
         # Quick stats
         stats_layout = QHBoxLayout()
 
-        self.label_measured = QLabel("Målt: 0")
+        self.label_measured = QLabel("Målt: 0", progress_group)
         self.label_measured.setStyleSheet("font-size: 14px; font-weight: bold;")
         stats_layout.addWidget(self.label_measured)
 
-        self.label_outliers = QLabel("Outliers: 0")
+        self.label_outliers = QLabel("Outliers: 0", progress_group)
         self.label_outliers.setStyleSheet(
             "font-size: 14px; font-weight: bold; color: #e74c3c;"
         )
         stats_layout.addWidget(self.label_outliers)
 
-        self.label_status = QLabel("Status: Venter")
+        self.label_status = QLabel("Status: Venter", progress_group)
         self.label_status.setStyleSheet(
             "font-size: 14px; font-weight: bold; color: #7f8c8d;"
         )
@@ -256,23 +257,23 @@ class BatchQCDashboard(QWidget):
         layout.addWidget(progress_group)
 
         # Measurement section
-        measure_group = QGroupBox("📏 QC Målinger")
+        measure_group = QGroupBox("📏 QC Målinger", self)
         measure_layout = QVBoxLayout()
 
         # Measurement buttons
         btn_measure_layout = QHBoxLayout()
 
-        self.btn_charge = QPushButton("⚖️ Charge Weight")
+        self.btn_charge = QPushButton("⚖️ Charge Weight", measure_group)
         self.btn_charge.clicked.connect(lambda: self.add_measurement("charge_weight"))
         self.btn_charge.setEnabled(False)
         btn_measure_layout.addWidget(self.btn_charge)
 
-        self.btn_coal = QPushButton("📏 COAL")
+        self.btn_coal = QPushButton("📏 COAL", measure_group)
         self.btn_coal.clicked.connect(lambda: self.add_measurement("coal"))
         self.btn_coal.setEnabled(False)
         btn_measure_layout.addWidget(self.btn_coal)
 
-        self.btn_case = QPushButton("📦 Case Weight")
+        self.btn_case = QPushButton("📦 Case Weight", measure_group)
         self.btn_case.clicked.connect(lambda: self.add_measurement("case_weight"))
         self.btn_case.setEnabled(False)
         btn_measure_layout.addWidget(self.btn_case)
@@ -281,7 +282,7 @@ class BatchQCDashboard(QWidget):
         measure_layout.addLayout(btn_measure_layout)
 
         # Measurements table
-        self.table_measurements = QTableWidget()
+        self.table_measurements = QTableWidget(measure_group)
         self.table_measurements.setColumnCount(6)
         self.table_measurements.setHorizontalHeaderLabels(
             ["Patron #", "Type", "Verdi", "Target", "Delta", "Status"]
@@ -295,11 +296,11 @@ class BatchQCDashboard(QWidget):
         layout.addWidget(measure_group)
 
         # Analysis section
-        analysis_group = QGroupBox("📈 Batch Analyse")
+        analysis_group = QGroupBox("📈 Batch Analyse", self)
         analysis_layout = QVBoxLayout()
 
         # LIVE HISTOGRAM TABS
-        hist_tabs = QTabWidget()
+        hist_tabs = QTabWidget(analysis_group)
 
         # Charge weight histogram
         self.live_hist_charge = LiveHistogram(width=8, height=4)
@@ -337,7 +338,7 @@ class BatchQCDashboard(QWidget):
         analysis_layout.addLayout(analysis_btn_layout)
 
         # Results
-        self.text_results = QTextEdit()
+        self.text_results = QTextEdit(analysis_group)
         self.text_results.setReadOnly(True)
         self.text_results.setMaximumHeight(200)
         analysis_layout.addWidget(self.text_results)
