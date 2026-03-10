@@ -18,6 +18,10 @@ is required later, we can restore or extend the original script.
 import os
 import sys
 
+# Ensure Qt can find system fonts on Windows in headless runs.
+if os.name == "nt":
+    os.environ.setdefault("QT_QPA_FONTDIR", r"C:\Windows\Fonts")
+
 # Ensure the repository package root is on sys.path so `from HjemmeladingApp...`
 # imports work when this script is run directly as a subprocess from the
 # tests (the script's directory is `.../tools`, so we add its parent).

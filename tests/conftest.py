@@ -29,6 +29,9 @@ def ensure_qapplication() -> Generator[None, None, None]:
         # Respect QT_QPA_PLATFORM if set by the test runner
         if "QT_QPA_PLATFORM" not in os.environ:
             os.environ["QT_QPA_PLATFORM"] = "offscreen"
+        # Point Qt at system fonts on Windows to avoid slow discovery/warnings.
+        if os.name == "nt" and "QT_QPA_FONTDIR" not in os.environ:
+            os.environ["QT_QPA_FONTDIR"] = r"C:\Windows\Fonts"
         _app = QApplication([])
         try:
             yield

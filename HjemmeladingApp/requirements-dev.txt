@@ -6,4 +6,5 @@ flake8==6.1.0
 
 # Test runner
 pytest==7.4.0
+matplotlib==3.10.8
 

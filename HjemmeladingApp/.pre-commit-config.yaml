@@ -6,16 +6,19 @@ repos:
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m ruff check --fix
         language: system
         types: [python]
+        args: ["--config", "HjemmeladingApp/pyproject.toml"]
       - id: isort
         name: isort
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m isort
         language: system
         types: [python]
+        args: ["--settings-path", "HjemmeladingApp"]
       - id: black
         name: black
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m black
         language: system
         types: [python]
+        args: ["--config", "HjemmeladingApp/pyproject.toml"]
 repos:
   - repo: local
     hooks:
@@ -24,16 +27,19 @@ repos:
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m ruff check --fix
         language: system
         types: [python]
+        args: ["--config", "HjemmeladingApp/pyproject.toml"]
       - id: isort
         name: isort
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m isort
         language: system
         types: [python]
+        args: ["--settings-path", "HjemmeladingApp"]
       - id: black
         name: black
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m black
         language: system
         types: [python]
+        args: ["--config", "HjemmeladingApp/pyproject.toml"]
 repos:
   - repo: local
     hooks:
@@ -42,13 +48,16 @@ repos:
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m ruff check --fix
         language: system
         types: [python]
+        args: ["--config", "HjemmeladingApp/pyproject.toml"]
       - id: isort
         name: isort
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m isort
         language: system
         types: [python]
+        args: ["--settings-path", "HjemmeladingApp"]
       - id: black
         name: black
         entry: C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/HjemmeladingApp/ui/.venv/Scripts/python.exe -m black
         language: system
         types: [python]
+        args: ["--config", "HjemmeladingApp/pyproject.toml"]

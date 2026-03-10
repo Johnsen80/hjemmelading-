@@ -1,11 +1,61 @@
+import faulthandler
 import os
 import sys
+import threading
+import time
 import traceback
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
+if os.name == "nt":
+    os.environ.setdefault("QT_QPA_FONTDIR", r"C:\Windows\Fonts")
+
+_WATCHDOG_SECONDS = int(os.environ.get("HEADLESS_SMOKE_TIMEOUT", "15"))
+
+
+def _start_watchdog(timeout_seconds: int) -> None:
+    if os.environ.get("HEADLESS_SMOKE_DISABLE_WATCHDOG", "").lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return
+
+    def _watchdog() -> None:
+        time.sleep(timeout_seconds)
+        print(
+            f"HEADLESS_SMOKE: timeout after {timeout_seconds}s, dumping threads",
+            flush=True,
+        )
+        try:
+            faulthandler.dump_traceback(file=sys.stderr)
+        except Exception:
+            pass
+        os._exit(3)
+
+    threading.Thread(target=_watchdog, daemon=True).start()
+
+
+def _should_skip_mainwindow() -> bool:
+    if os.environ.get("HEADLESS_SMOKE_RUN_MAINWINDOW", "").lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return False
+    qp = os.environ.get("QT_QPA_PLATFORM", "").lower()
+    if qp in ("offscreen", "minimal"):
+        return True
+    if os.environ.get("HEADLESS", "").lower() in ("1", "true", "yes"):
+        return True
+    return False
+
+
 # Ensure repo root on sys.path
-sys.path.insert(0, r"C:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading")
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, ROOT)
 print("HEADLESS_SMOKE: start")
+faulthandler.enable()
+_start_watchdog(_WATCHDOG_SECONDS)
 try:
     # Install a Qt message handler to filter noisy font-directory warnings
     try:
@@ -18,10 +68,7 @@ try:
             except Exception:
                 text = message
             # Filter the specific QFontDatabase warning about missing Qt fonts
-            if (
-                "Cannot find font directory" in text
-                or "Qt no longer ships fonts" in text
-            ):
+            if "Cannot find font directory" in text or "Qt no longer ships fonts" in text:
                 return
             # Otherwise forward to stderr
             sys.__stderr__.write(str(message) + "\n")
@@ -49,7 +96,7 @@ try:
 
     app = QApplication([])
     print("HEADLESS_SMOKE: QApplication created")
-    # Try to register any bundled fonts so Qt and matplotlib can find gly    git --versionphs
+    # Try to register any bundled fonts so Qt and matplotlib can find glyphs
     try:
         # Import local helper if present
         try:
@@ -74,19 +121,22 @@ try:
     except Exception:
         print("HEADLESS_SMOKE: SettingsDialog failed:")
         traceback.print_exc()
-    # Main window
-    try:
-        from src.ui.main_window import MainWindow
-
-        mw = MainWindow()
-        print("HEADLESS_SMOKE: MainWindow instantiated")
+    # Main window (skip by default in headless to avoid hangs)
+    if _should_skip_mainwindow():
+        print("HEADLESS_SMOKE: skipping MainWindow in headless mode " "(set HEADLESS_SMOKE_RUN_MAINWINDOW=1 to enable)")
+    else:
         try:
-            mw.close()
+            from src.ui.main_window import MainWindow
+
+            mw = MainWindow()
+            print("HEADLESS_SMOKE: MainWindow instantiated")
+            try:
+                mw.close()
+            except Exception:
+                pass
         except Exception:
-            pass
-    except Exception:
-        print("HEADLESS_SMOKE: MainWindow failed:")
-        traceback.print_exc()
+            print("HEADLESS_SMOKE: MainWindow failed:")
+            traceback.print_exc()
     # Process events briefly
     try:
         app.processEvents()
@@ -112,8 +162,10 @@ try:
             )
         except Exception as e:
             print("HEADLESS_SMOKE: unable to query fontManager.ttflist:", e)
+    except ModuleNotFoundError as e:
+        print("HEADLESS_SMOKE: matplotlib not available:", e)
     except Exception as e:
-        print("HEADLESS_SMOKE: matplotlib not available or failed to import:", e)
+        print("HEADLESS_SMOKE: matplotlib failed:", e)
         traceback.print_exc()
     try:
         app.quit()

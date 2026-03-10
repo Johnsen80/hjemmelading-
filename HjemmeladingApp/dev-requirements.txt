@@ -4,3 +4,4 @@ black
 isort
 mypy
 pytest-xdist
+matplotlib
