@@ -5,7 +5,7 @@ import threading
 import time
 import traceback
 
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 if os.name == "nt":
     os.environ.setdefault("QT_QPA_FONTDIR", r"C:\Windows\Fonts")
 
@@ -71,7 +71,12 @@ try:
             if "Cannot find font directory" in text or "Qt no longer ships fonts" in text:
                 return
             # Otherwise forward to stderr
-            sys.__stderr__.write(str(message) + "\n")
+            try:
+                stderr = sys.__stderr__ if sys.__stderr__ is not None else sys.stderr
+                if stderr is not None:
+                    stderr.write(str(message) + "\n")
+            except Exception:
+                pass
 
         qInstallMessageHandler(_qt_message_handler)
     except Exception:
@@ -81,9 +86,16 @@ try:
     # is created in some environments). If not available, ensure we set the
     # AA_ShareOpenGLContexts attribute on QApplication before instantiation.
     try:
-        print("HEADLESS_SMOKE: QtWebEngineWidgets imported")
+        import PyQt6.QtWebEngineWidgets  # noqa: F401
+
+        print("HEADLESS_SMOKE: QtWebEngineWidgets imported (PyQt6.QtWebEngineWidgets)")
     except Exception as e:
-        print("HEADLESS_SMOKE: QtWebEngineWidgets import failed:", e)
+        try:
+            from PyQt6 import QtWebEngineWidgets  # noqa: F401
+
+            print("HEADLESS_SMOKE: QtWebEngineWidgets imported (PyQt6 import)")
+        except Exception as e2:
+            print("HEADLESS_SMOKE: QtWebEngineWidgets import failed:", e2 or e)
 
     from PyQt6.QtCore import Qt
     from PyQt6.QtWidgets import QApplication
