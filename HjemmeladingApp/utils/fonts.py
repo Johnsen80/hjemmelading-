@@ -1,9 +1,76 @@
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from pathlib import Path
 
 log = logging.getLogger(__name__)
+
+
+def resolve_bundled_fonts_dir() -> Path | None:
+    """Resolve the bundled fonts directory if it exists."""
+    env_dir = os.environ.get("VALKYRIE_FONTDIR")
+    if env_dir:
+        try:
+            env_path = Path(env_dir)
+            if env_path.exists():
+                return env_path
+        except Exception as e:
+            log.debug("Invalid VALKYRIE_FONTDIR %s: %s", env_dir, e)
+
+    candidates: list[Path] = []
+    try:
+        candidates.append(
+            Path(__file__).resolve().parent.parent / "resources" / "fonts"
+        )
+    except Exception as e:
+        log.debug("Could not resolve package fonts directory: %s", e)
+    try:
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            candidates.append(
+                Path(meipass) / "HjemmeladingApp" / "resources" / "fonts"
+            )
+            candidates.append(Path(meipass) / "resources" / "fonts")
+    except Exception as e:
+        log.debug("Could not resolve PyInstaller font dir: %s", e)
+
+    for candidate in candidates:
+        try:
+            if candidate.exists():
+                return candidate
+        except Exception:
+            continue
+    return None
+
+
+def ensure_qt_fontdir() -> Path | None:
+    """Ensure QT_QPA_FONTDIR points at a valid font directory if available."""
+    existing = os.environ.get("QT_QPA_FONTDIR")
+    if existing:
+        try:
+            existing_path = Path(existing)
+            if existing_path.exists():
+                return existing_path
+        except Exception as e:
+            log.debug("Invalid QT_QPA_FONTDIR %s: %s", existing, e)
+
+    fonts_dir = resolve_bundled_fonts_dir()
+    if fonts_dir is not None:
+        os.environ["QT_QPA_FONTDIR"] = str(fonts_dir)
+        return fonts_dir
+
+    if os.name == "nt":
+        try:
+            win_dir = Path(os.environ.get("WINDIR", r"C:\\Windows")) / "Fonts"
+            if win_dir.exists():
+                os.environ["QT_QPA_FONTDIR"] = str(win_dir)
+                return win_dir
+        except Exception as e:
+            log.debug("Could not resolve Windows font dir: %s", e)
+
+    return None
 
 
 def register_bundled_fonts() -> int:
@@ -14,12 +81,12 @@ def register_bundled_fonts() -> int:
     font manager so both Qt widgets and matplotlib can find glyphs.
     """
     try:
-        fonts_dir = Path(__file__).resolve().parent.parent / "resources" / "fonts"
+        fonts_dir = resolve_bundled_fonts_dir()
     except Exception as e:
         log.debug("Could not resolve fonts directory: %s", e)
         return 0
 
-    if not fonts_dir.exists():
+    if not fonts_dir:
         return 0
 
     added = 0

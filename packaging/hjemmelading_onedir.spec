@@ -4,29 +4,36 @@
 # To build using this spec:
 # & .\.venv\Scripts\python.exe -m PyInstaller packaging\hjemmelading_onedir.spec
 
-import sys
 from PyInstaller.utils.hooks import collect_all
 from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
 from pathlib import Path
 
 project_root = Path(__file__).resolve().parents[1]
 
-# Include demo data and Logo folder by default
-datas = [
-    (str(project_root / 'data' / 'demo_weapons.json'), 'data'),
-    (str(project_root / 'Logo'), 'Logo'),
-]
+# Collect PyQt6 resources/binaries so the onedir build runs on clean machines.
+pyqt6 = collect_all("PyQt6")
 
-hiddenimports = [
-    'PyQt6',
-]
+# Include demo data and Logo folder by default
+datas = list(pyqt6.get("datas", []))
+_demo = project_root / 'data' / 'demo_weapons.json'
+if _demo.exists():
+    datas.append((str(_demo), 'data'))
+_logo_dir = project_root / 'Logo'
+if _logo_dir.exists():
+    datas.append((str(_logo_dir), 'Logo'))
+_fonts_dir = project_root / 'HjemmeladingApp' / 'resources' / 'fonts'
+if _fonts_dir.exists():
+    datas.append((str(_fonts_dir), 'HjemmeladingApp/resources/fonts'))
+
+hiddenimports = pyqt6.get("hiddenimports", [])
+binaries = pyqt6.get("binaries", [])
 
 block_cipher = None
 
 a = Analysis(
-    ['src/main.py'],
+    ['HjemmeladingApp/main.py'],
     pathex=[str(project_root)],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
