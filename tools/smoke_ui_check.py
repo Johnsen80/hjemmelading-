@@ -26,7 +26,9 @@ def main() -> int:
             if "Cannot find font directory" in text or "Qt no longer ships fonts" in text:
                 return
             try:
-                sys.__stderr__.write(str(message) + "\n")
+                stderr = sys.__stderr__ if sys.__stderr__ is not None else sys.stderr
+                if stderr is not None:
+                    stderr.write(str(message) + "\n")
             except Exception:
                 pass
 
