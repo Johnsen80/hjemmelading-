@@ -1,0 +1,30 @@
+{
+  "labradar_sample.csv": {
+    "count": 4,
+    "avg": 2701.25,
+    "es": 20.0,
+    "sd_sample": 8.54,
+    "sd_population": 7.4
+  },
+  "garmin_xero_sample.csv": {
+    "count": 5,
+    "avg": 2806.0,
+    "es": 25.0,
+    "sd_sample": 9.62,
+    "sd_population": 8.6
+  },
+  "magnetospeed_sample.txt": {
+    "count": 3,
+    "avg": 2600.0,
+    "es": 20.0,
+    "sd_sample": 10.0,
+    "sd_population": 8.16
+  },
+  "magnetospeed_sample.csv": {
+    "count": 3,
+    "avg": 2600.0,
+    "es": 20.0,
+    "sd_sample": 10.0,
+    "sd_population": 8.16
+  }
+}

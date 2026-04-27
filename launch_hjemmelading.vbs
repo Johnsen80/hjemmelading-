@@ -1,7 +1,7 @@
 Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 pythonPath = fso.BuildPath(scriptDir, ".venv\\Scripts\\pythonw.exe")
-appPath = fso.BuildPath(scriptDir, "HjemmeladingApp\\main.py")
+appPath = fso.BuildPath(scriptDir, "main.py")
 
 Set WshShell = CreateObject("WScript.Shell")
 ' Ensure the script runs with project directory as current directory

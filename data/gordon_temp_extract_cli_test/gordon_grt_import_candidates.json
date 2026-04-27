@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Imported 30-06 load",
+    "profile_name": "Imported 30-06 load",
+    "source_dump": "sample_existing_profile_tab_results_dump.json",
+    "source_file": "C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/data fra gordon/doku/en/faq/files/30-06_168_hhpbt_imr4166_3.330_oal_2x2_1.grtload",
+    "predicted_velocity": 2917.7,
+    "velocity_fps": 2917.7,
+    "max_pressure_psi": 58073.1,
+    "max_pressure_bar": 4004.0,
+    "case_fill_percent": 97.8,
+    "optimal_coal": 84.58,
+    "raw_summary": {
+      "max_pressure": "4004.0 bar",
+      "end_velocity": "889.3 m/s",
+      "end_energy": "4210.0 joule",
+      "end_time": "1.39 ms",
+      "burnout_in_barrel": "true",
+      "chunk_count": 1
+    },
+    "matched_ammo_profile_id": 2,
+    "matched_ammo_profile_name": ".30-06 Spring. HXP 77 (30-06 Springfield, 30-06, 7,62 x 63) | Hornady BTHP Natl M #30501 | IMR 4166 | 53.00 gr"
+  }
+]

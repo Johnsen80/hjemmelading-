@@ -16,7 +16,7 @@ except Exception:
 
 def create_desktop_shortcut() -> None:
     project_dir = Path(__file__).parent.resolve()
-    main_py = project_dir / "HjemmeladingApp" / "main.py"
+    main_py = project_dir / "main.py"
     icon_file = project_dir / "hjemmelading.ico"
 
     # Prefer venv pythonw.exe if present, otherwise fall back to a system pythonw/python

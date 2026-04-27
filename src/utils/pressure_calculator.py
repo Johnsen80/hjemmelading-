@@ -12,6 +12,8 @@ Basert på:
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
+from .cartridge_standard_support import get_max_pressure_psi_for_caliber
+
 
 @dataclass
 class PressureEstimate:
@@ -71,8 +73,11 @@ class PressureCalculator:
 
     def get_saami_max(self, cartridge: str) -> int:
         """Hent SAAMI/CIP maks trykk for kaliber"""
-        # Prøv database først
         if self.db:
+            lookup = get_max_pressure_psi_for_caliber(self.db, cartridge)
+            if isinstance(lookup, (int, float)) and lookup > 0:
+                return int(round(float(lookup)))
+
             result = self.db.execute_query(
                 "SELECT max_avg_pressure_psi FROM cartridge_specs WHERE cartridge_name = ?",
                 (cartridge,),
@@ -338,7 +343,7 @@ class PressureCalculator:
         elif percent_of_max > 95:
             safety_rating = "CAUTION"
             warnings.append(
-                f"⚠️ FORSIKTIG! Ladning er nær SAAMI max ({percent_of_max:.1f}% av max)."
+                f"FORSIKTIG! Ladning er nær SAAMI max ({percent_of_max:.1f}% av max)."
             )
         else:
             safety_rating = "SAFE"
@@ -351,7 +356,7 @@ class PressureCalculator:
         # Load density warnings
         if load_density < 85:
             warnings.append(
-                f"⚠️ Lav load density ({load_density:.1f}%). Kan gi høy ES. Vurder raskere krutt."
+                f"Lav load density ({load_density:.1f}%). Kan gi høy ES. Vurder raskere krutt."
             )
         elif load_density > 105:
             warnings.append(
@@ -397,7 +402,7 @@ class PressureCalculator:
             return (
                 False,
                 (
-                    f"⚠️ Ladning ({powder_charge:.1f}gr) er UNDER manual minimum "
+                    f"Ladning ({powder_charge:.1f}gr) er UNDER manual minimum "
                     f"({manual_min:.1f}gr). "
                     "Kan gi upålitelig tenning."
                 ),
@@ -410,11 +415,11 @@ class PressureCalculator:
         elif powder_charge > manual_max * 0.98:
             return (
                 True,
-                f"⚠️ FORSIKTIG! Ladning ({powder_charge:.1f}gr) er nær manual max ({manual_max:.1f}gr).",
+                f"FORSIKTIG! Ladning ({powder_charge:.1f}gr) er nær manual max ({manual_max:.1f}gr).",
             )
         else:
             margin = ((manual_max - powder_charge) / manual_max) * 100
-            return True, f"✅ Ladning OK. {margin:.1f}% margin til max."
+            return True, f"Ladning OK. {margin:.1f}% margin til max."
 
 
 # Eksempel på bruk
@@ -439,7 +444,7 @@ if __name__ == "__main__":
         },
     )
 
-    print("🔬 PRESSURE SAFETY ANALYSIS")
+    print("PRESSURE SAFETY ANALYSIS")
     print("=" * 60)
     print(f"Safety Rating: {result.safety_rating}")
     print(f"Estimated Pressure: {result.estimated_psi:,.0f} PSI")
@@ -449,6 +454,6 @@ if __name__ == "__main__":
     print(f"\n{result.notes}")
 
     if result.warnings:
-        print("\n⚠️ WARNINGS:")
+        print("\nWARNINGS:")
         for warning in result.warnings:
             print(f"  {warning}")

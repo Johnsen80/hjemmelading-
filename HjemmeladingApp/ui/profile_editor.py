@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from HjemmeladingApp.i18n import translate
 from HjemmeladingApp.utils import safe_logger
 from HjemmeladingApp.utils.safe_logger import append_exception
 
@@ -100,7 +101,7 @@ class ProfileEditor(QWidget):
         super().__init__(parent)
         # Build UI inside try/except so failures in optional subsystems don't kill the app
         try:
-            self.setWindowTitle("Brukerprofil og innstillinger")
+            self.setWindowTitle(translate("Profile Settings"))
             self.setMinimumSize(400, 350)
             self.profile = UserProfile()
             # Ensure profile has a data dict
@@ -112,13 +113,13 @@ class ProfileEditor(QWidget):
             layout = QVBoxLayout()
 
             self.username_edit = QLineEdit(self.profile.data.get("username", ""))
-            layout.addWidget(QLabel("Brukernavn:"))
+            layout.addWidget(QLabel(translate("Username")))
             layout.addWidget(self.username_edit)
 
             self.theme_combo = QComboBox()
             self.theme_combo.addItems(["Standard", "Lys", "Mørk", "Fargerik"])
             self.theme_combo.setCurrentText(self.profile.data.get("theme", "Standard"))
-            layout.addWidget(QLabel("Tema:"))
+            layout.addWidget(QLabel(f"{translate('Theme')}:"))
             layout.addWidget(self.theme_combo)
 
             self.button_combo = QComboBox()
@@ -128,25 +129,25 @@ class ProfileEditor(QWidget):
             self.button_combo.setCurrentText(
                 self.profile.data.get("button_style", "Standard")
             )
-            layout.addWidget(QLabel("Knappestil:"))
+            layout.addWidget(QLabel(f"{translate('Button Style')}:"))
             layout.addWidget(self.button_combo)
 
             self.bg_edit = QLineEdit(self.profile.data.get("background", ""))
-            self.bg_btn = QPushButton("Velg bakgrunnsbilde")
+            self.bg_btn = QPushButton(translate("Choose Background Image"))
             self.bg_btn.clicked.connect(self.choose_bg)
-            layout.addWidget(QLabel("Bakgrunnsbilde:"))
+            layout.addWidget(QLabel(f"{translate('Background Image')}:"))
             layout.addWidget(self.bg_edit)
             layout.addWidget(self.bg_btn)
 
-            self.save_btn = QPushButton("Lagre innstillinger")
+            self.save_btn = QPushButton(translate("Save Settings"))
             self.save_btn.clicked.connect(self.save)
             layout.addWidget(self.save_btn)
 
-            self.export_btn = QPushButton("Eksporter profil")
+            self.export_btn = QPushButton(translate("Export Profile"))
             self.export_btn.clicked.connect(self.export)
             layout.addWidget(self.export_btn)
 
-            self.import_btn = QPushButton("Importer profil")
+            self.import_btn = QPushButton(translate("Import Profile"))
             self.import_btn.clicked.connect(self.import_profile)
             layout.addWidget(self.import_btn)
 
@@ -202,10 +203,8 @@ class ProfileEditor(QWidget):
                 pass
             logger.exception("ProfileEditor init failed")
             fallback_layout = QVBoxLayout()
-            fallback_layout.addWidget(
-                QLabel("Profilredigering er midlertidig utilgjengelig.")
-            )
-            close_btn = QPushButton("Lukk")
+            fallback_layout.addWidget(QLabel(translate("Profile Editor Unavailable")))
+            close_btn = QPushButton(translate("Close"))
             close_btn.clicked.connect(self.close)
             fallback_layout.addWidget(close_btn)
             self.setLayout(fallback_layout)
@@ -217,7 +216,7 @@ class ProfileEditor(QWidget):
     def choose_bg(self):
         try:
             file, _ = QFileDialog.getOpenFileName(
-                self, "Velg bilde", "", "Bilder (*.png *.jpg *.jpeg *.bmp)"
+                self, translate("Choose Image"), "", translate("Images Filter")
             )
             if file:
                 self.bg_edit.setText(file)
@@ -334,7 +333,11 @@ class ProfileEditor(QWidget):
                 logger.exception("Profile save failed")
             if ok:
                 try:
-                    QMessageBox.information(self, "Lagret", "Innstillinger lagret!")
+                    QMessageBox.information(
+                        self,
+                        translate("Saved"),
+                        translate("Settings Saved"),
+                    )
                 except Exception as _suppressed_exc:
                     try:
                         _mod_logger = globals().get("_logger") or globals().get(
@@ -386,7 +389,11 @@ class ProfileEditor(QWidget):
                     logger.info("Settings saved (no UI notification available)")
             else:
                 try:
-                    QMessageBox.warning(self, "Feil", "Kunne ikke lagre innstillinger.")
+                    QMessageBox.warning(
+                        self,
+                        translate("Error"),
+                        translate("Could Not Save Settings"),
+                    )
                 except Exception as _suppressed_exc:
                     try:
                         _mod_logger = globals().get("_logger") or globals().get(
@@ -488,7 +495,7 @@ class ProfileEditor(QWidget):
     def export(self):
         try:
             file, _ = QFileDialog.getSaveFileName(
-                self, "Eksporter profil", "", "JSON (*.json)"
+                self, translate("Export Profile"), "", "JSON (*.json)"
             )
             if file:
                 ok = False
@@ -549,7 +556,9 @@ class ProfileEditor(QWidget):
                 if ok:
                     try:
                         QMessageBox.information(
-                            self, "Eksportert", "Profil eksportert!"
+                            self,
+                            translate("Exported"),
+                            translate("Profile Exported"),
                         )
                     except Exception as _suppressed_exc:
                         try:
@@ -601,7 +610,11 @@ class ProfileEditor(QWidget):
                         logger.info("Profile exported (no UI notification)")
                 else:
                     try:
-                        QMessageBox.warning(self, "Feil", "Eksport feilet!")
+                        QMessageBox.warning(
+                            self,
+                            translate("Error"),
+                            translate("Export Failed"),
+                        )
                     except Exception as _suppressed_exc:
                         try:
                             _mod_logger = globals().get("_logger") or globals().get(
@@ -703,7 +716,7 @@ class ProfileEditor(QWidget):
     def import_profile(self):
         try:
             file, _ = QFileDialog.getOpenFileName(
-                self, "Importer profil", "", "JSON (*.json)"
+                self, translate("Import Profile"), "", "JSON (*.json)"
             )
             if file:
                 ok = False
@@ -765,7 +778,11 @@ class ProfileEditor(QWidget):
                     logger.exception("Profile import failed")
                 if ok:
                     try:
-                        QMessageBox.information(self, "Importert", "Profil importert!")
+                        QMessageBox.information(
+                            self,
+                            translate("Imported"),
+                            translate("Profile Imported"),
+                        )
                     except Exception as _suppressed_exc:
                         try:
                             _mod_logger = globals().get("_logger") or globals().get(
@@ -881,13 +898,17 @@ class ProfileEditor(QWidget):
                         if last_err:
                             mb = QMessageBox(self)
                             mb.setIcon(QMessageBox.Icon.Warning)
-                            mb.setWindowTitle("Import feilet")
-                            mb.setText("Import av profil feilet.")
-                            mb.setInformativeText("Se detaljer for mer informasjon.")
+                            mb.setWindowTitle(translate("Import Failed"))
+                            mb.setText(translate("Profile Import Failed"))
+                            mb.setInformativeText(translate("See Details"))
                             mb.setDetailedText(str(last_err))
                             mb.exec()
                         else:
-                            QMessageBox.warning(self, "Feil", "Import feilet!")
+                            QMessageBox.warning(
+                                self,
+                                translate("Error"),
+                                translate("Import Failed"),
+                            )
                     except Exception as _suppressed_exc:
                         try:
                             _mod_logger = globals().get("_logger") or globals().get(

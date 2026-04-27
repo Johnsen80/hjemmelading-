@@ -1,0 +1,215 @@
+{
+  "input_root": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\tmp\\reference_known_sources_ingest",
+  "projectile_rows": 11,
+  "propellant_rows": 8,
+  "caliber_rows": 8,
+  "bullet_manufacturers": 6,
+  "bullet_unique_products": 9,
+  "bullet_rows_missing_bc": 4,
+  "powder_manufacturers": 2,
+  "powder_unique_products": 2,
+  "caliber_standards": {
+    "User Meas.": 2,
+    "CIP": 6
+  },
+  "top_bullet_manufacturers": [
+    {
+      "manufacturer": "Hornady",
+      "product_count": 4
+    },
+    {
+      "manufacturer": "<unknown>",
+      "product_count": 1
+    },
+    {
+      "manufacturer": "Barnes",
+      "product_count": 1
+    },
+    {
+      "manufacturer": "Norma",
+      "product_count": 1
+    },
+    {
+      "manufacturer": "North Fork",
+      "product_count": 1
+    },
+    {
+      "manufacturer": "PPU",
+      "product_count": 1
+    }
+  ],
+  "top_powder_manufacturers": [
+    {
+      "manufacturer": "IMR",
+      "product_count": 1
+    },
+    {
+      "manufacturer": "Vihtavuori",
+      "product_count": 1
+    }
+  ],
+  "bullet_products": [
+    {
+      "manufacturer": "<unknown>",
+      "product_name": "<unknown>",
+      "variants": 2,
+      "lot_count": 0,
+      "calibers": [
+        "<unknown>"
+      ],
+      "g1_values": [],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "Barnes",
+      "product_name": "MatchB 30381",
+      "variants": 2,
+      "lot_count": 0,
+      "calibers": [
+        "<unknown>"
+      ],
+      "g1_values": [
+        0.467
+      ],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "Hornady",
+      "product_name": "BTHP 26335",
+      "variants": 1,
+      "lot_count": 1,
+      "calibers": [
+        "<unknown>"
+      ],
+      "g1_values": [
+        0.58
+      ],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "Hornady",
+      "product_name": "BTHP Natl M #30501",
+      "variants": 1,
+      "lot_count": 1,
+      "calibers": [
+        "<unknown>"
+      ],
+      "g1_values": [
+        0.45
+      ],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "Hornady",
+      "product_name": "ELD-M #26175",
+      "variants": 1,
+      "lot_count": 1,
+      "calibers": [
+        "<unknown>"
+      ],
+      "g1_values": [
+        0.458
+      ],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "Hornady",
+      "product_name": "FMJ",
+      "variants": 1,
+      "lot_count": 1,
+      "calibers": [
+        ".308"
+      ],
+      "g1_values": [],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "Norma",
+      "product_name": "EcoStrike",
+      "variants": 1,
+      "lot_count": 1,
+      "calibers": [
+        ".308"
+      ],
+      "g1_values": [
+        0.42
+      ],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "North Fork",
+      "product_name": "SS",
+      "variants": 1,
+      "lot_count": 1,
+      "calibers": [
+        ".308"
+      ],
+      "g1_values": [],
+      "g7_values": []
+    },
+    {
+      "manufacturer": "PPU",
+      "product_name": "PPB30MC150",
+      "variants": 1,
+      "lot_count": 1,
+      "calibers": [
+        "<unknown>"
+      ],
+      "g1_values": [
+        0.4
+      ],
+      "g7_values": []
+    }
+  ],
+  "powder_products": [
+    {
+      "manufacturer": "IMR",
+      "product_name": "4166",
+      "variants": 4,
+      "lot_count": 1,
+      "lots": [
+        "2020-03-02"
+      ],
+      "ba_values": [
+        0.602
+      ],
+      "k_values": [
+        1.2333
+      ],
+      "qex_values": [
+        3860.0
+      ]
+    },
+    {
+      "manufacturer": "Vihtavuori",
+      "product_name": "N540",
+      "variants": 4,
+      "lot_count": 2,
+      "lots": [
+        "2020-08-01",
+        "2021-09-30"
+      ],
+      "ba_values": [
+        0.5728,
+        0.5816
+      ],
+      "k_values": [
+        1.2131,
+        1.2171
+      ],
+      "qex_values": [
+        4000.0
+      ]
+    }
+  ],
+  "bullet_products_by_caliber": [
+    {
+      "caliber": "<unknown>",
+      "product_count": 6
+    },
+    {
+      "caliber": ".308",
+      "product_count": 3
+    }
+  ]
+}

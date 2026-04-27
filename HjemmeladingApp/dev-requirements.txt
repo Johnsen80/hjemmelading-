@@ -5,3 +5,4 @@ isort
 mypy
 pytest-xdist
 matplotlib
+PySide6==6.10.0

@@ -1,6 +1,6 @@
 """
 Comprehensive Data Logging System
-Tracks EVERYTHING for load development - for the OCD shooters! 😄
+Tracks EVERYTHING for load development.
 
 Categories:
 1. Environmental Conditions (temp, humidity, pressure, wind)
@@ -10,16 +10,22 @@ Categories:
 5. Notes & Observations (qualitative data)
 """
 
+import csv
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from PyQt6.QtCore import QDate, QTime, pyqtSignal
+from PyQt6.QtGui import QTextDocument
+from PyQt6.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
+    QDialog,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -35,6 +41,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from ..database.database import get_database
 
 
 class ComprehensiveDataLogger(QWidget):
@@ -67,14 +75,14 @@ class ComprehensiveDataLogger(QWidget):
         header_layout = QHBoxLayout()
         header.setLayout(header_layout)
 
-        title = QLabel("📊 Comprehensive Data Log")
+        title = QLabel("Comprehensive Data Log")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
         header_layout.addWidget(title)
 
         header_layout.addStretch()
 
         # Load ID (prominent display)
-        self.label_load_id = QLabel(f"🔖 Load ID: <b>{self.load_id}</b>")
+        self.label_load_id = QLabel(f"Load ID: <b>{self.load_id}</b>")
         self.label_load_id.setStyleSheet(
             """
             background-color: #3498db;
@@ -93,27 +101,27 @@ class ComprehensiveDataLogger(QWidget):
         layout.addWidget(self.tabs)
 
         # Tab 1: Session Info
-        self.tabs.addTab(self.create_session_tab(), "📋 Session Info")
+        self.tabs.addTab(self.create_session_tab(), "Session Info")
 
         # Tab 2: Environmental
-        self.tabs.addTab(self.create_environmental_tab(), "🌡️ Environmental")
+        self.tabs.addTab(self.create_environmental_tab(), "Environmental")
 
         # Tab 3: Ammo Details
-        self.tabs.addTab(self.create_ammo_tab(), "🎯 Ammo Details")
+        self.tabs.addTab(self.create_ammo_tab(), "Ammo Details")
 
         # Tab 4: Rifle Condition
-        self.tabs.addTab(self.create_rifle_tab(), "🔫 Rifle Condition")
+        self.tabs.addTab(self.create_rifle_tab(), "Rifle Condition")
 
         # Tab 5: Shot Data
-        self.tabs.addTab(self.create_shot_data_tab(), "📊 Shot Data")
+        self.tabs.addTab(self.create_shot_data_tab(), "Shot Data")
 
         # Tab 6: Notes & Observations
-        self.tabs.addTab(self.create_notes_tab(), "📝 Notes")
+        self.tabs.addTab(self.create_notes_tab(), "Notes")
 
         # Bottom buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_save = QPushButton("💾 Save Session")
+        self.btn_save = QPushButton("Save Session")
         self.btn_save.setStyleSheet(
             """
             QPushButton {
@@ -132,11 +140,11 @@ class ComprehensiveDataLogger(QWidget):
         self.btn_save.clicked.connect(self.save_session)
         btn_layout.addWidget(self.btn_save)
 
-        self.btn_export = QPushButton("📄 Export to Excel")
+        self.btn_export = QPushButton("Export to Excel")
         self.btn_export.clicked.connect(self.export_to_excel)
         btn_layout.addWidget(self.btn_export)
 
-        self.btn_print = QPushButton("🖨️ Print Data Sheet")
+        self.btn_print = QPushButton("Print Data Sheet")
         self.btn_print.clicked.connect(self.print_data_sheet)
         btn_layout.addWidget(self.btn_print)
 
@@ -152,21 +160,21 @@ class ComprehensiveDataLogger(QWidget):
         self.session_date = QDateEdit()
         self.session_date.setDate(QDate.currentDate())
         self.session_date.setCalendarPopup(True)
-        layout.addRow("📅 Date:", self.session_date)
+        layout.addRow("Date:", self.session_date)
 
         self.session_time = QTimeEdit()
         self.session_time.setTime(QTime.currentTime())
-        layout.addRow("🕐 Time:", self.session_time)
+        layout.addRow("Time:", self.session_time)
 
         # Location
         self.session_location = QLineEdit()
         self.session_location.setPlaceholderText("e.g., Bodø Skyttersenter")
-        layout.addRow("📍 Location:", self.session_location)
+        layout.addRow("Location:", self.session_location)
 
         # Shooter
         self.session_shooter = QLineEdit()
         self.session_shooter.setPlaceholderText("Your name")
-        layout.addRow("👤 Shooter:", self.session_shooter)
+        layout.addRow("Shooter:", self.session_shooter)
 
         # Session Type
         self.session_type = QComboBox()
@@ -182,14 +190,14 @@ class ComprehensiveDataLogger(QWidget):
                 "Other",
             ]
         )
-        layout.addRow("🎯 Session Type:", self.session_type)
+        layout.addRow("Session Type:", self.session_type)
 
         # Distance
         self.session_distance = QSpinBox()
         self.session_distance.setRange(25, 1500)
         self.session_distance.setValue(100)
         self.session_distance.setSuffix(" meters")
-        layout.addRow("📏 Distance:", self.session_distance)
+        layout.addRow("Distance:", self.session_distance)
 
         return widget
 
@@ -204,14 +212,14 @@ class ComprehensiveDataLogger(QWidget):
         self.env_temp.setRange(-30, 50)
         self.env_temp.setValue(15)
         self.env_temp.setSuffix(" °C")
-        layout.addRow("🌡️ Temperature:", self.env_temp)
+        layout.addRow("Temperature:", self.env_temp)
 
         # Humidity
         self.env_humidity = QSpinBox()
         self.env_humidity.setRange(0, 100)
         self.env_humidity.setValue(50)
         self.env_humidity.setSuffix(" %")
-        layout.addRow("💧 Humidity:", self.env_humidity)
+        layout.addRow("Humidity:", self.env_humidity)
 
         # Barometric Pressure
         self.env_pressure = QDoubleSpinBox()
@@ -225,14 +233,14 @@ class ComprehensiveDataLogger(QWidget):
         self.env_altitude.setRange(0, 3000)
         self.env_altitude.setValue(0)
         self.env_altitude.setSuffix(" m")
-        layout.addRow("⛰️ Altitude:", self.env_altitude)
+        layout.addRow("Altitude:", self.env_altitude)
 
         # Wind
         self.env_wind_speed = QDoubleSpinBox()
         self.env_wind_speed.setRange(0, 30)
         self.env_wind_speed.setValue(0)
         self.env_wind_speed.setSuffix(" m/s")
-        layout.addRow("💨 Wind Speed:", self.env_wind_speed)
+        layout.addRow("Wind Speed:", self.env_wind_speed)
 
         self.env_wind_direction = QComboBox()
         self.env_wind_direction.addItems(
@@ -252,7 +260,7 @@ class ComprehensiveDataLogger(QWidget):
                 "11 o'clock",
             ]
         )
-        layout.addRow("🧭 Wind Direction:", self.env_wind_direction)
+        layout.addRow("Wind Direction:", self.env_wind_direction)
 
         # Light conditions
         self.env_light = QComboBox()
@@ -268,12 +276,12 @@ class ComprehensiveDataLogger(QWidget):
                 "Night (artificial light)",
             ]
         )
-        layout.addRow("☀️ Light Conditions:", self.env_light)
+        layout.addRow("Light Conditions:", self.env_light)
 
         # Mirage
         self.env_mirage = QComboBox()
         self.env_mirage.addItems(["None", "Light", "Moderate", "Heavy"])
-        layout.addRow("🌊 Mirage:", self.env_mirage)
+        layout.addRow("Mirage:", self.env_mirage)
 
         return widget
 
@@ -290,67 +298,97 @@ class ComprehensiveDataLogger(QWidget):
         # Batch Number
         self.ammo_batch = QLineEdit()
         self.ammo_batch.setPlaceholderText("e.g., BATCH_2024_001")
-        layout.addRow("🔢 Batch Number:", self.ammo_batch)
+        layout.addRow("Batch Number:", self.ammo_batch)
 
         # Caliber
         self.ammo_caliber = QLineEdit()
         self.ammo_caliber.setPlaceholderText("e.g., 6.5 Creedmoor")
-        layout.addRow("📐 Caliber:", self.ammo_caliber)
+        layout.addRow("Caliber:", self.ammo_caliber)
 
         # Bullet
-        self.ammo_bullet = QLineEdit()
-        self.ammo_bullet.setPlaceholderText("e.g., Berger 140gr Hybrid")
-        layout.addRow("🎯 Bullet:", self.ammo_bullet)
+        self.ammo_bullet = QComboBox()
+        self.ammo_bullet.setEditable(True)
+        self.ammo_bullet.addItem("— select bullet —", None)
+        self._logger_bullets_db: list = []
+        try:
+            _db = get_database()
+            self._logger_bullets_db = _db.execute_query(
+                "SELECT id, name, manufacturer, weight_grains, caliber"
+                " FROM bullets ORDER BY manufacturer, weight_grains, name"
+            )
+            for _b in self._logger_bullets_db:
+                _lbl = _b["name"]
+                if _b.get("weight_grains"):
+                    _lbl += f" {float(_b['weight_grains']):.0f}gr"
+                if _b.get("caliber"):
+                    _lbl += f" ({_b['caliber']})"
+                self.ammo_bullet.addItem(_lbl, _b["id"])
+        except Exception:
+            pass
+        self.ammo_bullet.currentIndexChanged.connect(self._on_logger_bullet_selected)
+        layout.addRow("Bullet:", self.ammo_bullet)
 
         self.ammo_bullet_weight = QDoubleSpinBox()
         self.ammo_bullet_weight.setRange(20, 500)
         self.ammo_bullet_weight.setValue(140)
         self.ammo_bullet_weight.setSuffix(" gr")
-        layout.addRow("⚖️ Bullet Weight:", self.ammo_bullet_weight)
+        layout.addRow("Bullet Weight:", self.ammo_bullet_weight)
 
         self.ammo_bullet_lot = QLineEdit()
         self.ammo_bullet_lot.setPlaceholderText("Bullet lot number")
-        layout.addRow("📦 Bullet Lot:", self.ammo_bullet_lot)
+        layout.addRow("Bullet Lot:", self.ammo_bullet_lot)
 
         # Powder
-        self.ammo_powder = QLineEdit()
-        self.ammo_powder.setPlaceholderText("e.g., Vihtavuori N140")
-        layout.addRow("💊 Powder:", self.ammo_powder)
+        self.ammo_powder = QComboBox()
+        self.ammo_powder.setEditable(True)
+        self.ammo_powder.addItem("— select powder —", None)
+        try:
+            _db = get_database()
+            for _p in _db.execute_query(
+                "SELECT id, name, manufacturer FROM powder ORDER BY manufacturer, name"
+            ):
+                _lbl = _p["name"]
+                if _p.get("manufacturer"):
+                    _lbl += f" ({_p['manufacturer']})"
+                self.ammo_powder.addItem(_lbl, _p["id"])
+        except Exception:
+            pass
+        layout.addRow("Powder:", self.ammo_powder)
 
         self.ammo_powder_charge = QDoubleSpinBox()
         self.ammo_powder_charge.setRange(10, 100)
         self.ammo_powder_charge.setValue(42.0)
         self.ammo_powder_charge.setSuffix(" gr")
         self.ammo_powder_charge.setDecimals(1)
-        layout.addRow("⚖️ Powder Charge:", self.ammo_powder_charge)
+        layout.addRow("Powder Charge:", self.ammo_powder_charge)
 
         self.ammo_powder_lot = QLineEdit()
         self.ammo_powder_lot.setPlaceholderText("Powder lot number")
-        layout.addRow("📦 Powder Lot:", self.ammo_powder_lot)
+        layout.addRow("Powder Lot:", self.ammo_powder_lot)
 
         # Primer
         self.ammo_primer = QLineEdit()
         self.ammo_primer.setPlaceholderText("e.g., CCI BR-2")
-        layout.addRow("💥 Primer:", self.ammo_primer)
+        layout.addRow("Primer:", self.ammo_primer)
 
         self.ammo_primer_lot = QLineEdit()
         self.ammo_primer_lot.setPlaceholderText("Primer lot number")
-        layout.addRow("📦 Primer Lot:", self.ammo_primer_lot)
+        layout.addRow("Primer Lot:", self.ammo_primer_lot)
 
         # Brass
         self.ammo_brass = QLineEdit()
         self.ammo_brass.setPlaceholderText("e.g., Lapua")
-        layout.addRow("🥉 Brass:", self.ammo_brass)
+        layout.addRow("Brass:", self.ammo_brass)
 
         self.ammo_brass_firings = QSpinBox()
         self.ammo_brass_firings.setRange(0, 20)
         self.ammo_brass_firings.setValue(0)
         self.ammo_brass_firings.setSuffix("x fired")
-        layout.addRow("♻️ Brass Firings:", self.ammo_brass_firings)
+        layout.addRow("Brass Firings:", self.ammo_brass_firings)
 
         self.ammo_brass_lot = QLineEdit()
         self.ammo_brass_lot.setPlaceholderText("Brass lot number")
-        layout.addRow("📦 Brass Lot:", self.ammo_brass_lot)
+        layout.addRow("Brass Lot:", self.ammo_brass_lot)
 
         # Case Prep
         layout.addRow(QLabel("<b>Case Preparation:</b>"))
@@ -384,35 +422,35 @@ class ComprehensiveDataLogger(QWidget):
         self.measure_case_length.setValue(48.0)
         self.measure_case_length.setSuffix(" mm")
         self.measure_case_length.setDecimals(2)
-        layout.addRow("📏 Case Length:", self.measure_case_length)
+        layout.addRow("Case Length:", self.measure_case_length)
 
         self.measure_coal = QDoubleSpinBox()
         self.measure_coal.setRange(40, 100)
         self.measure_coal.setValue(70.0)
         self.measure_coal.setSuffix(" mm")
         self.measure_coal.setDecimals(2)
-        layout.addRow("📏 COAL:", self.measure_coal)
+        layout.addRow("COAL:", self.measure_coal)
 
         self.measure_cbto = QDoubleSpinBox()
         self.measure_cbto.setRange(30, 90)
         self.measure_cbto.setValue(55.0)
         self.measure_cbto.setSuffix(" mm")
         self.measure_cbto.setDecimals(2)
-        layout.addRow("📏 CBTO:", self.measure_cbto)
+        layout.addRow("CBTO:", self.measure_cbto)
 
         self.measure_jump = QDoubleSpinBox()
         self.measure_jump.setRange(-0.5, 5.0)
         self.measure_jump.setValue(0.020)
         self.measure_jump.setSuffix(" mm")
         self.measure_jump.setDecimals(3)
-        layout.addRow("🎯 Jump to Lands:", self.measure_jump)
+        layout.addRow("Jump to Lands:", self.measure_jump)
 
         self.measure_neck_tension = QDoubleSpinBox()
         self.measure_neck_tension.setRange(0.001, 0.010)
         self.measure_neck_tension.setValue(0.002)
         self.measure_neck_tension.setSuffix(" in")
         self.measure_neck_tension.setDecimals(3)
-        layout.addRow("🔧 Neck Tension:", self.measure_neck_tension)
+        layout.addRow("Neck Tension:", self.measure_neck_tension)
 
         container = QWidget()
         container_layout = QVBoxLayout()
@@ -430,18 +468,18 @@ class ComprehensiveDataLogger(QWidget):
         # Rifle ID
         self.rifle_name = QLineEdit()
         self.rifle_name.setPlaceholderText("e.g., Tikka T3X CTR")
-        layout.addRow("🔫 Rifle:", self.rifle_name)
+        layout.addRow("Rifle:", self.rifle_name)
 
         # Barrel info
         self.rifle_barrel_make = QLineEdit()
         self.rifle_barrel_make.setPlaceholderText("e.g., Factory / Bartlein")
-        layout.addRow("🎯 Barrel:", self.rifle_barrel_make)
+        layout.addRow("Barrel:", self.rifle_barrel_make)
 
         self.rifle_barrel_length = QSpinBox()
         self.rifle_barrel_length.setRange(10, 36)
         self.rifle_barrel_length.setValue(24)
         self.rifle_barrel_length.setSuffix(" inches")
-        layout.addRow("📏 Barrel Length:", self.rifle_barrel_length)
+        layout.addRow("Barrel Length:", self.rifle_barrel_length)
 
         self.rifle_twist_rate = QComboBox()
         self.rifle_twist_rate.addItems(
@@ -458,14 +496,14 @@ class ComprehensiveDataLogger(QWidget):
                 "Other",
             ]
         )
-        layout.addRow("🌀 Twist Rate:", self.rifle_twist_rate)
+        layout.addRow("Twist Rate:", self.rifle_twist_rate)
 
         # Barrel condition
         self.rifle_round_count = QSpinBox()
         self.rifle_round_count.setRange(0, 10000)
         self.rifle_round_count.setValue(0)
         self.rifle_round_count.setSuffix(" rounds")
-        layout.addRow("🔢 Total Round Count:", self.rifle_round_count)
+        layout.addRow("Total Round Count:", self.rifle_round_count)
 
         self.rifle_rounds_since_clean = QSpinBox()
         self.rifle_rounds_since_clean.setRange(0, 500)
@@ -480,7 +518,7 @@ class ComprehensiveDataLogger(QWidget):
         self.rifle_fouling_shots.setRange(0, 20)
         self.rifle_fouling_shots.setValue(0)
         self.rifle_fouling_shots.setSuffix(" shots")
-        layout.addRow("🎯 Fouling Shots:", self.rifle_fouling_shots)
+        layout.addRow("Fouling Shots:", self.rifle_fouling_shots)
 
         # Barrel temp
         self.rifle_barrel_temp = QComboBox()
@@ -492,16 +530,16 @@ class ComprehensiveDataLogger(QWidget):
                 "Very hot (>5 shots rapid)",
             ]
         )
-        layout.addRow("🌡️ Barrel Temp:", self.rifle_barrel_temp)
+        layout.addRow("Barrel Temp:", self.rifle_barrel_temp)
 
         # Scope/Optic
         self.rifle_scope = QLineEdit()
         self.rifle_scope.setPlaceholderText("e.g., Vortex Viper PST 5-25x50")
-        layout.addRow("🔭 Scope:", self.rifle_scope)
+        layout.addRow("Scope:", self.rifle_scope)
 
         self.rifle_scope_zero = QLineEdit()
         self.rifle_scope_zero.setPlaceholderText("e.g., 100m, 1.5 MRAD up")
-        layout.addRow("🎯 Zero:", self.rifle_scope_zero)
+        layout.addRow("Zero:", self.rifle_scope_zero)
 
         # Rest/Support
         self.rifle_support = QComboBox()
@@ -515,7 +553,7 @@ class ComprehensiveDataLogger(QWidget):
                 "Other",
             ]
         )
-        layout.addRow("🛠️ Support:", self.rifle_support)
+        layout.addRow("Support:", self.rifle_support)
 
         return widget
 
@@ -528,7 +566,7 @@ class ComprehensiveDataLogger(QWidget):
         # Instructions
         info = QLabel(
             """
-        <b>📊 Shot Data Entry</b><br>
+        <b>Shot Data Entry</b><br>
         Enter velocity and group data here. For detailed shot-by-shot tracking,
         use the Live Testing tab in your workflow.
         """
@@ -547,26 +585,26 @@ class ComprehensiveDataLogger(QWidget):
         self.shot_avg_velocity.setRange(500, 4000)
         self.shot_avg_velocity.setValue(2700)
         self.shot_avg_velocity.setSuffix(" fps")
-        form.addRow("📈 Average Velocity:", self.shot_avg_velocity)
+        form.addRow("Average Velocity:", self.shot_avg_velocity)
 
         self.shot_es = QSpinBox()
         self.shot_es.setRange(0, 200)
         self.shot_es.setValue(15)
         self.shot_es.setSuffix(" fps")
-        form.addRow("📊 ES:", self.shot_es)
+        form.addRow("ES:", self.shot_es)
 
         self.shot_sd = QDoubleSpinBox()
         self.shot_sd.setRange(0, 100)
         self.shot_sd.setValue(6.5)
         self.shot_sd.setSuffix(" fps")
         self.shot_sd.setDecimals(1)
-        form.addRow("📊 SD:", self.shot_sd)
+        form.addRow("SD:", self.shot_sd)
 
         self.shot_count = QSpinBox()
         self.shot_count.setRange(1, 100)
         self.shot_count.setValue(5)
         self.shot_count.setSuffix(" shots")
-        form.addRow("🔢 Shot Count:", self.shot_count)
+        form.addRow("Shot Count:", self.shot_count)
 
         # Accuracy
         form.addRow(QLabel("<b>Accuracy Data:</b>"))
@@ -576,14 +614,14 @@ class ComprehensiveDataLogger(QWidget):
         self.shot_group_size.setValue(25.0)
         self.shot_group_size.setSuffix(" mm")
         self.shot_group_size.setDecimals(1)
-        form.addRow("🎯 Group Size:", self.shot_group_size)
+        form.addRow("Group Size:", self.shot_group_size)
 
         self.shot_moa = QDoubleSpinBox()
         self.shot_moa.setRange(0, 10)
         self.shot_moa.setValue(0.75)
         self.shot_moa.setSuffix(" MOA")
         self.shot_moa.setDecimals(2)
-        form.addRow("🎯 MOA:", self.shot_moa)
+        form.addRow("MOA:", self.shot_moa)
 
         # Pressure signs
         form.addRow(QLabel("<b>Pressure Signs:</b>"))
@@ -617,7 +655,7 @@ class ComprehensiveDataLogger(QWidget):
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
-        label = QLabel("<b>📝 Notes & Observations</b>")
+        label = QLabel("<b>Notes & Observations</b>")
         label.setStyleSheet("font-size: 14px; padding: 5px;")
         layout.addWidget(label)
 
@@ -643,6 +681,15 @@ ES looking good though, powder charge seems promising."
         layout.addWidget(self.notes_text)
 
         return widget
+
+    def _on_logger_bullet_selected(self, idx: int) -> None:
+        bullet_id = self.ammo_bullet.itemData(idx)
+        if bullet_id is None:
+            return
+        for _b in self._logger_bullets_db:
+            if _b["id"] == bullet_id and _b.get("weight_grains"):
+                self.ammo_bullet_weight.setValue(float(_b["weight_grains"]))
+                break
 
     def collect_all_data(self) -> Dict[str, Any]:
         """Collect all data from all tabs"""
@@ -674,10 +721,12 @@ ES looking good though, powder charge seems promising."
             "ammo": {
                 "batch_number": self.ammo_batch.text(),
                 "caliber": self.ammo_caliber.text(),
-                "bullet": self.ammo_bullet.text(),
+                "bullet": self.ammo_bullet.currentText(),
+                "bullet_id": self.ammo_bullet.currentData(),
                 "bullet_weight_gr": self.ammo_bullet_weight.value(),
                 "bullet_lot": self.ammo_bullet_lot.text(),
-                "powder": self.ammo_powder.text(),
+                "powder": self.ammo_powder.currentText(),
+                "powder_id": self.ammo_powder.currentData(),
                 "powder_charge_gr": self.ammo_powder_charge.value(),
                 "powder_lot": self.ammo_powder_lot.text(),
                 "primer": self.ammo_primer.text(),
@@ -740,44 +789,218 @@ ES looking good though, powder charge seems promising."
 
         return data
 
+    def _flatten_data(self, data: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
+        flattened: Dict[str, Any] = {}
+        for key, value in data.items():
+            full_key = f"{prefix}.{key}" if prefix else key
+            if isinstance(value, dict):
+                flattened.update(self._flatten_data(value, full_key))
+            elif isinstance(value, list):
+                flattened[full_key] = json.dumps(value, ensure_ascii=False)
+            else:
+                flattened[full_key] = value
+        return flattened
+
+    @staticmethod
+    def _format_value(value: Any) -> str:
+        if isinstance(value, bool):
+            return "Yes" if value else "No"
+        if value is None:
+            return ""
+        return str(value)
+
+    @staticmethod
+    def _labelize(key: str) -> str:
+        return key.replace("_", " ").replace(".", " / ").title()
+
+    def _export_csv(self, file_path: Path, data: Dict[str, Any]) -> None:
+        flat = self._flatten_data(data)
+        headers = list(flat.keys())
+        with open(file_path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=headers)
+            writer.writeheader()
+            writer.writerow(flat)
+
+    def _export_xlsx(self, file_path: Path, data: Dict[str, Any]) -> None:
+        try:
+            import openpyxl
+            from openpyxl.utils import get_column_letter
+        except ImportError as exc:
+            raise ImportError("openpyxl not installed") from exc
+
+        flat = self._flatten_data(data)
+        headers = list(flat.keys())
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Log"
+        sheet.append(headers)
+        sheet.append([flat.get(header, "") for header in headers])
+
+        for index, header in enumerate(headers, start=1):
+            value = flat.get(header, "")
+            max_len = max(len(str(header)), len(str(value)))
+            sheet.column_dimensions[get_column_letter(index)].width = min(
+                60, max(12, max_len + 2)
+            )
+
+        workbook.save(file_path)
+
+    def _build_print_html(self, data: Dict[str, Any]) -> str:
+        sections = []
+
+        def section(title: str, payload: Dict[str, Any]) -> str:
+            rows = self._flatten_data(payload)
+            row_html = "".join(
+                f"<tr><td><b>{self._labelize(key)}</b></td><td>{self._format_value(value)}</td></tr>"
+                for key, value in rows.items()
+            )
+            return (
+                f"<h2>{title}</h2>"
+                "<table style='width: 100%; border-collapse: collapse;'>"
+                f"{row_html}"
+                "</table>"
+            )
+
+        sections.append(
+            section(
+                "Session",
+                {
+                    **data.get("session", {}),
+                    "load_id": data.get("load_id"),
+                    "load_name": data.get("load_name"),
+                },
+            )
+        )
+        sections.append(section("Environmental", data.get("environmental", {})))
+        sections.append(section("Ammo", data.get("ammo", {})))
+        sections.append(section("Rifle", data.get("rifle", {})))
+        sections.append(section("Shot Data", data.get("shot_data", {})))
+
+        notes = self._format_value(data.get("notes", ""))
+
+        html = (
+            "<html><head><style>"
+            "body{font-family:Arial, sans-serif;font-size:12px;}"
+            "h1{margin-bottom:0;}"
+            "h2{margin-top:18px;border-bottom:1px solid #ccc;}"
+            "td{padding:4px;border-bottom:1px solid #eee;vertical-align:top;}"
+            "</style></head><body>"
+            f"<h1>Comprehensive Data Log</h1>"
+            f"{''.join(sections)}"
+            f"<h2>Notes</h2><p>{notes}</p>"
+            "</body></html>"
+        )
+        return html
+
     def save_session(self):
         """Save session data"""
         data = self.collect_all_data()
-
-        # TODO: Save to database
-        # For now, just emit signal
         self.data_saved.emit(data)
 
-        QMessageBox.information(
-            self,
-            "Session Saved",
-            f"✅ Session data saved!\n\nLoad ID: {self.load_id}\n\nData logged:\n"
-            + f"• Session: {data['session']['type']} @ {data['session']['location']}\n"
-            + f"• Ammo: {data['ammo']['caliber']} - {data['ammo']['powder_charge_gr']}gr {data['ammo']['powder']}\n"
-            + f"• Results: {data['shot_data']['avg_velocity_fps']} fps, SD {data['shot_data']['sd_fps']}, {data['shot_data']['moa']} MOA",
-        )
+        session = data.get("session", {})
+        ammo = data.get("ammo", {})
+        rifle = data.get("rifle", {})
+        payload = {
+            "load_id": self.load_id,
+            "load_name": self.load_name,
+            "session_date": session.get("date"),
+            "session_time": session.get("time"),
+            "session_type": session.get("type"),
+            "session_location": session.get("location"),
+            "session_distance_m": session.get("distance_meters"),
+            "ammo_caliber": ammo.get("caliber"),
+            "rifle_name": rifle.get("name"),
+            "data_json": json.dumps(data, ensure_ascii=False),
+        }
+
+        try:
+            db = get_database()
+            now = datetime.now().isoformat()
+            existing = db.execute_query(
+                "SELECT id FROM comprehensive_logs WHERE load_id = ?",
+                (self.load_id,),
+            )
+            if existing:
+                payload["updated_at"] = now
+                db.update("comprehensive_logs", payload, "load_id = ?", (self.load_id,))
+            else:
+                payload["created_at"] = now
+                payload["updated_at"] = now
+                db.insert("comprehensive_logs", payload)
+
+            QMessageBox.information(
+                self,
+                "Session Saved",
+                f"Session data saved.\n\nLoad ID: {self.load_id}\n\nData logged:\n"
+                + f"• Session: {data['session']['type']} @ {data['session']['location']}\n"
+                + f"• Ammo: {data['ammo']['caliber']} - {data['ammo']['powder_charge_gr']}gr {data['ammo']['powder']}\n"
+                + f"• Results: {data['shot_data']['avg_velocity_fps']} fps, SD {data['shot_data']['sd_fps']}, {data['shot_data']['moa']} MOA",
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Save Failed",
+                f"Kunne ikke lagre til database: {exc}",
+            )
 
     def export_to_excel(self):
         """Export data to Excel format"""
-        # TODO: Implement Excel export
-        QMessageBox.information(
+        data = self.collect_all_data()
+        default_name = f"{self.load_id}_log.xlsx"
+        file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Excel Export",
-            "📄 Excel export coming soon!\n\nWill generate range-ready data sheet with QR code.",
+            "Export Data",
+            default_name,
+            "Excel Files (*.xlsx);;CSV Files (*.csv)",
         )
+
+        if not file_path:
+            return
+
+        export_path = Path(file_path)
+        try:
+            if export_path.suffix.lower() == ".csv":
+                self._export_csv(export_path, data)
+            else:
+                try:
+                    self._export_xlsx(export_path, data)
+                except ImportError:
+                    csv_path = export_path.with_suffix(".csv")
+                    self._export_csv(csv_path, data)
+                    QMessageBox.information(
+                        self,
+                        "Excel Export",
+                        f"openpyxl is missing. Saved CSV instead: {csv_path}",
+                    )
+                    return
+
+            QMessageBox.information(
+                self,
+                "Excel Export",
+                f"Exported to: {export_path}",
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Excel Export",
+                f"Export failed: {exc}",
+            )
 
     def print_data_sheet(self):
         """Print data sheet for range use"""
-        # TODO: Implement printing
-        QMessageBox.information(
-            self,
-            "Print Data Sheet",
-            "🖨️ Print function coming soon!\n\nWill generate printable data sheet with:\n"
-            + "• Load ID & QR code\n"
-            + "• Pre-filled component info\n"
-            + "• Blank shot data table\n"
-            + "• Environmental checklist",
-        )
+        data = self.collect_all_data()
+        html = self._build_print_html(data)
+
+        document = QTextDocument()
+        document.setHtml(html)
+
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        dialog = QPrintDialog(printer, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        document.print(printer)
 
     def load_from_dict(self, data: Dict[str, Any]):
         """Load data from dictionary"""
@@ -810,7 +1033,7 @@ if __name__ == "__main__":
     )
 
     def on_data_saved(data):
-        from src.logging_config import configure_logging, get_logger
+        from ..logging_config import configure_logging, get_logger
 
         configure_logging()
         logger = get_logger(__name__)

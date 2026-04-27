@@ -1,0 +1,13 @@
+{
+  "counts": {
+    "reference_calibers": 3,
+    "covered_by_saami_seed": 3,
+    "missing_saami_seed": 0
+  },
+  "covered": [
+    ".30-06 Spring. HXP 77",
+    ".308 Win.",
+    "6.5 Creedmoor"
+  ],
+  "missing": []
+}

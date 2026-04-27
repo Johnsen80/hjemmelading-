@@ -1,134 +1,128 @@
-"""Simple AI assistant wrapper.
+"""Local deterministic advisory helper.
 
-This module provides a minimal `Assistant` class with a `chat(message, history)`
-method. It uses a local stub response by default. If the `openai` package is
-installed and the `OPENAI_API_KEY` environment variable is set, it will attempt
-to call OpenAI's ChatCompletion (best-effort). The wrapper intentionally keeps
-integration optional and simple so the UI remains usable offline.
+The app should remain fully usable offline and without remote providers.
+This module keeps the existing Assistant interface, but all responses are
+generated locally from explicit rules and the current analysis context.
 """
 
-import os
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class Assistant:
-    def __init__(self, model: str = None, db: Optional[object] = None):
-        self.model = model or os.environ.get("AI_ASSISTANT_MODEL", "gpt-4o-mini")
-        self._enabled = False
-        self.openai = None
+    def __init__(self, model: Optional[str] = None, db: Any | None = None):
+        self.model = model or "local-analysis"
         self._db = db
-
-        # If a DB is provided, try to load settings from it
-        if db is not None:
-            try:
-                cur = db.cursor
-                cur.execute(
-                    "SELECT enabled, model, api_key FROM ai_settings ORDER BY id DESC LIMIT 1"
-                )
-                row = cur.fetchone()
-                if row:
-                    enabled = bool(row[0])
-                    model_val = row[1]
-                    api_key = row[2]
-                    if model_val:
-                        self.model = model_val
-                    if api_key:
-                        try:
-                            import openai
-
-                            openai.api_key = api_key
-                            self.openai = openai
-                            self._enabled = enabled
-                        except Exception:
-                            self.openai = None
-                            self._enabled = False
-                    else:
-                        self._enabled = enabled and False
-            except Exception:
-                # fallback to env-based init below
-                pass
-
-        # If openai not set by DB, try env
-        if self.openai is None:
-            try:
-                import openai
-
-                key = os.environ.get("OPENAI_API_KEY")
-                if key:
-                    openai.api_key = key
-                    self.openai = openai
-                    self._enabled = True
-            except Exception:
-                self.openai = None
-                # keep enabled False unless DB said otherwise
 
     def chat(
         self, message: str, history: List[str], context: Optional[Dict] = None
     ) -> str:
-        """Return assistant response. Accepts optional `context` dict with extra state.
-
-        When a remote API is available, the context is included as system/user messages.
-        When offline, the stub uses the context to tailor responses.
-        """
+        """Return a local advisory response based on explicit context rules."""
         ctx = context or {}
+        msg = (message or "").strip().lower()
+        checks: list[str] = []
+        actions: list[str] = []
 
-        if self._enabled and self.openai:
-            try:
-                messages = [
-                    {
-                        "role": "system",
-                        "content": "You are an expert reloading assistant. Answer concisely and safely.",
-                    },
-                ]
-                # include context as system-level info
-                if ctx:
-                    messages.append({"role": "system", "content": f"Context: {ctx}"})
-                messages.append({"role": "user", "content": message})
+        rifle = str(ctx.get("rifle") or "").strip()
+        powder = str(ctx.get("powder") or "").strip()
+        charge = ctx.get("charge")
+        if rifle:
+            checks.append(f"Rifle: {rifle}")
+        if powder:
+            checks.append(f"Krutt: {powder}")
+        if charge is not None:
+            checks.append(f"Aktuell ladning: {charge} gr")
 
-                resp = self.openai.ChatCompletion.create(
-                    model=self.model,
-                    messages=messages,
-                    max_tokens=512,
-                )
-                if resp and getattr(resp, "choices", None):
-                    return resp.choices[0].message.content.strip()
-            except Exception:
-                pass
+        calibration = ctx.get("last_calibration")
+        if isinstance(calibration, dict):
+            mse = calibration.get("mse")
+            if isinstance(mse, (int, float)):
+                if mse <= 10:
+                    checks.append(f"Kalibrering ser stram ut (MSE {mse:.2f})")
+                elif mse <= 25:
+                    checks.append(
+                        f"Kalibrering er brukbar, men bør følges opp (MSE {mse:.2f})"
+                    )
+                else:
+                    checks.append(
+                        f"Kalibrering er svak og bør bekreftes med flere skudd (MSE {mse:.2f})"
+                    )
+                    actions.append(
+                        "Logg en ny chrono-serie før du stoler på små forskjeller i fart eller trykkmargin."
+                    )
 
-        # Offline stub — incorporate some context hints
-        summary = []
-        if ctx.get("rifle"):
-            summary.append(f"Rifle={ctx.get('rifle')}")
-        if ctx.get("charge") is not None:
-            summary.append(f"Charge={ctx.get('charge')}gr")
-        if ctx.get("last_calibration"):
-            cal = ctx.get("last_calibration")
-            summary.append(f"Cal(MSE)={cal.get('mse'):.2f}")
         recent = ctx.get("recent_imports_summary")
-        if recent:
-            summary.append(f"Recent imports={len(recent)}")
+        if isinstance(recent, list) and recent:
+            recent_velocities = [
+                float(item.get("vel"))
+                for item in recent
+                if isinstance(item, dict) and isinstance(item.get("vel"), (int, float))
+            ]
+            if recent_velocities:
+                spread = max(recent_velocities) - min(recent_velocities)
+                checks.append(
+                    f"Siste chrono-historikk viser omtrent {spread:.0f} fps spenn"
+                )
+                if spread > 35:
+                    actions.append(
+                        "Se på temperatur, lot og settedybde før du jager en ny node."
+                    )
+                else:
+                    actions.append(
+                        "Historikken er rolig nok til å teste små steg rundt nåværende ladning."
+                    )
+        else:
+            actions.append(
+                "Importer chrono-data for å kunne rangere forslag med bedre trygghet."
+            )
 
-        msg = message.lower()
-        if "calib" in msg or "calibrate" in msg:
-            return (
-                "I can help review calibrations. Use 'Show Calibration' to view predicted vs measured. "
-                "If you provide chronograph imports I can suggest acceptance criteria."
+        plot_summary = ctx.get("plot_summary")
+        if isinstance(plot_summary, dict) and plot_summary:
+            y_min = plot_summary.get("y_min")
+            y_max = plot_summary.get("y_max")
+            n = plot_summary.get("n")
+            if isinstance(y_min, (int, float)) and isinstance(y_max, (int, float)):
+                checks.append(f"Plottet dekker omtrent {y_min:.1f} til {y_max:.1f}")
+            if isinstance(n, int) and n < 4:
+                actions.append(
+                    "Datagrunnlaget i plottet er tynt. Ikke overtolk kurveform eller optimum ennå."
+                )
+
+        if any(
+            token in msg
+            for token in ("trykk", "pressure", "saami", "cip", "safety", "sikker")
+        ):
+            actions.append(
+                "Hold margin mot maks trykk konservativ og bekreft med målt fart før videre opptrapping."
             )
-        if "pressure" in msg or "saami" in msg or "safety" in msg:
-            return (
-                "Keep predicted peak pressure ~5-10% below the SAAMI/CIP limit. "
-                "Enable safety gating in the optimizer."
+        if any(token in msg for token in ("kalibr", "chrono", "fart", "velocity")):
+            actions.append(
+                "Sammenlign modell mot målt fart i like batcher før du bruker modellen som beslutningsgrunnlag."
             )
-        if "suggest" in msg or "next" in msg or "test" in msg:
-            if recent:
-                return "Based on recent chronograph imports I recommend testing +/-0.5gr steps around the best-performing charge, or running a 3-point ladder spaced by 0.5gr to estimate slope."
-            return (
-                "Try testing +/-0.5gr steps around the current charge, or run a small ladder of 3-5 charges. "
-                "Provide chronograph imports to get specific suggestions."
+        if any(token in msg for token in ("plot", "kurve", "graf", "slope")):
+            actions.append(
+                "Se etter flate områder og repeterbare punkter, ikke bare laveste enkeltskudd eller peneste kurvepunkt."
             )
-        # generic fallback with context hint
-        hint = ", ".join(summary) if summary else ""
-        return f"(stub) I can explain graphs and suggest safe ranges. {hint}".strip()
+        if any(
+            token in msg for token in ("neste", "next", "forslag", "suggest", "test")
+        ):
+            actions.append(
+                "Neste gode steg er vanligvis et lite testvindu rundt den beste observerte ladningen, ikke et stort hopp."
+            )
+
+        if not checks:
+            checks.append(
+                "Lokal rådgiver bruker målt historikk, kalibrering og plottdata når det finnes."
+            )
+        if not actions:
+            actions.append(
+                "Formuler spørsmålet rundt trykk, fart, kalibrering eller neste teststeg for mer konkret råd."
+            )
+
+        body = ["Lokal vurdering:"]
+        body.extend(f"- {line}" for line in checks)
+        body.append("Neste steg:")
+        body.extend(f"- {line}" for line in actions[:3])
+        return "\n".join(body)
 
     def persist_chat(self, db, user_message: str, assistant_response: str) -> None:
         """Persist a chat message pair to `ai_chat_history` table (creates table if missing)."""
@@ -149,27 +143,19 @@ class Assistant:
     def save_settings(
         self, db, enabled: bool, model: Optional[str], api_key: Optional[str]
     ) -> None:
-        """Save assistant settings to `ai_settings` table."""
+        """Persist local advisor preferences for backward compatibility."""
         try:
             cur = db.cursor
+            cur.execute(
+                "CREATE TABLE IF NOT EXISTS ai_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, enabled INTEGER, model TEXT, api_key TEXT, created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+            )
             cur.execute(
                 "INSERT INTO ai_settings (enabled, model, api_key) VALUES (?, ?, ?)",
                 (1 if enabled else 0, model, api_key),
             )
             db.conn.commit()
-            # update local state
             self._db = db
-            self.model = model or self.model
-            if api_key:
-                try:
-                    import openai
-
-                    openai.api_key = api_key
-                    self.openai = openai
-                    self._enabled = enabled
-                except Exception:
-                    self.openai = None
-                    self._enabled = False
+            self.model = model or "local-analysis"
         except Exception:
             pass
 

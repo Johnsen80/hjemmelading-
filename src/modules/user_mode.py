@@ -13,6 +13,7 @@ class UserMode:
 
     BEGINNER = "beginner"
     EXPERT = "expert"
+    RESEARCH = "research"
 
 
 class UserModeManager(QObject):
@@ -26,7 +27,13 @@ class UserModeManager(QObject):
     def __init__(self):
         super().__init__()
         self.settings = QSettings("ReloadingWorkshop", "ReloadingManager")
-        self._current_mode = self.settings.value("user_mode", UserMode.BEGINNER)
+        mode_val = self.settings.value("ui/mode", None)
+        if mode_val is None or str(mode_val).strip() == "":
+            mode_val = self.settings.value("user_mode", UserMode.BEGINNER)
+        mode_val = str(mode_val).lower()
+        if mode_val not in (UserMode.BEGINNER, UserMode.EXPERT, UserMode.RESEARCH):
+            mode_val = UserMode.BEGINNER
+        self._current_mode = mode_val
 
     def get_mode(self) -> str:
         """Get current mode"""
@@ -34,11 +41,12 @@ class UserModeManager(QObject):
 
     def set_mode(self, mode: str):
         """Set mode"""
-        if mode not in [UserMode.BEGINNER, UserMode.EXPERT]:
+        if mode not in [UserMode.BEGINNER, UserMode.EXPERT, UserMode.RESEARCH]:
             raise ValueError(f"Invalid mode: {mode}")
 
         old_mode = self._current_mode
         self._current_mode = mode
+        self.settings.setValue("ui/mode", mode)
         self.settings.setValue("user_mode", mode)
 
         if old_mode != mode:
@@ -51,6 +59,10 @@ class UserModeManager(QObject):
     def is_expert(self) -> bool:
         """Check if in expert mode"""
         return self._current_mode == UserMode.EXPERT
+
+    def is_research(self) -> bool:
+        """Check if in research mode"""
+        return self._current_mode == UserMode.RESEARCH
 
     def toggle_mode(self):
         """Toggle between modes"""
@@ -80,6 +92,18 @@ class UserModeManager(QObject):
                 "wizard_mode": True,
                 "detailed_errors": True,
             }
+        if self.is_research():
+            return {
+                "show_tooltips": False,
+                "show_help_text": False,
+                "show_examples": False,
+                "enable_shortcuts": True,
+                "compact_layout": True,
+                "confirmation_dialogs": False,
+                "wizard_mode": False,
+                "detailed_errors": True,
+                "research_mode": True,
+            }
         else:  # Expert
             return {
                 "show_tooltips": False,
@@ -96,7 +120,7 @@ class UserModeManager(QObject):
         """Get description of current mode"""
         if self.is_beginner():
             return """
-<b>🔰 Beginner Mode</b><br>
+<b>Beginner Mode</b><br>
 • Full tooltips and explanations<br>
 • Step-by-step wizards<br>
 • Confirmation dialogs<br>
@@ -105,9 +129,19 @@ class UserModeManager(QObject):
 <br>
 <i>Perfect for learning reloading!</i>
             """
+        if self.is_research():
+            return """
+<b>Research Mode</b><br>
+• Metadata and traceability focus<br>
+• Advanced views enabled<br>
+• Detailed errors and diagnostics<br>
+• Compact layout with power tools<br>
+<br>
+<i>For experiments and deep analysis.</i>
+            """
         else:
             return """
-<b>⚡ Expert Mode</b><br>
+<b>Expert Mode</b><br>
 • Minimal UI (no tooltips)<br>
 • Direct access (no wizards)<br>
 • Keyboard shortcuts enabled<br>
@@ -116,6 +150,10 @@ class UserModeManager(QObject):
 <br>
 <i>For experienced reloaders!</i>
             """
+
+    def get_mode_key(self) -> str:
+        """Return current mode key string."""
+        return self._current_mode
 
 
 # Tooltip manager
@@ -128,25 +166,25 @@ class TooltipConfig:
     TOOLTIPS = {
         # Ladder Test
         "ladder_charge_start": {
-            "beginner": "Start med en SAFE ladning (under max!).\n\nSjekk ladningsdata først!",
+            "beginner": "Start with a SAFE load (below max).\n\nCheck the load data first.",
             "expert": "Starting charge weight",
         },
         "ladder_charge_end": {
-            "beginner": "Maks ladning for testen.\n\n⚠️ ALDRI over manual max!",
+            "beginner": "Maximum charge for the test.\n\nNEVER go above manual max.",
             "expert": "Maximum charge weight",
         },
         "ladder_step_size": {
-            "beginner": "Hvor mye å øke mellom hvert steg.\n\n0.2-0.5gr er vanlig for rifle.",
+            "beginner": "How much to increase between each step.\n\n0.2-0.5 gr is common for rifles.",
             "expert": "Step increment",
         },
         # OCW Test
         "ocw_group_count": {
-            "beginner": "Antall grupper å skyte per ladning.\n\nMinimum 3 for god statistikk.",
+            "beginner": "Number of groups to shoot per charge.\n\nAt least 3 for useful statistics.",
             "expert": "Groups per charge",
         },
         # Batch QC
         "qc_charge_tolerance": {
-            "beginner": "Hvor mye avvik som er OK.\n\n±0.1gr er match-grade.\nFederal bruker ±0.05gr.",
+            "beginner": "How much variation is acceptable.\n\n±0.1 gr is match grade.\nFederal uses ±0.05 gr.",
             "expert": "Charge tolerance",
         },
         "qc_coal_tolerance": {
@@ -155,16 +193,16 @@ class TooltipConfig:
         },
         # Temperature Test
         "temp_test_range": {
-            "beginner": "Test fra kald vinter (-20°C) til varm sommer (+40°C).\n\nAmmofabrikker tester dette!",
+            "beginner": "Test from cold winter (-20°C) to hot summer (+40°C).\n\nAmmunition factories test this.",
             "expert": "Temperature range",
         },
         # General
         "bullet_selection": {
-            "beginner": "Velg kule.\n\nVekt (grains) og type (HPBT, BTHP, etc.) er viktig!",
+            "beginner": "Select a bullet.\n\nWeight (grains) and type (HPBT, BTHP, etc.) matter.",
             "expert": "Select bullet",
         },
         "powder_selection": {
-            "beginner": "Velg krutt.\n\nSjekk alltid ladningsdata for din kaliber!",
+            "beginner": "Select powder.\n\nAlways check load data for your caliber.",
             "expert": "Select powder",
         },
     }
@@ -176,11 +214,22 @@ class TooltipConfig:
             return ""
 
         tooltips = TooltipConfig.TOOLTIPS[key]
-        mode = "beginner" if mode_manager.is_beginner() else "expert"
+        if mode_manager.is_beginner():
+            mode = "beginner"
+        elif getattr(mode_manager, "is_research", lambda: False)():
+            mode = "research"
+        else:
+            mode = "expert"
 
-        # Expert mode: no tooltips unless explicitly needed
-        if mode == "expert" and not mode_manager.get_ui_config()["show_tooltips"]:
+        # Expert/Research mode: no tooltips unless explicitly enabled
+        if (
+            mode in ("expert", "research")
+            and not mode_manager.get_ui_config()["show_tooltips"]
+        ):
             return ""
+
+        if mode == "research":
+            mode = "expert"
 
         return tooltips.get(mode, tooltips.get("beginner", ""))
 

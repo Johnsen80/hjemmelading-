@@ -6,25 +6,25 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any
 
 from HjemmeladingApp.utils import safe_logger
+from HjemmeladingApp.utils.qt_compat import QPixmap as _CompatQPixmap
 
 # Optional GUI/image libraries for runtime previews
+QPixmap = None
 try:
-    from PyQt6.QtGui import QPixmap
-
-    _HAS_QT = True
+    QPixmap = _CompatQPixmap
+    _HAS_QT = QPixmap is not None
 except Exception:
-    QPixmap: Any = None
     _HAS_QT = False
 
+Image = None
 try:
-    from PIL import Image
+    from PIL import Image as _Image
 
+    Image = _Image
     _HAS_PIL = True
 except Exception:
-    Image: Any = None
     _HAS_PIL = False
 
 logger = logging.getLogger(__name__)

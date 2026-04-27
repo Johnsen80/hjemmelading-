@@ -1,0 +1,4 @@
+# MagnetoSpeed sample
+Shot 1: 2600 fps
+Shot 2: 2590 fps
+Shot 3: 2610 fps

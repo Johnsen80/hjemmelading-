@@ -19,7 +19,7 @@ End If
 linkPath = desktopPath & "\\HJEMMELADING.lnk"
 Set lnk = WshShell.CreateShortcut(linkPath)
 lnk.TargetPath = targetPython
-lnk.Arguments = Chr(34) & projectDir & "\\HjemmeladingApp\\main.py" & Chr(34)
+lnk.Arguments = Chr(34) & projectDir & "\\main.py" & Chr(34)
 lnk.WorkingDirectory = projectDir
 iconPath = projectDir & "\\hjemmelading.ico"
 If fso.FileExists(iconPath) Then

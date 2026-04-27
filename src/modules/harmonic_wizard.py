@@ -1,6 +1,6 @@
-"""
-Harmonic Wizard - Settedybde og harmonikkanalyse
-AI-assistert analyse av settedybde vs presisjon for å finne harmoniske noder
+"""Harmonics Lab.
+
+Seating-depth and harmonics analysis based on measured test results.
 """
 
 from datetime import datetime
@@ -30,8 +30,8 @@ from PyQt6.QtWidgets import (
     QWizardPage,
 )
 
-from src.utils.optional_deps import Figure as Figure
-from src.utils.optional_deps import FigureCanvas as FigureCanvas
+from ..utils.optional_deps import Figure as Figure
+from ..utils.optional_deps import FigureCanvas as FigureCanvas
 
 try:
     from scipy.interpolate import UnivariateSpline
@@ -48,11 +48,11 @@ except Exception:  # pragma: no cover - optional dep
 
     HAS_SCIPY = False
 
-from src.database.database import get_database
+from ..database.database import get_database
 
 
 class HarmonicWizard(QWidget):
-    """Hovedwidget for Harmonic Wizard"""
+    """Main widget for Harmonics Lab."""
 
     def __init__(self):
         super().__init__()
@@ -66,16 +66,16 @@ class HarmonicWizard(QWidget):
         self.setLayout(layout)
 
         # Tittel med disclaimer
-        title = QLabel("🎯 Harmonic Wizard - Settedybde Assistent")
+        title = QLabel("Harmonics Lab - Seating Depth Assistant")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         layout.addWidget(title)
 
         disclaimer = QLabel(
             """
-        <b style='color: #d9534f;'>⚠️ VIKTIG:</b> Dette verktøyet analyserer <i>dine faktiske testresultater</i>
-        og foreslår settedybder som har høy sannsynlighet for god presisjon.
-        Det beregner IKKE teoretisk harmonikk - det lærer av dine skudd.<br>
-        <b>Du har alltid ansvar for sikker lading innenfor ladebokens grenser.</b>
+        <b style='color: #d9534f;'>IMPORTANT:</b> This tool analyzes <i>your actual test results</i>
+        and suggests seating depths with a high probability of good precision.
+        It does NOT calculate theoretical harmonics. It learns from your shots.<br>
+        <b>You are always responsible for safe loading within published load data limits.</b>
         """
         )
         disclaimer.setWordWrap(True)
@@ -90,10 +90,24 @@ class HarmonicWizard(QWidget):
         )
         layout.addWidget(disclaimer)
 
+        # Scipy-status-banner — vis tydelig om analyse er tilgjengelig
+        if not HAS_SCIPY:
+            scipy_warning = QLabel(
+                "<b>⚠ Harmonisk analyse er deaktivert</b> — <tt>scipy</tt>-biblioteket mangler.<br>"
+                "Installer det med: <tt>pip install scipy</tt> og start programmet på nytt.<br>"
+                "Testdata kan fortsatt registreres og lagres for analyse når scipy er installert."
+            )
+            scipy_warning.setWordWrap(True)
+            scipy_warning.setStyleSheet(
+                "background-color:#f8d7da; border:2px solid #f5c6cb;"
+                "border-radius:5px; padding:10px; margin:4px 0;"
+            )
+            layout.addWidget(scipy_warning)
+
         # Knapper
         btn_layout = QHBoxLayout()
 
-        new_test_btn = QPushButton("🆕 Ny Settedybde-test")
+        new_test_btn = QPushButton("New Seating Depth Test")
         new_test_btn.setMinimumHeight(40)
         new_test_btn.setStyleSheet(
             "background-color: #5cb85c; color: white; font-weight: bold;"
@@ -101,12 +115,12 @@ class HarmonicWizard(QWidget):
         new_test_btn.clicked.connect(self.start_new_test)
         btn_layout.addWidget(new_test_btn)
 
-        analyze_btn = QPushButton("📊 Analyser Test")
+        analyze_btn = QPushButton("Analyze Test")
         analyze_btn.setMinimumHeight(40)
         analyze_btn.clicked.connect(self.analyze_test)
         btn_layout.addWidget(analyze_btn)
 
-        delete_btn = QPushButton("🗑️ Slett")
+        delete_btn = QPushButton("Delete")
         delete_btn.setMinimumHeight(40)
         delete_btn.clicked.connect(self.delete_test)
         btn_layout.addWidget(delete_btn)
@@ -117,12 +131,12 @@ class HarmonicWizard(QWidget):
         # Info
         info = QLabel(
             """
-        <h3>Hvordan det fungerer:</h3>
+        <h3>How it works:</h3>
         <ol>
-            <li><b>Opprett test:</b> Definer løpsprofil, kule, og settedybder å teste</li>
-            <li><b>Skyt testen:</b> 3-5 skudd per settedybde, legg inn gruppestørrelse og ES/SD</li>
-            <li><b>Analyser:</b> AI finner "harmoniske noder" - områder der presisjon er stabil</li>
-            <li><b>Forfin:</b> Test anbefalt område med finjustering (±0.05mm)</li>
+            <li><b>Create test:</b> Define the barrel profile, bullet, and seating depths to test</li>
+            <li><b>Shoot the test:</b> Fire 3-5 shots per seating depth and log group size and ES/SD</li>
+            <li><b>Analyze:</b> The guide finds harmonic nodes, areas where precision looks stable</li>
+            <li><b>Refine:</b> Test the recommended area with fine adjustments (±0.05 mm)</li>
         </ol>
         """
         )
@@ -133,9 +147,9 @@ class HarmonicWizard(QWidget):
         self.tests_table = QTableWidget()
         self.tests_table.setColumnCount(7)
         self.tests_table.setHorizontalHeaderLabels(
-            ["Navn", "Dato", "Rifle", "Kule", "Krutt", "Testpunkter", "Status"]
+            ["Name", "Date", "Rifle", "Bullet", "Powder", "Test Points", "Status"]
         )
-        self.tests_table.horizontalHeader().setStretchLastSection(True)
+        self.tests_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         self.tests_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tests_table.doubleClicked.connect(self.analyze_test)
         layout.addWidget(self.tests_table)
@@ -188,10 +202,10 @@ class HarmonicWizard(QWidget):
                 (test["id"],),
             )
             count = results[0]["count"] if results else 0
-            self.tests_table.setItem(i, 5, QTableWidgetItem(f"{count} punkter"))
+            self.tests_table.setItem(i, 5, QTableWidgetItem(f"{count} points"))
 
             # Status
-            status = "✅ Ferdig" if count >= 3 else "⏳ Ikke ferdig"
+            status = "Complete" if count >= 3 else "Incomplete"
             status_item = QTableWidgetItem(status)
             if count >= 3:
                 status_item.setForeground(QColor("green"))
@@ -207,17 +221,37 @@ class HarmonicWizard(QWidget):
 
     def analyze_test(self):
         """Analyserer valgt test"""
+        if not HAS_SCIPY:
+            QMessageBox.warning(
+                self,
+                "Analyse utilgjengelig",
+                "Harmonisk analyse krever scipy-biblioteket.\n\n"
+                "Installer det med:\n    pip install scipy\n\n"
+                "Start programmet på nytt etter installasjonen.\n"
+                "Testdata du har registrert er trygt lagret.",
+            )
+            return
+
         selected = self.tests_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en test først!")
+            QMessageBox.warning(self, "No selection", "Select a test first.")
             return
 
         test_id = self.tests_table.item(selected, 0).data(Qt.ItemDataRole.UserRole)
 
         # Hent test og resultater
-        test = self.db.execute_query(
+        test_rows = self.db.execute_query(
             "SELECT * FROM seating_depth_tests WHERE id = ?", (test_id,)
-        )[0]
+        )
+        if not test_rows:
+            QMessageBox.warning(
+                self,
+                "Test missing",
+                "The selected seating depth test no longer exists in the database.",
+            )
+            self.load_tests()
+            return
+        test = test_rows[0]
 
         results = self.db.execute_query(
             "SELECT * FROM seating_depth_results WHERE test_id = ? ORDER BY coal",
@@ -227,8 +261,8 @@ class HarmonicWizard(QWidget):
         if len(results) < 3:
             QMessageBox.warning(
                 self,
-                "For lite data",
-                "Du trenger minst 3 testpunkter for å kjøre analyse!",
+                "Not enough data",
+                "You need at least 3 test points to run the analysis.",
             )
             return
 
@@ -240,13 +274,13 @@ class HarmonicWizard(QWidget):
         """Sletter valgt test"""
         selected = self.tests_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en test først!")
+            QMessageBox.warning(self, "No selection", "Select a test first.")
             return
 
         reply = QMessageBox.question(
             self,
-            "Bekreft sletting",
-            "Er du sikker på at du vil slette denne testen?",
+            "Confirm delete",
+            "Are you sure you want to delete this test?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -258,12 +292,12 @@ class HarmonicWizard(QWidget):
 
 
 class SeatingDepthWizard(QWizard):
-    """Wizard for å sette opp settedybde-test"""
+    """Wizard for setting up a seating depth test."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.db = get_database()
-        self.setWindowTitle("Ny Settedybde-test - Oppsett")
+        self.setWindowTitle("New Seating Depth Test - Setup")
         self.setMinimumSize(700, 600)
 
         # Legg til sider
@@ -329,21 +363,21 @@ class SeatingDepthWizard(QWizard):
 
             QMessageBox.information(
                 self,
-                "Test opprettet!",
-                f"Settedybde-test opprettet med {len(coal_values)} testpunkter!\n\n"
-                f"Nå kan du skyte testen og legge inn resultater.",
+                "Test created",
+                f"Seating depth test created with {len(coal_values)} test points.\n\n"
+                f"You can now shoot the test and enter results.",
             )
 
 
 class BarrelProfilePage(QWizardPage):
-    """Side 1: Løpsinformasjon"""
+    """Step 1: barrel information."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle("Steg 1: Løpsprofil og konfigurasjon")
+        self.setTitle("Step 1: Barrel Profile and Configuration")
         self.setSubTitle(
-            "Angi løpets fysiske egenskaper. Dette brukes for å forbedre "
-            "AI-modellens forståelse av ditt våpens dynamikk."
+            "Enter the barrel's physical characteristics. This is used to improve "
+            "the local model's understanding of your firearm dynamics."
         )
 
         self.db = get_database()
@@ -354,7 +388,7 @@ class BarrelProfilePage(QWizardPage):
 
         # Rifle
         self.rifle_combo = QComboBox()
-        self.rifle_combo.addItem("-- Velg rifle --", None)
+        self.rifle_combo.addItem("-- Select rifle --", None)
         rifles = self.db.get_all("rifles")
         for rifle in rifles:
             self.rifle_combo.addItem(
@@ -368,7 +402,7 @@ class BarrelProfilePage(QWizardPage):
         self.barrel_length.setValue(61)
         self.barrel_length.setDecimals(1)
         self.barrel_length.setSuffix(" cm")
-        form.addRow("Løpslengde:", self.barrel_length)
+        form.addRow("Barrel length:", self.barrel_length)
 
         # Kontur
         self.barrel_contour = QComboBox()
@@ -385,23 +419,23 @@ class BarrelProfilePage(QWizardPage):
             ]
         )
         self.barrel_contour.setCurrentText("Medium Sporter")
-        form.addRow("Løpskontur:", self.barrel_contour)
+        form.addRow("Barrel contour:", self.barrel_contour)
 
         layout.addLayout(form)
 
         # Munningsmiddel
-        muzzle_group = QGroupBox("Munningsmiddel (Demper/Brems)")
+        muzzle_group = QGroupBox("Muzzle Device (Suppressor/Brake)")
         muzzle_layout = QFormLayout()
         muzzle_group.setLayout(muzzle_layout)
 
         self.muzzle_device = QComboBox()
         self.muzzle_device.addItems(
             [
-                "Ingen",
+                "None",
                 "Muzzle Brake",
-                "Suppressor (Liten)",
-                "Suppressor (Mellom)",
-                "Suppressor (Tung)",
+                "Suppressor (Light)",
+                "Suppressor (Medium)",
+                "Suppressor (Heavy)",
             ]
         )
         muzzle_layout.addRow("Type:", self.muzzle_device)
@@ -410,7 +444,7 @@ class BarrelProfilePage(QWizardPage):
         self.muzzle_weight.setRange(0, 1000)
         self.muzzle_weight.setValue(0)
         self.muzzle_weight.setSuffix(" g")
-        muzzle_layout.addRow("Vekt (ca):", self.muzzle_weight)
+        muzzle_layout.addRow("Weight (approx):", self.muzzle_weight)
 
         layout.addWidget(muzzle_group)
 
@@ -423,12 +457,12 @@ class BarrelProfilePage(QWizardPage):
 
 
 class ComponentsPage(QWizardPage):
-    """Side 2: Komponenter"""
+    """Step 2: components."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle("Steg 2: Ammunisjonskomponenter")
-        self.setSubTitle("Velg de komponentene du bruker i denne testen")
+        self.setTitle("Step 2: Ammunition Components")
+        self.setSubTitle("Select the components used in this test")
 
         self.db = get_database()
         layout = QVBoxLayout()
@@ -438,44 +472,44 @@ class ComponentsPage(QWizardPage):
 
         # Kule
         self.bullet_combo = QComboBox()
-        self.bullet_combo.addItem("-- Velg kule --", None)
+        self.bullet_combo.addItem("-- Select bullet --", None)
         bullets = self.db.get_all("bullets")
         for bullet in bullets:
             self.bullet_combo.addItem(
                 f"{bullet['name']} - {bullet['weight_grains']}gr", bullet["id"]
             )
-        form.addRow("Kule:", self.bullet_combo)
+        form.addRow("Bullet:", self.bullet_combo)
 
         # Krutt
         self.powder_combo = QComboBox()
-        self.powder_combo.addItem("-- Velg krutt --", None)
+        self.powder_combo.addItem("-- Select powder --", None)
         powders = self.db.get_all("powder")
         for powder in powders:
             self.powder_combo.addItem(powder["name"], powder["id"])
-        form.addRow("Krutt:", self.powder_combo)
+        form.addRow("Powder:", self.powder_combo)
 
         # Kruttvekt
         self.powder_charge = QDoubleSpinBox()
         self.powder_charge.setRange(10, 100)
         self.powder_charge.setDecimals(1)
         self.powder_charge.setSuffix(" gr")
-        form.addRow("Kruttvekt:", self.powder_charge)
+        form.addRow("Powder charge:", self.powder_charge)
 
         # Tennhette
         self.primer_combo = QComboBox()
-        self.primer_combo.addItem("-- Velg tennhette --", None)
+        self.primer_combo.addItem("-- Select primer --", None)
         primers = self.db.get_all("primers")
         for primer in primers:
             self.primer_combo.addItem(primer["name"], primer["id"])
-        form.addRow("Tennhette:", self.primer_combo)
+        form.addRow("Primer:", self.primer_combo)
 
         # Hylse
         self.case_combo = QComboBox()
-        self.case_combo.addItem("-- Velg hylse --", None)
+        self.case_combo.addItem("-- Select case --", None)
         cases = self.db.get_all("cases")
         for case in cases:
             self.case_combo.addItem(f"{case['name']} - {case['caliber']}", case["id"])
-        form.addRow("Hylse:", self.case_combo)
+        form.addRow("Case:", self.case_combo)
 
         layout.addLayout(form)
 
@@ -488,14 +522,14 @@ class ComponentsPage(QWizardPage):
 
 
 class TestSetupPage(QWizardPage):
-    """Side 3: Test-oppsett"""
+    """Step 3: test setup."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle("Steg 3: Definer testområde")
+        self.setTitle("Step 3: Define Test Range")
         self.setSubTitle(
-            "Angi COAL-område du vil teste. Tips: Start med 0.2-0.3mm steg, "
-            "forfin senere i lovende områder."
+            "Enter the COAL range you want to test. Tip: start with 0.2-0.3 mm steps "
+            "and refine later in promising regions."
         )
 
         layout = QVBoxLayout()
@@ -503,14 +537,14 @@ class TestSetupPage(QWizardPage):
 
         # Testnavn
         name_layout = QHBoxLayout()
-        name_layout.addWidget(QLabel("Testnavn:"))
+        name_layout.addWidget(QLabel("Test name:"))
         self.test_name = QLineEdit()
-        self.test_name.setPlaceholderText("F.eks. 6.5CM ELD-M Settedybde #1")
+        self.test_name.setPlaceholderText("e.g. 6.5CM ELD-M Seating Depth #1")
         name_layout.addWidget(self.test_name)
         layout.addLayout(name_layout)
 
         # COAL-område
-        coal_group = QGroupBox("COAL-område (Cartridge Overall Length)")
+        coal_group = QGroupBox("COAL Range (Cartridge Overall Length)")
         coal_layout = QFormLayout()
         coal_group.setLayout(coal_layout)
 
@@ -526,19 +560,19 @@ class TestSetupPage(QWizardPage):
         self.end_coal.setDecimals(2)
         self.end_coal.setValue(74.50)
         self.end_coal.setSuffix(" mm")
-        coal_layout.addRow("Slutt COAL:", self.end_coal)
+        coal_layout.addRow("End COAL:", self.end_coal)
 
         self.coal_step = QDoubleSpinBox()
         self.coal_step.setRange(0.05, 1.0)
         self.coal_step.setDecimals(2)
         self.coal_step.setValue(0.20)
         self.coal_step.setSuffix(" mm")
-        coal_layout.addRow("Steg-størrelse:", self.coal_step)
+        coal_layout.addRow("Step size:", self.coal_step)
 
         # Antall testpunkter
         self.test_points_label = QLabel()
         self.update_test_points()
-        coal_layout.addRow("Antall testpunkter:", self.test_points_label)
+        coal_layout.addRow("Test point count:", self.test_points_label)
 
         self.start_coal.valueChanged.connect(self.update_test_points)
         self.end_coal.valueChanged.connect(self.update_test_points)
@@ -547,29 +581,29 @@ class TestSetupPage(QWizardPage):
         layout.addWidget(coal_group)
 
         # Test-parametere
-        test_group = QGroupBox("Test-parametere")
+        test_group = QGroupBox("Test Parameters")
         test_layout = QFormLayout()
         test_group.setLayout(test_layout)
 
         self.rounds_per_coal = QSpinBox()
         self.rounds_per_coal.setRange(3, 10)
         self.rounds_per_coal.setValue(3)
-        self.rounds_per_coal.setSuffix(" skudd")
-        test_layout.addRow("Skudd per COAL:", self.rounds_per_coal)
+        self.rounds_per_coal.setSuffix(" shots")
+        test_layout.addRow("Shots per COAL:", self.rounds_per_coal)
 
         self.distance = QSpinBox()
         self.distance.setRange(50, 500)
         self.distance.setValue(100)
         self.distance.setSuffix(" m")
-        test_layout.addRow("Testdistanse:", self.distance)
+        test_layout.addRow("Test distance:", self.distance)
 
         layout.addWidget(test_group)
 
         # Notater
-        layout.addWidget(QLabel("Notater:"))
+        layout.addWidget(QLabel("Notes:"))
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(80)
-        self.notes.setPlaceholderText("Ekstra notater om testen...")
+        self.notes.setPlaceholderText("Additional notes about the test...")
         layout.addWidget(self.notes)
 
         # Registrer felt
@@ -591,19 +625,19 @@ class TestSetupPage(QWizardPage):
             points = int((end - start) / step) + 1
             total_rounds = points * self.rounds_per_coal.value()
             self.test_points_label.setText(
-                f"<b>{points} punkter</b> = <b>{total_rounds} patroner</b> totalt"
+                f"<b>{points} points</b> = <b>{total_rounds} cartridges</b> total"
             )
         else:
-            self.test_points_label.setText("<b>0 punkter</b>")
+            self.test_points_label.setText("<b>0 points</b>")
 
 
 class SummaryPage(QWizardPage):
-    """Side 4: Oppsummering"""
+    """Step 4: summary."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle("Steg 4: Oppsummering")
-        self.setSubTitle("Sjekk at alt er riktig før du oppretter testen")
+        self.setTitle("Step 4: Summary")
+        self.setSubTitle("Check that everything is correct before creating the test")
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -625,24 +659,24 @@ class SummaryPage(QWizardPage):
         summary = f"""
         <h3>{wizard.field('test_name')}</h3>
 
-        <h4>Løpsprofil:</h4>
+        <h4>Barrel profile:</h4>
         <ul>
-            <li>Lengde: {wizard.field('barrel_length')} cm</li>
-            <li>Kontur: {wizard.field('barrel_contour')}</li>
-            <li>Munningsmiddel: {wizard.field('muzzle_device')} ({wizard.field('muzzle_weight')} g)</li>
+            <li>Length: {wizard.field('barrel_length')} cm</li>
+            <li>Contour: {wizard.field('barrel_contour')}</li>
+            <li>Muzzle device: {wizard.field('muzzle_device')} ({wizard.field('muzzle_weight')} g)</li>
         </ul>
 
-        <h4>Testområde:</h4>
+        <h4>Test range:</h4>
         <ul>
-            <li>COAL: {start} - {end} mm (steg: {step} mm)</li>
-            <li><b>{points} testpunkter</b></li>
-            <li>{wizard.field('rounds_per_coal')} skudd per punkt</li>
-            <li><b>Totalt: {total_rounds} patroner</b></li>
-            <li>Avstand: {wizard.field('distance')} m</li>
+            <li>COAL: {start} - {end} mm (step: {step} mm)</li>
+            <li><b>{points} test points</b></li>
+            <li>{wizard.field('rounds_per_coal')} shots per point</li>
+            <li><b>Total: {total_rounds} cartridges</b></li>
+            <li>Distance: {wizard.field('distance')} m</li>
         </ul>
 
         <p style='color: #5cb85c; font-weight: bold;'>
-        ✅ Klar til å opprette test! Etter opprettelse kan du legge inn resultater etter hvert som du skyter.
+        Ready to create the test. After creation, you can enter results as you shoot.
         </p>
         """
 
@@ -667,7 +701,7 @@ class HarmonicAnalysisDialog(QDialog):
         self.setLayout(layout)
 
         # Tittel
-        title = QLabel(f"<h2>📊 {self.test['name']}</h2>")
+        title = QLabel(f"<h2>{self.test['name']}</h2>")
         layout.addWidget(title)
 
         # Tabs
@@ -675,21 +709,21 @@ class HarmonicAnalysisDialog(QDialog):
         layout.addWidget(tabs)
 
         # Tab 1: Data & input
-        tabs.addTab(self.create_data_tab(), "📝 Testdata")
+        tabs.addTab(self.create_data_tab(), "Testdata")
 
         # Tab 2: Graf & analyse
-        tabs.addTab(self.create_analysis_tab(), "📈 AI-Analyse")
+        tabs.addTab(self.create_analysis_tab(), "AI-Analyse")
 
-        # Tab 3: Anbefaling
-        tabs.addTab(self.create_recommendation_tab(), "🎯 Anbefalinger")
+        # Tab 3: Recommendation
+        tabs.addTab(self.create_recommendation_tab(), "Recommendations")
 
-        # Lukk-knapp
-        close_btn = QPushButton("Lukk")
+        # Close button
+        close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)
 
     def create_data_tab(self):
-        """Oppretter data-tab"""
+        """Create the data tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
@@ -697,8 +731,8 @@ class HarmonicAnalysisDialog(QDialog):
         info = QLabel(
             f"""
         <b>Test:</b> {self.test['name']}<br>
-        <b>Dato:</b> {self.test['date']}<br>
-        <b>Avstand:</b> {self.test['distance_meters']}m
+        <b>Date:</b> {self.test['date']}<br>
+        <b>Distance:</b> {self.test['distance_meters']}m
         """
         )
         layout.addWidget(info)
@@ -707,7 +741,7 @@ class HarmonicAnalysisDialog(QDialog):
         table = QTableWidget()
         table.setColumnCount(6)
         table.setHorizontalHeaderLabels(
-            ["COAL (mm)", "Gruppe (mm)", "Snitt V (fps)", "ES", "SD", "Notater"]
+            ["COAL (mm)", "Group (mm)", "Avg V (fps)", "ES", "SD", "Notes"]
         )
 
         table.setRowCount(len(self.results))
@@ -730,18 +764,18 @@ class HarmonicAnalysisDialog(QDialog):
             notes = result["notes"] if result["notes"] else ""
             table.setItem(i, 5, QTableWidgetItem(notes))
 
-        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         layout.addWidget(table)
 
         # Knapp for å oppdatere data
-        update_btn = QPushButton("✏️ Rediger testdata")
+        update_btn = QPushButton("Edit test data")
         update_btn.clicked.connect(self.edit_test_data)
         layout.addWidget(update_btn)
 
         return widget
 
     def create_analysis_tab(self):
-        """Oppretter analyse-tab med grafer"""
+        """Create the analysis tab with charts."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
@@ -773,9 +807,7 @@ class HarmonicAnalysisDialog(QDialog):
 
         if len(coal_values) < 3:
             layout.addWidget(
-                QLabel(
-                    "⚠️ For lite data for å kjøre analyse. Legg inn flere resultater."
-                )
+                QLabel("Not enough data to run the analysis. Enter more results.")
             )
             return widget
 
@@ -796,8 +828,8 @@ class HarmonicAnalysisDialog(QDialog):
                 pass
 
         ax1.set_xlabel("COAL (mm)", fontsize=11)
-        ax1.set_ylabel("Gruppestørrelse (mm)", fontsize=11)
-        ax1.set_title("Gruppestørrelse vs Settedybde", fontsize=12, fontweight="bold")
+        ax1.set_ylabel("Group Size (mm)", fontsize=11)
+        ax1.set_title("Group Size vs Seating Depth", fontsize=12, fontweight="bold")
         ax1.grid(True, alpha=0.3)
 
         # Plot 2: SD vs COAL
@@ -809,7 +841,7 @@ class HarmonicAnalysisDialog(QDialog):
             ax2.set_xlabel("COAL (mm)", fontsize=11)
             ax2.set_ylabel("SD (fps)", fontsize=11)
             ax2.set_title(
-                "Hastighets-konsistens vs Settedybde", fontsize=12, fontweight="bold"
+                "Velocity Consistency vs Seating Depth", fontsize=12, fontweight="bold"
             )
             ax2.grid(True, alpha=0.3)
 
@@ -828,7 +860,7 @@ class HarmonicAnalysisDialog(QDialog):
             "b-o",
             linewidth=2,
             markersize=8,
-            label="Presisjon (normalisert)",
+            label="Precision (normalized)",
         )
 
         # Finn lokale maksima (= gode områder)
@@ -840,14 +872,12 @@ class HarmonicAnalysisDialog(QDialog):
                     group_norm[peaks],
                     "r*",
                     markersize=15,
-                    label="Potensielle noder",
+                    label="Potential nodes",
                 )
 
         ax3.set_xlabel("COAL (mm)", fontsize=11)
-        ax3.set_ylabel("Presisjonsscore (høyere = bedre)", fontsize=11)
-        ax3.set_title(
-            'AI-identifiserte "Harmoniske Noder"', fontsize=12, fontweight="bold"
-        )
+        ax3.set_ylabel("Precision Score (higher = better)", fontsize=11)
+        ax3.set_title('Identified "Harmonic Nodes"', fontsize=12, fontweight="bold")
         ax3.legend()
         ax3.grid(True, alpha=0.3)
         ax3.set_ylim(-0.1, 1.1)
@@ -858,7 +888,7 @@ class HarmonicAnalysisDialog(QDialog):
         return widget
 
     def create_recommendation_tab(self):
-        """Oppretter anbefalings-tab"""
+        """Create the recommendations tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
@@ -878,7 +908,7 @@ class HarmonicAnalysisDialog(QDialog):
                     sd_values.append(999)  # Høy verdi hvis missing
 
         if len(coal_values) < 3:
-            layout.addWidget(QLabel("⚠️ For lite data for anbefalinger"))
+            layout.addWidget(QLabel("Not enough data for recommendations"))
             return widget
 
         # Finn beste gruppe
@@ -895,20 +925,20 @@ class HarmonicAnalysisDialog(QDialog):
         peaks, properties = find_peaks(group_norm_inv, prominence=0.1)
 
         # Generer anbefaling
-        rec_html = "<h2>🎯 AI-Anbefalinger</h2>"
+        rec_html = "<h2>Guided Recommendations</h2>"
 
         rec_html += f"""
         <div style='background-color: #d4edda; border: 2px solid #28a745; border-radius: 5px; padding: 15px; margin: 10px 0;'>
-            <h3 style='color: #155724;'>✅ Beste presisjon observert:</h3>
+            <h3 style='color: #155724;'>Best observed precision:</h3>
             <p style='font-size: 14pt;'>
                 <b>COAL: {best_coal:.2f} mm</b><br>
-                Gruppestørrelse: {best_group:.1f} mm
+                Group size: {best_group:.1f} mm
             </p>
         </div>
         """
 
         if len(peaks) > 0:
-            rec_html += "<h3>🔍 Identifiserte harmoniske noder:</h3><ul>"
+            rec_html += "<h3>Identified harmonic nodes:</h3><ul>"
 
             # Sorter peaks etter score
             peak_scores = group_norm_inv[peaks]
@@ -921,36 +951,32 @@ class HarmonicAnalysisDialog(QDialog):
                 peak_group = group_sizes[peak_idx]
                 rec_html += f"""
                 <li><b>Node {i}:</b> COAL {peak_coal:.2f} mm
-                    (Gruppe: {peak_group:.1f} mm, Score: {score:.2f})</li>
+                    (Group: {peak_group:.1f} mm, Score: {score:.2f})</li>
                 """
 
             rec_html += "</ul>"
         else:
-            rec_html += (
-                "<p>⚠️ Ingen tydelige harmoniske noder funnet. Dette kan bety:</p><ul>"
-            )
-            rec_html += "<li>For få testpunkter</li>"
-            rec_html += "<li>For stort steg mellom COAL-verdier</li>"
-            rec_html += (
-                "<li>Våpenet er ikke følsomt for settedybde i dette området</li></ul>"
-            )
+            rec_html += "<p>No clear harmonic nodes were found. This may mean:</p><ul>"
+            rec_html += "<li>Too few test points</li>"
+            rec_html += "<li>Step size is too large between COAL values</li>"
+            rec_html += "<li>The firearm is not very sensitive to seating depth in this range</li></ul>"
 
         # Neste steg
         rec_html += f"""
         <hr>
-        <h3>📋 Anbefalte neste steg:</h3>
+        <h3>Recommended next steps:</h3>
         <ol>
-            <li><b>Forfin beste område:</b> Test COAL {best_coal-0.10:.2f} - {best_coal+0.10:.2f} mm
-                med 0.05mm steg (5 punkter)</li>
-            <li><b>Øk antall skudd:</b> Skyt 5-10 skudd per COAL for bedre statistikk</li>
-            <li><b>Verifiser på lengre hold:</b> Test beste COAL på {self.test['distance_meters']*2}m</li>
-            <li><b>Sjekk robusthet:</b> Test i ulike værforhold og temperaturer</li>
+            <li><b>Refine the best zone:</b> Test COAL {best_coal-0.10:.2f} - {best_coal+0.10:.2f} mm
+                in 0.05 mm steps (5 points)</li>
+            <li><b>Increase shot count:</b> Fire 5-10 shots per COAL for stronger statistics</li>
+            <li><b>Verify at longer range:</b> Test the best COAL at {self.test['distance_meters']*2}m</li>
+            <li><b>Check robustness:</b> Test across different weather conditions and temperatures</li>
         </ol>
 
         <div style='background-color: #fff3cd; border: 2px solid #ffc107; border-radius: 5px; padding: 10px; margin: 10px 0;'>
-            <b>⚠️ Viktig:</b> Disse anbefalingene er basert på <i>dine faktiske testresultater</i>.
-            AI har ikke beregnet teoretisk harmonikk, men identifisert mønstre i dataene dine.
-            Alltid verifiser med videre testing før du tar endelig valg.
+            <b>Important:</b> These recommendations are based on <i>your actual test results</i>.
+            The guide has not calculated theoretical harmonics, but identified patterns in your data.
+            Always verify with more testing before making a final choice.
         </div>
         """
 
@@ -965,7 +991,7 @@ class HarmonicAnalysisDialog(QDialog):
         """Åpner dialog for å redigere testdata"""
         QMessageBox.information(
             self,
-            "Funksjon kommer",
-            "Funksjon for å redigere testdata kommer snart!\n\n"
-            "Foreløpig kan du redigere direkte i databasen eller legge til nye tester.",
+            "Coming soon",
+            "A dedicated test-data editor is coming soon.\n\n"
+            "For now, edit directly in the database or add new tests.",
         )

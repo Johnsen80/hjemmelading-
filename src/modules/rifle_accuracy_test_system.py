@@ -33,7 +33,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
+from ..database.database import get_database
+from ..utils.i18n import tr
 
 logger = logging.getLogger(__name__)
 
@@ -56,50 +57,37 @@ class RifleAccuracyTestManager(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🎯 Accuracy Test System")
-        header.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
+        header = QLabel(tr("accuracy_test_title"))
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
-        desc = QLabel(
-            "Systematisk testing av gruppesamlinger. Test ved baseline og hver 500 skudd "
-            "for å tracke accuracy-utvikling over rifle-levetiden."
-        )
+        desc = QLabel(tr("accuracy_test_subtitle"))
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
+        desc.setProperty("variant", "cardSubtitle")
         layout.addWidget(desc)
 
         # Action buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_new_test = QPushButton("➕ Ny Accuracy Test")
+        self.btn_new_test = QPushButton(tr("accuracy_test_new"))
         self.btn_new_test.clicked.connect(self.create_new_test)
-        self.btn_new_test.setStyleSheet(
-            "background-color: #27ae60; color: white; padding: 8px; font-weight: bold;"
-        )
+        self.btn_new_test.setProperty("variant", "primary")
 
-        self.btn_view = QPushButton("🔍 Vis Detaljer")
+        self.btn_view = QPushButton(tr("accuracy_test_view_details"))
         self.btn_view.clicked.connect(self.view_test_details)
-        self.btn_view.setStyleSheet(
-            "background-color: #3498db; color: white; padding: 8px;"
-        )
+        self.btn_view.setProperty("variant", "secondary")
 
-        self.btn_print_sheet = QPushButton("🖨️ Print Test Ark")
+        self.btn_print_sheet = QPushButton(tr("accuracy_test_print_sheet"))
         self.btn_print_sheet.clicked.connect(self.print_test_sheet)
-        self.btn_print_sheet.setStyleSheet(
-            "background-color: #9b59b6; color: white; padding: 8px;"
-        )
+        self.btn_print_sheet.setProperty("variant", "ghost")
 
-        self.btn_chart = QPushButton("📈 Utviklingskurve")
+        self.btn_chart = QPushButton(tr("accuracy_test_development_chart"))
         self.btn_chart.clicked.connect(self.show_development_chart)
-        self.btn_chart.setStyleSheet(
-            "background-color: #e67e22; color: white; padding: 8px;"
-        )
+        self.btn_chart.setProperty("variant", "secondary")
 
-        self.btn_delete = QPushButton("🗑️ Slett")
+        self.btn_delete = QPushButton(tr("btn_delete"))
         self.btn_delete.clicked.connect(self.delete_test)
-        self.btn_delete.setStyleSheet(
-            "background-color: #e74c3c; color: white; padding: 8px;"
-        )
+        self.btn_delete.setProperty("variant", "ghost")
 
         btn_layout.addWidget(self.btn_new_test)
         btn_layout.addWidget(self.btn_view)
@@ -116,18 +104,18 @@ class RifleAccuracyTestManager(QWidget):
         self.table.setHorizontalHeaderLabels(
             [
                 "ID",
-                "Dato",
-                "Skudd ved Test",
-                "Grupper",
-                "Skudd/Gruppe",
-                "Avg Gruppe (mm)",
-                "Avg MOA",
-                "ES fps",
-                "SD fps",
-                "Status",
+                tr("common_date"),
+                tr("accuracy_test_rounds_at_test"),
+                tr("accuracy_test_groups"),
+                tr("accuracy_test_shots_per_group"),
+                tr("accuracy_test_avg_group_mm"),
+                tr("accuracy_test_avg_moa"),
+                tr("accuracy_test_es_fps"),
+                tr("accuracy_test_sd_fps"),
+                tr("common_status"),
             ]
         )
-        self.table.horizontalHeader().setSectionResizeMode(
+        self.table.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
             QHeaderView.ResizeMode.Stretch
         )
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -179,7 +167,11 @@ class RifleAccuracyTestManager(QWidget):
             self.table.setItem(row, 8, QTableWidgetItem(f"{sd:.1f}" if sd else "-"))
 
             # Status based on results
-            status = "📊 Komplett" if test.get("test_completed") else "⚠️ Ufullstendig"
+            status = (
+                tr("accuracy_test_status_complete")
+                if test.get("test_completed")
+                else tr("accuracy_test_status_incomplete")
+            )
             status_item = QTableWidgetItem(status)
 
             # Color code based on MOA
@@ -198,7 +190,9 @@ class RifleAccuracyTestManager(QWidget):
     def create_new_test(self):
         """Create new accuracy test"""
         if not self.rifle_id:
-            QMessageBox.warning(self, "Ingen Rifle", "Velg et rifle først.")
+            QMessageBox.warning(
+                self, tr("accuracy_test_no_rifle_title"), tr("accuracy_test_no_rifle")
+            )
             return
 
         dialog = AccuracyTestDialog(self, rifle_id=self.rifle_id)
@@ -212,6 +206,15 @@ class RifleAccuracyTestManager(QWidget):
             return
 
         test_id = int(self.table.item(selected, 0).text())
+        test = self.db.get_by_id("rifle_accuracy_tests", test_id)
+        if not test:
+            QMessageBox.warning(
+                self,
+                tr("accuracy_test_missing_title"),
+                tr("accuracy_test_missing_body"),
+            )
+            self.load_tests()
+            return
         dialog = AccuracyTestDetailsDialog(self, test_id=test_id)
         dialog.exec()
 
@@ -219,10 +222,23 @@ class RifleAccuracyTestManager(QWidget):
         """Print test sheet for field use"""
         selected = self.table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen Test", "Velg en test først.")
+            QMessageBox.warning(
+                self,
+                tr("accuracy_test_no_test_title"),
+                tr("accuracy_test_select_first"),
+            )
             return
 
         test_id = int(self.table.item(selected, 0).text())
+        test = self.db.get_by_id("rifle_accuracy_tests", test_id)
+        if not test:
+            QMessageBox.warning(
+                self,
+                tr("accuracy_test_missing_title"),
+                tr("accuracy_test_missing_body"),
+            )
+            self.load_tests()
+            return
         dialog = TestSheetPrinterDialog(self, test_id=test_id)
         dialog.exec()
 
@@ -235,13 +251,17 @@ class RifleAccuracyTestManager(QWidget):
         """Delete selected test"""
         selected = self.table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen Test", "Velg en test å slette.")
+            QMessageBox.warning(
+                self,
+                tr("accuracy_test_no_test_title"),
+                tr("accuracy_test_select_delete"),
+            )
             return
 
         reply = QMessageBox.question(
             self,
-            "Bekreft Sletting",
-            "Er du sikker på at du vil slette denne testen?",
+            tr("msg_confirm_delete"),
+            tr("accuracy_test_confirm_delete"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -265,7 +285,9 @@ class AccuracyTestDialog(QDialog):
         self.test_id = test_id
 
         self.setWindowTitle(
-            "🎯 Ny Accuracy Test" if test_id is None else "✏️ Rediger Test"
+            tr("accuracy_test_dialog_new")
+            if test_id is None
+            else tr("accuracy_test_dialog_edit")
         )
         self.setMinimumSize(900, 700)
 
@@ -282,28 +304,24 @@ class AccuracyTestDialog(QDialog):
 
         # Tabs
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.create_test_info_tab(), "📋 Test Info")
-        self.tabs.addTab(self.create_load_data_tab(), "🔫 Ladning")
-        self.tabs.addTab(self.create_groups_tab(), "🎯 Grupper")
-        self.tabs.addTab(self.create_velocity_tab(), "⚡ Hastighet")
-        self.tabs.addTab(self.create_photos_tab(), "📷 Bilder")
+        self.tabs.addTab(self.create_test_info_tab(), tr("accuracy_test_tab_info"))
+        self.tabs.addTab(self.create_load_data_tab(), tr("accuracy_test_tab_load"))
+        self.tabs.addTab(self.create_groups_tab(), tr("accuracy_test_tab_groups"))
+        self.tabs.addTab(self.create_velocity_tab(), tr("accuracy_test_tab_velocity"))
+        self.tabs.addTab(self.create_photos_tab(), tr("accuracy_test_tab_photos"))
 
         layout.addWidget(self.tabs)
 
         # Buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_save = QPushButton("💾 Lagre Test")
+        self.btn_save = QPushButton(tr("accuracy_test_save"))
         self.btn_save.clicked.connect(self.save_test)
-        self.btn_save.setStyleSheet(
-            "background-color: #27ae60; color: white; padding: 10px; font-weight: bold;"
-        )
+        self.btn_save.setProperty("variant", "primary")
 
-        self.btn_cancel = QPushButton("❌ Avbryt")
+        self.btn_cancel = QPushButton(tr("btn_cancel"))
         self.btn_cancel.clicked.connect(self.reject)
-        self.btn_cancel.setStyleSheet(
-            "background-color: #95a5a6; color: white; padding: 10px;"
-        )
+        self.btn_cancel.setProperty("variant", "ghost")
 
         btn_layout.addStretch()
         btn_layout.addWidget(self.btn_save)
@@ -321,13 +339,13 @@ class AccuracyTestDialog(QDialog):
         self.input_test_date = QDateEdit()
         self.input_test_date.setDate(QDate.currentDate())
         self.input_test_date.setCalendarPopup(True)
-        layout.addRow("📅 Test Dato:", self.input_test_date)
+        layout.addRow(tr("accuracy_test_date") + ":", self.input_test_date)
 
         self.input_round_count = QSpinBox()
         self.input_round_count.setRange(0, 10000)
         self.input_round_count.setValue(0)
-        self.input_round_count.setSuffix(" skudd")
-        layout.addRow("🎯 Skudd ved Test:", self.input_round_count)
+        self.input_round_count.setSuffix(" rounds")
+        layout.addRow(tr("accuracy_test_rounds_at_test") + ":", self.input_round_count)
 
         self.input_test_type = QComboBox()
         self.input_test_type.addItems(
@@ -341,39 +359,46 @@ class AccuracyTestDialog(QDialog):
                 "ladder_test",  # Ladder test
             ]
         )
-        layout.addRow("📊 Test Type:", self.input_test_type)
+        layout.addRow(tr("accuracy_test_type") + ":", self.input_test_type)
 
         self.input_distance = QDoubleSpinBox()
         self.input_distance.setRange(10, 1000)
         self.input_distance.setValue(100)
         self.input_distance.setSuffix(" m")
-        layout.addRow("📏 Distanse:", self.input_distance)
+        layout.addRow(tr("accuracy_test_distance") + ":", self.input_distance)
 
         self.input_groups_fired = QSpinBox()
         self.input_groups_fired.setRange(1, 20)
         self.input_groups_fired.setValue(3)
         self.input_groups_fired.valueChanged.connect(self.on_groups_changed)
-        layout.addRow("🎯 Antall Grupper:", self.input_groups_fired)
+        layout.addRow(tr("accuracy_test_group_count") + ":", self.input_groups_fired)
 
         self.input_shots_per_group = QSpinBox()
         self.input_shots_per_group.setRange(3, 10)
         self.input_shots_per_group.setValue(5)
-        layout.addRow("🔢 Skudd per Gruppe:", self.input_shots_per_group)
+        layout.addRow(
+            tr("accuracy_test_shots_per_group") + ":", self.input_shots_per_group
+        )
 
         self.input_temperature = QDoubleSpinBox()
         self.input_temperature.setRange(-30, 50)
         self.input_temperature.setValue(15)
         self.input_temperature.setSuffix(" °C")
-        layout.addRow("🌡️ Temperatur:", self.input_temperature)
+        layout.addRow(tr("accuracy_test_temperature") + ":", self.input_temperature)
 
         self.input_wind = QComboBox()
-        self.input_wind.addItems(["none", "light", "moderate", "strong"])
-        layout.addRow("💨 Vind:", self.input_wind)
+        self.input_wind.addItem(tr("accuracy_test_wind_none"), "none")
+        self.input_wind.addItem(tr("accuracy_test_wind_light"), "light")
+        self.input_wind.addItem(tr("accuracy_test_wind_moderate"), "moderate")
+        self.input_wind.addItem(tr("accuracy_test_wind_strong"), "strong")
+        layout.addRow(tr("accuracy_test_wind") + ":", self.input_wind)
 
         self.input_conditions = QTextEdit()
         self.input_conditions.setMaximumHeight(80)
-        self.input_conditions.setPlaceholderText("Værforhold, lysforhold, etc...")
-        layout.addRow("📝 Forhold:", self.input_conditions)
+        self.input_conditions.setPlaceholderText(
+            tr("accuracy_test_conditions_placeholder")
+        )
+        layout.addRow(tr("accuracy_test_conditions") + ":", self.input_conditions)
 
         widget.setLayout(layout)
         return widget
@@ -383,76 +408,85 @@ class AccuracyTestDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        info = QLabel("🔫 <b>Ladningsdata for denne testen</b>")
-        info.setStyleSheet("font-size: 14px; margin-bottom: 10px;")
+        info = QLabel(tr("accuracy_test_load_info"))
+        info.setProperty("variant", "cardTitle")
         layout.addWidget(info)
 
         _form = QFormLayout()
 
         # Case info
-        case_group = QGroupBox("📦 Hylse")
+        case_group = QGroupBox(tr("accuracy_test_case"))
+        case_group.setProperty("variant", "panel")
         case_layout = QFormLayout()
 
         self.input_case_id = QComboBox()
         cases = self.db.get_all("cases", "name")
-        self.input_case_id.addItem("-- Velg Hylse --", None)
+        self.input_case_id.addItem(tr("accuracy_test_select_case"), None)
         for case in cases:
             self.input_case_id.addItem(
                 f"{case['name']} ({case['manufacturer']})", case["id"]
             )
-        case_layout.addRow("Hylse:", self.input_case_id)
+        case_layout.addRow(tr("accuracy_test_case") + ":", self.input_case_id)
 
         self.input_times_fired = QSpinBox()
         self.input_times_fired.setRange(0, 50)
         self.input_times_fired.setValue(1)
-        case_layout.addRow("Ganger Fyrt:", self.input_times_fired)
+        case_layout.addRow(
+            tr("accuracy_test_times_fired") + ":", self.input_times_fired
+        )
 
         self.input_case_length = QDoubleSpinBox()
         self.input_case_length.setRange(30, 100)
         self.input_case_length.setValue(50)
         self.input_case_length.setSuffix(" mm")
         self.input_case_length.setDecimals(2)
-        case_layout.addRow("Hylse Lengde:", self.input_case_length)
+        case_layout.addRow(
+            tr("accuracy_test_case_length") + ":", self.input_case_length
+        )
 
         case_group.setLayout(case_layout)
         layout.addWidget(case_group)
 
         # Powder
-        powder_group = QGroupBox("💨 Krutt")
+        powder_group = QGroupBox(tr("accuracy_test_powder"))
+        powder_group.setProperty("variant", "panel")
         powder_layout = QFormLayout()
 
         self.input_powder_id = QComboBox()
         powders = self.db.get_all("powder", "name")
-        self.input_powder_id.addItem("-- Velg Krutt --", None)
+        self.input_powder_id.addItem(tr("accuracy_test_select_powder"), None)
         for powder in powders:
             self.input_powder_id.addItem(
                 f"{powder['name']} ({powder['manufacturer']})", powder["id"]
             )
-        powder_layout.addRow("Krutt:", self.input_powder_id)
+        powder_layout.addRow(tr("accuracy_test_powder") + ":", self.input_powder_id)
 
         self.input_charge_weight = QDoubleSpinBox()
         self.input_charge_weight.setRange(10, 100)
         self.input_charge_weight.setValue(40)
         self.input_charge_weight.setSuffix(" gr")
         self.input_charge_weight.setDecimals(2)
-        powder_layout.addRow("Krutt Mengde:", self.input_charge_weight)
+        powder_layout.addRow(
+            tr("accuracy_test_powder_charge") + ":", self.input_charge_weight
+        )
 
         powder_group.setLayout(powder_layout)
         layout.addWidget(powder_group)
 
         # Bullet
-        bullet_group = QGroupBox("🎯 Kule")
+        bullet_group = QGroupBox(tr("accuracy_test_bullet"))
+        bullet_group.setProperty("variant", "panel")
         bullet_layout = QFormLayout()
 
         self.input_bullet_id = QComboBox()
         bullets = self.db.get_all("bullets", "name")
-        self.input_bullet_id.addItem("-- Velg Kule --", None)
+        self.input_bullet_id.addItem(tr("accuracy_test_select_bullet"), None)
         for bullet in bullets:
             self.input_bullet_id.addItem(
                 f"{bullet['name']} - {bullet['weight_grains']}gr ({bullet['manufacturer']})",
                 bullet["id"],
             )
-        bullet_layout.addRow("Kule:", self.input_bullet_id)
+        bullet_layout.addRow(tr("accuracy_test_bullet") + ":", self.input_bullet_id)
 
         self.input_coal = QDoubleSpinBox()
         self.input_coal.setRange(40, 100)
@@ -473,24 +507,25 @@ class AccuracyTestDialog(QDialog):
         self.input_jump.setValue(0.5)
         self.input_jump.setSuffix(" mm")
         self.input_jump.setDecimals(3)
-        bullet_layout.addRow("Jump/Seating Depth:", self.input_jump)
+        bullet_layout.addRow(tr("accuracy_test_jump") + ":", self.input_jump)
 
         bullet_group.setLayout(bullet_layout)
         layout.addWidget(bullet_group)
 
         # Primer
-        primer_group = QGroupBox("🔥 Tennhette")
+        primer_group = QGroupBox(tr("accuracy_test_primer"))
+        primer_group.setProperty("variant", "panel")
         primer_layout = QFormLayout()
 
         self.input_primer_id = QComboBox()
         primers = self.db.get_all("primers", "name")
-        self.input_primer_id.addItem("-- Velg Tennhette --", None)
+        self.input_primer_id.addItem(tr("accuracy_test_select_primer"), None)
         for primer in primers:
             self.input_primer_id.addItem(
                 f"{primer['name']} ({primer['manufacturer']} - {primer['type']})",
                 primer["id"],
             )
-        primer_layout.addRow("Tennhette:", self.input_primer_id)
+        primer_layout.addRow(tr("accuracy_test_primer") + ":", self.input_primer_id)
 
         primer_group.setLayout(primer_layout)
         layout.addWidget(primer_group)
@@ -504,10 +539,8 @@ class AccuracyTestDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        info = QLabel(
-            "🎯 <b>Gruppestørrelser</b> - Mål hver gruppe i mm (eller bruk MOA)"
-        )
-        info.setStyleSheet("font-size: 14px; margin-bottom: 10px;")
+        info = QLabel(tr("accuracy_test_groups_info"))
+        info.setProperty("variant", "cardSubtitle")
         layout.addWidget(info)
 
         # Dynamic group inputs
@@ -518,20 +551,27 @@ class AccuracyTestDialog(QDialog):
         layout.addWidget(self.groups_widget)
 
         # Summary
-        summary_group = QGroupBox("📊 Oppsummering")
+        summary_group = QGroupBox(tr("accuracy_test_summary"))
+        summary_group.setProperty("variant", "panel")
         summary_layout = QFormLayout()
 
         self.label_avg_size = QLabel("-")
-        summary_layout.addRow("Gjennomsnittlig Gruppe:", self.label_avg_size)
+        summary_layout.addRow(tr("accuracy_test_avg_group") + ":", self.label_avg_size)
 
         self.label_avg_moa = QLabel("-")
-        summary_layout.addRow("Gjennomsnittlig MOA:", self.label_avg_moa)
+        summary_layout.addRow(
+            tr("accuracy_test_avg_moa_label") + ":", self.label_avg_moa
+        )
 
         self.label_best_group = QLabel("-")
-        summary_layout.addRow("Beste Gruppe:", self.label_best_group)
+        summary_layout.addRow(
+            tr("accuracy_test_best_group") + ":", self.label_best_group
+        )
 
         self.label_worst_group = QLabel("-")
-        summary_layout.addRow("Verste Gruppe:", self.label_worst_group)
+        summary_layout.addRow(
+            tr("accuracy_test_worst_group") + ":", self.label_worst_group
+        )
 
         summary_group.setLayout(summary_layout)
         layout.addWidget(summary_group)
@@ -549,30 +589,22 @@ class AccuracyTestDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        info = QLabel("⚡ <b>Hastighetsdata</b> - Legg inn hastigheter fra chronograph")
-        info.setStyleSheet("font-size: 14px; margin-bottom: 10px;")
+        info = QLabel(tr("accuracy_test_velocity_info"))
+        info.setProperty("variant", "cardSubtitle")
         layout.addWidget(info)
 
         self.velocity_text = QTextEdit()
-        self.velocity_text.setPlaceholderText(
-            "Legg inn hastigheter, en per linje:\n"
-            "2750\n"
-            "2755\n"
-            "2748\n"
-            "2752\n"
-            "2750\n"
-            "...\n\n"
-            "Programmet beregner automatisk ES og SD."
-        )
+        self.velocity_text.setPlaceholderText(tr("accuracy_test_velocity_placeholder"))
         self.velocity_text.textChanged.connect(self.calculate_velocity_stats)
         layout.addWidget(self.velocity_text)
 
         # Stats
-        stats_group = QGroupBox("📊 Statistikk")
+        stats_group = QGroupBox(tr("accuracy_test_statistics"))
+        stats_group.setProperty("variant", "panel")
         stats_layout = QFormLayout()
 
         self.label_avg_velocity = QLabel("-")
-        stats_layout.addRow("Gjennomsnitt:", self.label_avg_velocity)
+        stats_layout.addRow(tr("accuracy_test_average") + ":", self.label_avg_velocity)
 
         self.label_es = QLabel("-")
         stats_layout.addRow("ES (Extreme Spread):", self.label_es)
@@ -581,10 +613,10 @@ class AccuracyTestDialog(QDialog):
         stats_layout.addRow("SD (Standard Deviation):", self.label_sd)
 
         self.label_min_velocity = QLabel("-")
-        stats_layout.addRow("Min:", self.label_min_velocity)
+        stats_layout.addRow(tr("accuracy_test_min") + ":", self.label_min_velocity)
 
         self.label_max_velocity = QLabel("-")
-        stats_layout.addRow("Max:", self.label_max_velocity)
+        stats_layout.addRow(tr("accuracy_test_max") + ":", self.label_max_velocity)
 
         stats_group.setLayout(stats_layout)
         layout.addWidget(stats_group)
@@ -597,18 +629,20 @@ class AccuracyTestDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        info = QLabel("📷 <b>Dokumentasjon</b> - Last opp bilder av målskiver")
-        info.setStyleSheet("font-size: 14px; margin-bottom: 10px;")
+        info = QLabel(tr("accuracy_test_photos_info"))
+        info.setProperty("variant", "cardSubtitle")
         layout.addWidget(info)
 
         # Upload buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_upload_target = QPushButton("📷 Last opp Målskive")
+        self.btn_upload_target = QPushButton(tr("accuracy_test_upload_target"))
+        self.btn_upload_target.setProperty("variant", "primary")
         self.btn_upload_target.clicked.connect(self.upload_target_photo)
         btn_layout.addWidget(self.btn_upload_target)
 
-        self.btn_upload_setup = QPushButton("📷 Last opp Setup")
+        self.btn_upload_setup = QPushButton(tr("accuracy_test_upload_setup"))
+        self.btn_upload_setup.setProperty("variant", "secondary")
         self.btn_upload_setup.clicked.connect(self.upload_setup_photo)
         btn_layout.addWidget(self.btn_upload_setup)
 
@@ -617,15 +651,15 @@ class AccuracyTestDialog(QDialog):
         # Photo previews
         self.photos_list = QTextEdit()
         self.photos_list.setReadOnly(True)
-        self.photos_list.setPlaceholderText("Ingen bilder lastet opp ennå...")
+        self.photos_list.setPlaceholderText(tr("accuracy_test_no_photos"))
         layout.addWidget(self.photos_list)
 
         # Notes
-        notes_label = QLabel("📝 Notater:")
+        notes_label = QLabel(tr("common_notes") + ":")
         layout.addWidget(notes_label)
 
         self.input_notes = QTextEdit()
-        self.input_notes.setPlaceholderText("Observasjoner, problemer, kommentarer...")
+        self.input_notes.setPlaceholderText(tr("accuracy_test_notes_placeholder"))
         layout.addWidget(self.input_notes)
 
         widget.setLayout(layout)
@@ -643,7 +677,7 @@ class AccuracyTestDialog(QDialog):
         self.group_inputs = []
 
         for i in range(num_groups):
-            label = QLabel(f"Gruppe {i+1}:")
+            label = QLabel(tr("accuracy_test_group_n", index=i + 1))
             self.groups_layout.addWidget(label, i, 0)
 
             size_mm = QDoubleSpinBox()
@@ -754,7 +788,11 @@ class AccuracyTestDialog(QDialog):
         self.input_groups_fired.setValue(test.get("groups_fired", 3))
         self.input_shots_per_group.setValue(test.get("shots_per_group", 5))
         self.input_temperature.setValue(test.get("temperature_c", 15))
-        self.input_wind.setCurrentText(test.get("wind_condition", "none"))
+        target_wind = test.get("wind_condition", "none")
+        for i in range(self.input_wind.count()):
+            if self.input_wind.itemData(i) == target_wind:
+                self.input_wind.setCurrentIndex(i)
+                break
         self.input_conditions.setPlainText(test.get("conditions", ""))
 
         # Load data tab
@@ -774,20 +812,28 @@ class AccuracyTestDialog(QDialog):
     def upload_target_photo(self):
         """Upload target photo"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Velg Målskive Bilde", "", "Images (*.png *.jpg *.jpeg *.bmp)"
+            self,
+            tr("accuracy_test_select_target_image"),
+            "",
+            tr("accuracy_test_image_filter"),
         )
 
         if file_path:
-            self.photos_list.append(f"📷 Målskive: {file_path}\n")
+            self.photos_list.append(
+                f"{tr('accuracy_test_target_label')}: {file_path}\n"
+            )
 
     def upload_setup_photo(self):
         """Upload setup photo"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Velg Setup Bilde", "", "Images (*.png *.jpg *.jpeg *.bmp)"
+            self,
+            tr("accuracy_test_select_setup_image"),
+            "",
+            tr("accuracy_test_image_filter"),
         )
 
         if file_path:
-            self.photos_list.append(f"📷 Setup: {file_path}\n")
+            self.photos_list.append(f"{tr('accuracy_test_setup_label')}: {file_path}\n")
 
     def save_test(self):
         """Save accuracy test"""
@@ -800,7 +846,9 @@ class AccuracyTestDialog(QDialog):
 
         if not group_sizes:
             QMessageBox.warning(
-                self, "Mangler Data", "Legg inn minst én gruppestørrelse."
+                self,
+                tr("accuracy_test_missing_data_title"),
+                tr("accuracy_test_missing_group"),
             )
             return
 
@@ -845,7 +893,7 @@ class AccuracyTestDialog(QDialog):
             "worst_group_mm": max(group_sizes),
             "average_moa": avg_moa,
             "temperature_c": self.input_temperature.value(),
-            "wind_condition": self.input_wind.currentText(),
+            "wind_condition": self.input_wind.currentData(),
             "conditions": self.input_conditions.toPlainText(),
             # Load data
             "case_id": self.input_case_id.currentData(),
@@ -868,17 +916,23 @@ class AccuracyTestDialog(QDialog):
             "created_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        try:
-            if self.test_id:
-                self.db.update("rifle_accuracy_tests", data, "id = ?", (self.test_id,))
-                QMessageBox.information(self, "Lagret", "Test oppdatert!")
-            else:
-                self.db.insert("rifle_accuracy_tests", data)
-                QMessageBox.information(self, "Lagret", "Test lagret!")
+        if self.test_id:
+            self.db.update("rifle_accuracy_tests", data, "id = ?", (self.test_id,))
+            QMessageBox.information(
+                self, tr("common_saved"), tr("accuracy_test_updated")
+            )
+        else:
+            new_id = self.db.insert("rifle_accuracy_tests", data)
+            if new_id is None:
+                QMessageBox.critical(
+                    self,
+                    tr("msg_error"),
+                    tr("accuracy_test_save_failed", error="insert returned None"),
+                )
+                return
+            QMessageBox.information(self, tr("common_saved"), tr("accuracy_test_saved"))
 
-            self.accept()
-        except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Kunne ikke lagre: {str(e)}")
+        self.accept()
 
 
 class AccuracyTestDetailsDialog(QDialog):
@@ -889,7 +943,7 @@ class AccuracyTestDetailsDialog(QDialog):
         self.db = get_database()
         self.test_id = test_id
 
-        self.setWindowTitle("🔍 Test Detaljer")
+        self.setWindowTitle(tr("accuracy_test_details_title"))
         self.setMinimumSize(700, 600)
 
         self.init_ui()
@@ -903,7 +957,8 @@ class AccuracyTestDetailsDialog(QDialog):
         self.details_display.setReadOnly(True)
         layout.addWidget(self.details_display)
 
-        btn_close = QPushButton("✓ Lukk")
+        btn_close = QPushButton(tr("btn_close"))
+        btn_close.setProperty("variant", "ghost")
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close)
 
@@ -917,40 +972,40 @@ class AccuracyTestDetailsDialog(QDialog):
 
         # Get rifle name
         rifle = self.db.get_by_id("rifles", test["rifle_id"])
-        rifle_name = rifle["name"] if rifle else "Unknown"
+        rifle_name = rifle["name"] if rifle else tr("common_unknown")
 
         html = f"""
-        <h2>🎯 Accuracy Test</h2>
+        <h2>{tr("accuracy_test_title")}</h2>
         <h3>{rifle_name}</h3>
 
-        <h4>Test Info</h4>
+        <h4>{tr("accuracy_test_tab_info")}</h4>
         <ul>
-            <li><b>Dato:</b> {test.get('test_date', '-')}</li>
-            <li><b>Skudd ved test:</b> {test.get('round_count_at_test', 0)}</li>
-            <li><b>Type:</b> {test.get('test_type', '-')}</li>
-            <li><b>Distanse:</b> {test.get('distance_meters', 0)} m</li>
-            <li><b>Temperatur:</b> {test.get('temperature_c', 0)}°C</li>
-            <li><b>Vind:</b> {test.get('wind_condition', '-')}</li>
+            <li><b>{tr("common_date")}:</b> {test.get('test_date', '-')}</li>
+            <li><b>{tr("accuracy_test_rounds_at_test")}:</b> {test.get('round_count_at_test', 0)}</li>
+            <li><b>{tr("accuracy_test_type")}:</b> {test.get('test_type', '-')}</li>
+            <li><b>{tr("accuracy_test_distance")}:</b> {test.get('distance_meters', 0)} m</li>
+            <li><b>{tr("accuracy_test_temperature")}:</b> {test.get('temperature_c', 0)}°C</li>
+            <li><b>{tr("accuracy_test_wind")}:</b> {test.get('wind_condition', '-')}</li>
         </ul>
 
-        <h4>Resultater</h4>
+        <h4>{tr("accuracy_test_results")}</h4>
         <ul>
-            <li><b>Grupper fyrt:</b> {test.get('groups_fired', 0)}</li>
-            <li><b>Skudd per gruppe:</b> {test.get('shots_per_group', 0)}</li>
-            <li><b>Gjennomsnittlig gruppe:</b> {test.get('average_group_size_mm', 0):.2f} mm</li>
-            <li><b>Gjennomsnittlig MOA:</b> {test.get('average_moa', 0):.3f} MOA</li>
-            <li><b>Beste gruppe:</b> {test.get('best_group_mm', 0):.2f} mm</li>
-            <li><b>Verste gruppe:</b> {test.get('worst_group_mm', 0):.2f} mm</li>
+            <li><b>{tr("accuracy_test_groups_fired")}:</b> {test.get('groups_fired', 0)}</li>
+            <li><b>{tr("accuracy_test_shots_per_group")}:</b> {test.get('shots_per_group', 0)}</li>
+            <li><b>{tr("accuracy_test_avg_group")}:</b> {test.get('average_group_size_mm', 0):.2f} mm</li>
+            <li><b>{tr("accuracy_test_avg_moa_label")}:</b> {test.get('average_moa', 0):.3f} MOA</li>
+            <li><b>{tr("accuracy_test_best_group")}:</b> {test.get('best_group_mm', 0):.2f} mm</li>
+            <li><b>{tr("accuracy_test_worst_group")}:</b> {test.get('worst_group_mm', 0):.2f} mm</li>
         </ul>
 
-        <h4>Hastighet</h4>
+        <h4>{tr("accuracy_test_tab_velocity")}</h4>
         <ul>
-            <li><b>Gjennomsnitt:</b> {test.get('average_velocity_fps', 0):.0f} fps</li>
+            <li><b>{tr("accuracy_test_average")}:</b> {test.get('average_velocity_fps', 0):.0f} fps</li>
             <li><b>ES:</b> {test.get('extreme_spread_fps', 0):.0f} fps</li>
             <li><b>SD:</b> {test.get('standard_deviation_fps', 0):.1f} fps</li>
         </ul>
 
-        <h4>Notater</h4>
+        <h4>{tr("common_notes")}</h4>
         <p>{test.get('notes', '-')}</p>
         """
 
@@ -964,18 +1019,13 @@ class TestSheetPrinterDialog(QDialog):
         super().__init__(parent)
         self.test_id = test_id
 
-        self.setWindowTitle("🖨️ Print Test Ark")
+        self.setWindowTitle(tr("accuracy_test_print_sheet"))
         self.setMinimumSize(800, 1000)
 
         QMessageBox.information(
             self,
-            "Print Test Ark",
-            "Denne funksjonen vil generere et print-vennlig ark med:\n\n"
-            "• Ladningsdata\n"
-            "• Nummererte skudd (1, 2, 3...)\n"
-            "• Plass for å notere resultater\n"
-            "• QR-kode for rask data-entry senere\n\n"
-            "Kommer snart...",
+            tr("accuracy_test_print_sheet"),
+            tr("accuracy_test_print_sheet_body"),
         )
 
         self.accept()
@@ -989,7 +1039,7 @@ class AccuracyDevelopmentChartDialog(QDialog):
         self.db = get_database()
         self.rifle_id = rifle_id
 
-        self.setWindowTitle("📈 Accuracy Utvikling")
+        self.setWindowTitle(tr("accuracy_test_development_window"))
         self.setMinimumSize(800, 600)
 
         self.init_ui()
@@ -999,15 +1049,16 @@ class AccuracyDevelopmentChartDialog(QDialog):
         """Initialize UI"""
         layout = QVBoxLayout()
 
-        label = QLabel("📈 <b>Accuracy Utvikling Over Pipe-Levetid</b>")
-        label.setStyleSheet("font-size: 16px; margin-bottom: 10px;")
+        label = QLabel(tr("accuracy_test_development_title"))
+        label.setProperty("variant", "cardTitle")
         layout.addWidget(label)
 
         self.chart_display = QTextEdit()
         self.chart_display.setReadOnly(True)
         layout.addWidget(self.chart_display)
 
-        btn_close = QPushButton("✓ Lukk")
+        btn_close = QPushButton(tr("btn_close"))
+        btn_close.setProperty("variant", "ghost")
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close)
 
@@ -1024,11 +1075,14 @@ class AccuracyDevelopmentChartDialog(QDialog):
         )
 
         if not tests:
-            self.chart_display.setHtml("<p>Ingen tester funnet ennå.</p>")
+            self.chart_display.setHtml(f"<p>{tr('accuracy_test_no_tests')}</p>")
             return
 
-        html = "<h3>Accuracy Trend</h3><table border='1' cellpadding='5'>"
-        html += "<tr><th>Skudd</th><th>Dato</th><th>MOA</th><th>Gruppe (mm)</th><th>Trend</th></tr>"
+        html = f"<h3>{tr('accuracy_test_trend')}</h3><table border='1' cellpadding='5'>"
+        html += (
+            f"<tr><th>{tr('accuracy_test_rounds')}</th><th>{tr('common_date')}</th>"
+            f"<th>MOA</th><th>{tr('accuracy_test_group_mm')}</th><th>{tr('accuracy_test_trend_label')}</th></tr>"
+        )
 
         prev_moa = None
         for test in tests:
@@ -1040,16 +1094,16 @@ class AccuracyDevelopmentChartDialog(QDialog):
             trend = ""
             if prev_moa:
                 if moa < prev_moa:
-                    trend = "📈 Bedre"
+                    trend = tr("accuracy_test_trend_better")
                 elif moa > prev_moa:
-                    trend = "📉 Dårligere"
+                    trend = tr("accuracy_test_trend_worse")
                 else:
-                    trend = "➡️ Lik"
+                    trend = tr("accuracy_test_trend_same")
 
             html += f"<tr><td>{rounds}</td><td>{date}</td><td>{moa:.3f}</td><td>{group_mm:.2f}</td><td>{trend}</td></tr>"
             prev_moa = moa
 
         html += "</table>"
-        html += "<p><i>Implementer plotting med matplotlib senere...</i></p>"
+        html += f"<p><i>{tr('accuracy_test_plotting_later')}</i></p>"
 
         self.chart_display.setHtml(html)

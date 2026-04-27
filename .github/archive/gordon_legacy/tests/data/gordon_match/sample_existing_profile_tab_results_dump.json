@@ -1,0 +1,39 @@
+{
+  "active_tab": {
+    "active": {
+      "tabhandle": 202,
+      "caption": "Imported 30-06 load"
+    },
+    "tab": {
+      "tabhandle": 202,
+      "caption": "Imported 30-06 load",
+      "file": "C:/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/data fra gordon/doku/en/faq/files/30-06_168_hhpbt_imr4166_3.330_oal_2x2_1.grtload"
+    }
+  },
+  "results": {
+    "MaxPressure": "4004.0 bar",
+    "EndVelocity": "889.3 m/s",
+    "EndEnergy": "4210.0 joule",
+    "EndTime": "1.39 ms",
+    "BurnoutInBarrel": "true",
+    "LoadingDensity": "97.8",
+    "CartridgeOAL": "84.58",
+    "chunks": [
+      {
+        "chunkIndex": 0,
+        "data": [
+          {
+            "x": 0.0,
+            "p": 250.0,
+            "v": 0.0
+          },
+          {
+            "x": 1.0,
+            "p": 800.0,
+            "v": 20.0
+          }
+        ]
+      }
+    ]
+  }
+}

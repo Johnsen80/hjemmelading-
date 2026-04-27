@@ -68,7 +68,10 @@ try:
             except Exception:
                 text = message
             # Filter the specific QFontDatabase warning about missing Qt fonts
-            if "Cannot find font directory" in text or "Qt no longer ships fonts" in text:
+            if (
+                "Cannot find font directory" in text
+                or "Qt no longer ships fonts" in text
+            ):
                 return
             # Otherwise forward to stderr
             try:
@@ -135,7 +138,10 @@ try:
         traceback.print_exc()
     # Main window (skip by default in headless to avoid hangs)
     if _should_skip_mainwindow():
-        print("HEADLESS_SMOKE: skipping MainWindow in headless mode " "(set HEADLESS_SMOKE_RUN_MAINWINDOW=1 to enable)")
+        print(
+            "HEADLESS_SMOKE: skipping MainWindow in headless mode "
+            "(set HEADLESS_SMOKE_RUN_MAINWINDOW=1 to enable)"
+        )
     else:
         try:
             from src.ui.main_window import MainWindow

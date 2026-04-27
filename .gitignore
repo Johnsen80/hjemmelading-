@@ -28,6 +28,9 @@ logs/
 
 # GitHub actions temp
 .github/Hjemmelading-remote/
+.github/tmp/
+.github/tmp_pytest/
+.github/.tool-venv-py314-backup/
 
 # OS files
 .DS_Store
@@ -53,3 +56,33 @@ node_modules
 # Ignore generated bundle and publishing dir
 refactor-long-lines.bundle
 bundle_publish/
+
+# Editor settings
+.vscode/
+
+# Local build outputs
+dist_smoke/
+tools/tools/
+
+# App-local data copies
+HjemmeladingApp/data/
+
+# Backup and temp data files
+data/backup_*.xlsx
+data/gordon_*.json
+data/gordon_temp_extract/
+data/dfs_*.csv
+data/reloading_export.xlsx
+data/fra\ gordon/
+"data fra gordon"/
+
+# External docs (not tracked)
+external_docs/
+
+# Local test/scratch files
+test_pyside.py
+pyrightconfig.json
+uiux_checklist.md
+
+# GitHub actions pytest temp dirs
+.github/.pytest_tmp*/

@@ -1,13 +1,10 @@
-"""
-Modern Viking Card Widget for PyQt6
-- Dark theme, gradient, rounded corners, shadow
-- SVG icon support
-- Responsive layout
-"""
+"""Modern Viking Card widget."""
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from src.qt_compat import QFont, QPixmap, Qt, QtWidgets
+
+QLabel = QtWidgets.QLabel
+QVBoxLayout = QtWidgets.QVBoxLayout
+QWidget = QtWidgets.QWidget
 
 from src.ui.reloading_theme import ReloadingTheme
 
@@ -15,17 +12,18 @@ from src.ui.reloading_theme import ReloadingTheme
 class ModernCard(QWidget):
     def __init__(self, title, subtitle, icon_path=None, parent=None):
         super().__init__(parent)
-        # Use theme helpers instead of inline styles so the widget is
-        # safe for import-time and consistent with the central stylesheet.
         self.setObjectName("modernCard")
-        # apply the small card stylesheet snippet locally
         try:
-            self.setStyleSheet(ReloadingTheme.get_card_style())
+            from src.ui.theme import apply_modern_theme
+
+            apply_modern_theme(self)
         except Exception:
-            # fall back to minimal inline safe defaults if theme helper fails
-            self.setStyleSheet(
-                "background-color:#23242b; border-radius:12px; padding:12px;"
-            )
+            try:
+                self.setStyleSheet(ReloadingTheme.get_card_style())
+            except Exception:
+                self.setStyleSheet(
+                    "background-color:#23242b; border-radius:12px; padding:12px;"
+                )
         self.setMinimumWidth(320)
         self.setMaximumWidth(480)
         layout = QVBoxLayout(self)

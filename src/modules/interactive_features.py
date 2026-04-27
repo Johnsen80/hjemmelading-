@@ -9,8 +9,8 @@ import numpy as np
 from PyQt6.QtCore import QPoint, Qt, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QToolTip, QVBoxLayout, QWidget
 
-from src.utils.optional_deps import Figure as Figure
-from src.utils.optional_deps import FigureCanvas as FigureCanvas
+from ..utils.optional_deps import Figure as Figure
+from ..utils.optional_deps import FigureCanvas as FigureCanvas
 
 
 class InteractiveVelocityGraph(FigureCanvas):
@@ -44,7 +44,7 @@ class InteractiveVelocityGraph(FigureCanvas):
         self.ax.set_xlabel("Powder Charge (gr)", fontsize=12, fontweight="bold")
         self.ax.set_ylabel("Velocity (fps)", fontsize=12, fontweight="bold")
         self.ax.set_title(
-            "📊 Interactive Velocity Graph", fontsize=14, fontweight="bold", pad=20
+            "Interactive Velocity Graph", fontsize=14, fontweight="bold", pad=20
         )
         self.ax.grid(True, alpha=0.3, linestyle="--")
 
@@ -116,7 +116,7 @@ class InteractiveVelocityGraph(FigureCanvas):
         self.ax.set_xlabel("Powder Charge (gr)", fontsize=12, fontweight="bold")
         self.ax.set_ylabel("Velocity (fps)", fontsize=12, fontweight="bold")
         self.ax.set_title(
-            "📊 Interactive Velocity Graph (Hover for details)",
+            "Interactive Velocity Graph (Hover for details)",
             fontsize=14,
             fontweight="bold",
             pad=20,
@@ -152,7 +152,7 @@ class InteractiveVelocityGraph(FigureCanvas):
                 edgecolors="#27ae60",
                 linewidths=3,
                 zorder=4,
-                label="⭐ Pressure Nodes",
+                label="Pressure Nodes",
             )
 
     def on_hover(self, event):
@@ -281,7 +281,7 @@ class InteractivePowderChargeSlider(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🎚️ Interactive Charge Explorer")
+        header = QLabel("Interactive Charge Explorer")
         header.setStyleSheet("font-size: 14px; font-weight: bold; color: #2c3e50;")
         layout.addWidget(header)
 
@@ -367,10 +367,10 @@ class InteractivePowderChargeSlider(QWidget):
 
         # Warning if approaching max
         if charge >= 44.5:
-            self.label_warning.setText("⚠️ WARNING: Approaching max charge!")
+            self.label_warning.setText("WARNING: Approaching max charge!")
         elif charge >= 44.0:
             self.label_warning.setText(
-                "⚠️ CAUTION: High charge - watch for pressure signs"
+                "CAUTION: High charge - watch for pressure signs"
             )
         else:
             self.label_warning.setText("")
@@ -406,7 +406,7 @@ class DragDropTrajectoryPlot(QWidget):
         layout = QVBoxLayout()
 
         # Drop zone
-        self.drop_label = QLabel("📦 Drag ammo profile here to see trajectory")
+        self.drop_label = QLabel("Drag ammo profile here to see trajectory")
         self.drop_label.setStyleSheet(
             """
             QLabel {
@@ -443,7 +443,7 @@ class DragDropTrajectoryPlot(QWidget):
         self.ax.set_xlabel("Distance (yards)", fontsize=12, fontweight="bold")
         self.ax.set_ylabel("Drop (inches)", fontsize=12, fontweight="bold")
         self.ax.set_title(
-            "📊 Trajectory Comparison (Drag profiles here)",
+            "Trajectory Comparison (Drag profiles here)",
             fontsize=14,
             fontweight="bold",
         )
@@ -524,7 +524,7 @@ class DragDropTrajectoryPlot(QWidget):
 
         self.ax.set_xlabel("Distance (yards)", fontsize=12, fontweight="bold")
         self.ax.set_ylabel("Drop (inches)", fontsize=12, fontweight="bold")
-        self.ax.set_title("📊 Trajectory Comparison", fontsize=14, fontweight="bold")
+        self.ax.set_title("Trajectory Comparison", fontsize=14, fontweight="bold")
         self.ax.grid(True, alpha=0.3)
         self.ax.axhline(0, color="black", linewidth=1, alpha=0.5)
         self.ax.legend(loc="lower left")
@@ -567,7 +567,7 @@ if __name__ == "__main__":
         graph.add_point(charge, vel, meta)
 
     def on_point_clicked(charge, velocity, metadata):
-        from src.logging_config import configure_logging, get_logger
+        from ..logging_config import configure_logging, get_logger
 
         configure_logging()
         logger = get_logger(__name__)

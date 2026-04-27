@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from HjemmeladingApp.i18n import translate
 from HjemmeladingApp.utils import safe_logger
 from HjemmeladingApp.utils.backgrounds import get_background_preview
 from HjemmeladingApp.utils.safe_logger import append_exception
@@ -33,14 +34,14 @@ class AppearanceCustomizer(QWidget):
         self.main_window = main_window
         # Build UI defensively so failures in optional image backends don't crash the app
         try:
-            self.setWindowTitle("Tilpass utseende")
+            self.setWindowTitle(translate("Customize Appearance"))
             self.setMinimumSize(400, 300)
             layout = QVBoxLayout()
-            self.bg_label = QLabel("Velg bakgrunnsbilde:")
-            self.bg_btn = QPushButton("Last opp bilde")
+            self.bg_label = QLabel(f"{translate('Choose Background Image')}:")
+            self.bg_btn = QPushButton(translate("Upload Image"))
             self.bg_btn.clicked.connect(self.choose_bg)
-            self.color_label = QLabel("Velg bakgrunnsfarge:")
-            self.color_btn = QPushButton("Velg farge")
+            self.color_label = QLabel(f"{translate('Choose Background Color')}:")
+            self.color_btn = QPushButton(translate("Choose Color"))
             self.color_btn.clicked.connect(self.choose_color)
             layout.addWidget(self.bg_label)
             layout.addWidget(self.bg_btn)
@@ -69,8 +70,8 @@ class AppearanceCustomizer(QWidget):
             logger.exception("AppearanceCustomizer init failed")
             # Fallback minimal UI
             fallback = QVBoxLayout()
-            fallback.addWidget(QLabel("Customizer unavailable."))
-            close_btn = QPushButton("Lukk")
+            fallback.addWidget(QLabel(translate("Customizer Unavailable")))
+            close_btn = QPushButton(translate("Close"))
             close_btn.clicked.connect(self.close)
             fallback.addWidget(close_btn)
             self.setLayout(fallback)
@@ -78,7 +79,7 @@ class AppearanceCustomizer(QWidget):
     def choose_bg(self):
         try:
             file, _ = QFileDialog.getOpenFileName(
-                self, "Velg bilde", "", "Bilder (*.png *.jpg *.jpeg *.bmp)"
+                self, translate("Choose Image"), "", translate("Images Filter")
             )
             if not file:
                 return

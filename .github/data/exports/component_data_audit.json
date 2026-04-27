@@ -1,0 +1,347 @@
+{
+  "bullets": {
+    "rows": 5824,
+    "critical_fields": {
+      "manufacturer": {
+        "field": "manufacturer",
+        "count": 5824,
+        "total": 5824,
+        "coverage_percent": 100.0
+      },
+      "name": {
+        "field": "name",
+        "count": 5824,
+        "total": 5824,
+        "coverage_percent": 100.0
+      },
+      "weight_grains": {
+        "field": "weight_grains",
+        "count": 5824,
+        "total": 5824,
+        "coverage_percent": 100.0
+      },
+      "bc_g1": {
+        "field": "bc_g1",
+        "count": 5632,
+        "total": 5824,
+        "coverage_percent": 96.7
+      },
+      "bc_g7": {
+        "field": "bc_g7",
+        "count": 403,
+        "total": 5824,
+        "coverage_percent": 6.9
+      },
+      "length_mm": {
+        "field": "length_mm",
+        "count": 5814,
+        "total": 5824,
+        "coverage_percent": 99.8
+      },
+      "diameter_mm": {
+        "field": "diameter_mm",
+        "count": 5824,
+        "total": 5824,
+        "coverage_percent": 100.0
+      },
+      "base_type": {
+        "field": "base_type",
+        "count": 3086,
+        "total": 5824,
+        "coverage_percent": 53.0
+      },
+      "tip_type": {
+        "field": "tip_type",
+        "count": 3404,
+        "total": 5824,
+        "coverage_percent": 58.4
+      },
+      "shape_family": {
+        "field": "shape_family",
+        "count": 3363,
+        "total": 5824,
+        "coverage_percent": 57.7
+      },
+      "construction_type": {
+        "field": "construction_type",
+        "count": 2519,
+        "total": 5824,
+        "coverage_percent": 43.3
+      },
+      "intended_use": {
+        "field": "intended_use",
+        "count": 2801,
+        "total": 5824,
+        "coverage_percent": 48.1
+      },
+      "minimum_expansion_fps": {
+        "field": "minimum_expansion_fps",
+        "count": 2609,
+        "total": 5824,
+        "coverage_percent": 44.8
+      },
+      "preferred_impact_min_fps": {
+        "field": "preferred_impact_min_fps",
+        "count": 2269,
+        "total": 5824,
+        "coverage_percent": 39.0
+      },
+      "preferred_impact_max_fps": {
+        "field": "preferred_impact_max_fps",
+        "count": 1914,
+        "total": 5824,
+        "coverage_percent": 32.9
+      },
+      "terminal_notes": {
+        "field": "terminal_notes",
+        "count": 2609,
+        "total": 5824,
+        "coverage_percent": 44.8
+      },
+      "recommended_twist": {
+        "field": "recommended_twist",
+        "count": 5814,
+        "total": 5824,
+        "coverage_percent": 99.8
+      }
+    }
+  },
+  "powder": {
+    "rows": 258,
+    "critical_fields": {
+      "manufacturer": {
+        "field": "manufacturer",
+        "count": 258,
+        "total": 258,
+        "coverage_percent": 100.0
+      },
+      "name": {
+        "field": "name",
+        "count": 258,
+        "total": 258,
+        "coverage_percent": 100.0
+      },
+      "burn_rate": {
+        "field": "burn_rate",
+        "count": 258,
+        "total": 258,
+        "coverage_percent": 100.0
+      },
+      "relative_burn_rate": {
+        "field": "relative_burn_rate",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "quickload_ba_value": {
+        "field": "quickload_ba_value",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "qex_kj_per_kg": {
+        "field": "qex_kj_per_kg",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "k_ratio": {
+        "field": "k_ratio",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "a0": {
+        "field": "a0",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "z1": {
+        "field": "z1",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "z2": {
+        "field": "z2",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "eta_cm3_per_kg": {
+        "field": "eta_cm3_per_kg",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "pc_kg_m3": {
+        "field": "pc_kg_m3",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "pcd_kg_m3": {
+        "field": "pcd_kg_m3",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "pt_c": {
+        "field": "pt_c",
+        "count": 256,
+        "total": 258,
+        "coverage_percent": 99.2
+      },
+      "temp_stable": {
+        "field": "temp_stable",
+        "count": 257,
+        "total": 258,
+        "coverage_percent": 99.6
+      },
+      "validation_status": {
+        "field": "validation_status",
+        "count": 257,
+        "total": 258,
+        "coverage_percent": 99.6
+      },
+      "usable_for_simulation": {
+        "field": "usable_for_simulation",
+        "count": 257,
+        "total": 258,
+        "coverage_percent": 99.6
+      }
+    }
+  },
+  "primers": {
+    "rows": 24,
+    "critical_fields": {
+      "manufacturer": {
+        "field": "manufacturer",
+        "count": 24,
+        "total": 24,
+        "coverage_percent": 100.0
+      },
+      "name": {
+        "field": "name",
+        "count": 24,
+        "total": 24,
+        "coverage_percent": 100.0
+      },
+      "type": {
+        "field": "type",
+        "count": 24,
+        "total": 24,
+        "coverage_percent": 100.0
+      },
+      "size": {
+        "field": "size",
+        "count": 24,
+        "total": 24,
+        "coverage_percent": 100.0
+      },
+      "primer_family": {
+        "field": "primer_family",
+        "count": 22,
+        "total": 24,
+        "coverage_percent": 91.7
+      },
+      "match_grade_label": {
+        "field": "match_grade_label",
+        "count": 24,
+        "total": 24,
+        "coverage_percent": 100.0
+      },
+      "magnum_label": {
+        "field": "magnum_label",
+        "count": 24,
+        "total": 24,
+        "coverage_percent": 100.0
+      },
+      "ignition_strength_class": {
+        "field": "ignition_strength_class",
+        "count": 22,
+        "total": 24,
+        "coverage_percent": 91.7
+      },
+      "pressure_tolerance_class": {
+        "field": "pressure_tolerance_class",
+        "count": 22,
+        "total": 24,
+        "coverage_percent": 91.7
+      },
+      "cup_hardness_class": {
+        "field": "cup_hardness_class",
+        "count": 22,
+        "total": 24,
+        "coverage_percent": 91.7
+      },
+      "recommended_pressure_min_psi": {
+        "field": "recommended_pressure_min_psi",
+        "count": 22,
+        "total": 24,
+        "coverage_percent": 91.7
+      },
+      "recommended_pressure_max_psi": {
+        "field": "recommended_pressure_max_psi",
+        "count": 22,
+        "total": 24,
+        "coverage_percent": 91.7
+      },
+      "cold_weather_suitability": {
+        "field": "cold_weather_suitability",
+        "count": 22,
+        "total": 24,
+        "coverage_percent": 91.7
+      }
+    }
+  },
+  "cases": {
+    "rows": 0,
+    "profile_baseline_rows": 2,
+    "critical_fields": {
+      "manufacturer": {
+        "field": "manufacturer",
+        "count": 0,
+        "total": 0,
+        "coverage_percent": 0.0
+      },
+      "name": {
+        "field": "name",
+        "count": 0,
+        "total": 0,
+        "coverage_percent": 0.0
+      },
+      "caliber": {
+        "field": "caliber",
+        "count": 0,
+        "total": 0,
+        "coverage_percent": 0.0
+      },
+      "material": {
+        "field": "material",
+        "count": 0,
+        "total": 0,
+        "coverage_percent": 0.0
+      },
+      "times_fired": {
+        "field": "times_fired",
+        "count": 0,
+        "total": 0,
+        "coverage_percent": 0.0
+      },
+      "last_annealed": {
+        "field": "last_annealed",
+        "count": 0,
+        "total": 0,
+        "coverage_percent": 0.0
+      },
+      "needs_annealing_label": {
+        "field": "needs_annealing_label",
+        "count": 0,
+        "total": 0,
+        "coverage_percent": 0.0
+      }
+    }
+  }
+}

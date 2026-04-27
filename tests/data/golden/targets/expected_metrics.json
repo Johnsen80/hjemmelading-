@@ -1,0 +1,8 @@
+{
+  "target_sample.ppm": {
+    "n_shots": 1,
+    "pixel_diameter": 5.66,
+    "tolerance": 0.6,
+    "notes": "5x5 white square on black background"
+  }
+}

@@ -2,10 +2,12 @@
 Hovedprogram for Reloading Workshop Manager
 """
 
+import logging
 import os
 import site
 import sys
 import traceback
+import warnings
 from pathlib import Path
 
 # Ensure the application can import the `src` package when running from a PyInstaller
@@ -20,6 +22,27 @@ else:
         sys.path.insert(0, _base)
 
 from src.logging_config import configure_logging, get_log_dir, get_logger
+
+
+def _suppress_optional_dependency_noise() -> None:
+    """Reduce noisy startup warnings from optional ML/Kubernetes dependencies.
+
+    These libraries are not required for normal app startup, but some Python
+    environments emit benign warnings like "Kubeconfig not found" when they are
+    imported transitively. We keep real errors visible and only suppress known
+    warning/info chatter.
+    """
+
+    os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+
+    warnings.filterwarnings("ignore", message=".*Kubeconfig not found.*")
+
+    for logger_name in ("absl", "tensorflow", "kubernetes"):
+        lib_logger = logging.getLogger(logger_name)
+        lib_logger.setLevel(logging.ERROR)
+
+
+_suppress_optional_dependency_noise()
 
 # Configure logging early
 configure_logging()
@@ -75,6 +98,7 @@ def main():
                 os.path.join(base, "plugins"),
                 os.path.join(base, "platforms"),
                 os.path.join(base, "PyQt6", "Qt", "plugins"),
+                os.path.join(base, "PyQt6", "Qt6", "plugins"),
             ]
 
         # venv / site-packages locations
@@ -82,6 +106,8 @@ def main():
             for sp in site.getsitepackages():
                 p = Path(sp) / "PyQt6" / "Qt" / "plugins"
                 candidates.append(str(p))
+                p6 = Path(sp) / "PyQt6" / "Qt6" / "plugins"
+                candidates.append(str(p6))
                 p2 = Path(sp) / "Qt" / "plugins"
                 candidates.append(str(p2))
         except Exception:
@@ -92,6 +118,9 @@ def main():
             pref = Path(sys.prefix)
             candidates.append(
                 str(pref / "Lib" / "site-packages" / "PyQt6" / "Qt" / "plugins")
+            )
+            candidates.append(
+                str(pref / "Lib" / "site-packages" / "PyQt6" / "Qt6" / "plugins")
             )
             candidates.append(str(pref / "Lib" / "site-packages" / "Qt" / "plugins"))
         except Exception:
@@ -136,6 +165,16 @@ def main():
                 f.write("-------------------------\n")
         except Exception:
             pass
+
+    def _safe_append_debug_app_line(message: str) -> None:
+        try:
+            log_dir = get_log_dir()
+            with open(
+                os.path.join(log_dir, "debug_app.log"), "a", encoding="utf-8"
+            ) as f:
+                f.write(message.rstrip() + "\n")
+        except Exception:
+            logger.debug("Skipping direct debug_app.log write: %s", message)
 
     # VIKTIG: High DPI støtte - sett FØR QApplication opprettes
     # PyQt6 har automatisk high DPI scaling, men vi setter noen attributter
@@ -370,10 +409,13 @@ def main():
                     append_message(msg)
                 except Exception:
                     pass
-        except Exception:
-            # If QFontDatabase operations fail, log a diagnostic entry.
+        except Exception as e:
+            # If QFontDatabase operations fail, keep it quiet unless font debug is enabled.
             try:
-                append_message("QFontDatabase check failed during startup.")
+                if os.environ.get("VALKYRIE_DEBUG_FONTS", "").lower() in ("1", "true"):
+                    append_exception("QFontDatabase check failed during startup.", e)
+                else:
+                    logger.debug("QFontDatabase check failed during startup: %s", e)
             except Exception:
                 pass
     except Exception:
@@ -468,11 +510,7 @@ def main():
         splash.move(x, y)
     except Exception as e:
         try:
-            log_dir = get_log_dir()
-            with open(
-                os.path.join(log_dir, "debug_app.log"), "a", encoding="utf-8"
-            ) as f:
-                f.write(f"Splash move error: {e}\n")
+            _safe_append_debug_app_line(f"Splash move error: {e}")
         except Exception:
             logger.exception("Failed to write splash move error to per-user log: %s", e)
     splash.show()
@@ -480,38 +518,40 @@ def main():
     # Logg posisjon og størrelse
     try:
         try:
-            log_dir = get_log_dir()
-            with open(
-                os.path.join(log_dir, "debug_app.log"), "a", encoding="utf-8"
-            ) as f:
-                f.write(f"Splash pos: {splash.pos()}, size: {splash.size()}\n")
+            _safe_append_debug_app_line(
+                f"Splash pos: {splash.pos()}, size: {splash.size()}"
+            )
         except Exception:
             logger.exception("Failed to write splash position to per-user log")
     except Exception:
         pass
 
+    # Flag — set to True once MainWindow is up so timers do nothing
+    _startup_done = [False]
+
     # Add a timer to update splash if nothing happens in 10s and 30s
     def still_waiting():
+        if _startup_done[0]:
+            return
         splash_label.setText(
             "Still waiting...\nIf no window appears, check debug_err.log."
         )
-        splash.show()
-        app.processEvents()
-        # Sjekk om vinduet er synlig
         if not splash.isVisible():
-            splash_label.setText(
-                "FEIL: Splash-vinduet er usynlig! Sjekk skjerminnstillinger og driver."
-            )
             splash.show()
-            app.processEvents()
+        app.processEvents()
+
+    def startup_failed_msg():
+        if _startup_done[0]:
+            return
+        splash_label.setText(
+            "Startup failed or is blocked.\nNo window appeared.\nCheck debug_err.log and debug_app.log."
+        )
+        if not splash.isVisible():
+            splash.show()
+        app.processEvents()
 
     QTimer.singleShot(10000, still_waiting)
-    QTimer.singleShot(
-        30000,
-        lambda: splash_label.setText(
-            "Startup failed or is blocked.\nNo window appeared.\nCheck debug_err.log and debug_app.log."
-        ),
-    )
+    QTimer.singleShot(30000, startup_failed_msg)
 
     # Opprett og vis hovedvindu med feilhåndtering
     try:
@@ -520,7 +560,8 @@ def main():
 
         window = MainWindow()
         logger.info("MainWindow opprettet, viser vindu...")
-        # Close splash and show main window
+        # Mark startup as done and close splash BEFORE showing main window
+        _startup_done[0] = True
         try:
             splash.close()
         except Exception:

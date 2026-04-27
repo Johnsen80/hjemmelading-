@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from src.modules.calibration_test import ChronoData
 from src.modules.image_analysis import analyze_group_image
 from src.ui.calibration_analysis_dialog import CalibrationAnalysisDialog
+from src.utils.i18n import tr
 
 
 class CalibrationTestsViewer(QDialog):
@@ -21,7 +22,7 @@ class CalibrationTestsViewer(QDialog):
 
     def __init__(self, barrel: Dict[str, Any], parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Calibration Tests")
+        self.setWindowTitle(tr("calib_tests_title"))
         self.resize(600, 400)
         self.barrel = barrel
         self._tests: List[Dict[str, Any]] = barrel.get("calibration_tests", [])
@@ -31,15 +32,15 @@ class CalibrationTestsViewer(QDialog):
         layout = QVBoxLayout(self)
         self.listw = QListWidget()
         for t in self._tests:
-            self.listw.addItem(t.get("id", "Unnamed"))
+            self.listw.addItem(t.get("id", tr("calib_tests_unnamed")))
         layout.addWidget(self.listw)
 
         row = QHBoxLayout()
-        self.view_btn = QPushButton("View")
+        self.view_btn = QPushButton(tr("calib_tests_view"))
         self.view_btn.clicked.connect(self._on_view)
-        self.delete_btn = QPushButton("Delete")
+        self.delete_btn = QPushButton(tr("calib_tests_delete"))
         self.delete_btn.clicked.connect(self._on_delete)
-        self.close_btn = QPushButton("Close")
+        self.close_btn = QPushButton(tr("calib_analysis_close"))
         self.close_btn.clicked.connect(self.reject)
         row.addWidget(self.view_btn)
         row.addWidget(self.delete_btn)
@@ -56,7 +57,9 @@ class CalibrationTestsViewer(QDialog):
     def _on_view(self) -> None:
         t = self._selected_test()
         if not t:
-            QMessageBox.information(self, "No selection", "Select a test first.")
+            QMessageBox.information(
+                self, tr("msg_no_selection"), tr("calib_tests_select_first")
+            )
             return
         # build results list for analysis dialog
         results = []
@@ -86,7 +89,9 @@ class CalibrationTestsViewer(QDialog):
         if not (0 <= idx < len(self._tests)):
             return
         if (
-            QMessageBox.question(self, "Delete", "Delete selected test?")
+            QMessageBox.question(
+                self, tr("calib_tests_delete"), tr("calib_tests_confirm_delete")
+            )
             == QMessageBox.StandardButton.Yes
         ):
             del self._tests[idx]

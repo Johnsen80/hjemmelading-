@@ -1,7 +1,33 @@
 import logging
 import os
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+
+def _is_writable_dir(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return False
+
+    probe = path / ".write_probe"
+    try:
+        with open(probe, "a", encoding="utf-8"):
+            pass
+        try:
+            probe.unlink()
+        except Exception:
+            pass
+        return True
+    except Exception:
+        try:
+            # Best-effort cleanup if partial file got created.
+            if probe.exists():
+                probe.unlink()
+        except Exception:
+            pass
+        return False
 
 
 def _default_log_dir(app_name: str = "Hjemmelading") -> Path:
@@ -16,16 +42,27 @@ def _default_log_dir(app_name: str = "Hjemmelading") -> Path:
     else:
         p = Path.home() / f".{app_name}" / "logs"
     try:
-        p.mkdir(parents=True, exist_ok=True)
-        return p
+        if _is_writable_dir(p):
+            return p
     except Exception:
         # Fallback to current working directory
         try:
             cwd = Path.cwd() / "logs"
-            cwd.mkdir(parents=True, exist_ok=True)
-            return cwd
+            if _is_writable_dir(cwd):
+                return cwd
         except Exception:
             return Path(".")
+
+    # If the preferred location exists but is not writable (e.g. Windows policy),
+    # use the current working directory logs folder instead.
+    try:
+        cwd = Path.cwd() / "logs"
+        if _is_writable_dir(cwd):
+            return cwd
+    except Exception:
+        pass
+
+    return Path(".")
 
 
 def configure_logging(
@@ -67,8 +104,38 @@ def configure_logging(
         fh.setFormatter(fmt)
         logger.addHandler(fh)
         logger.info("Logging configured. File: %s", str(log_path))
-    except Exception:
-        # If file handler can't be created, continue with console only
+    except Exception as exc:
+        # If file handler can't be created (often because the file is locked),
+        # fall back to a unique filename so the app still gets file logs.
+        if isinstance(exc, PermissionError):
+            try:
+                d = _default_log_dir(app_name)
+                ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+                pid = os.getpid()
+                alt_path = d / f"debug_app.{pid}.{ts}.log"
+                fh = RotatingFileHandler(
+                    str(alt_path),
+                    maxBytes=5 * 1024 * 1024,
+                    backupCount=5,
+                    encoding="utf-8",
+                )
+                fh.setLevel(logging.DEBUG)
+                fh.setFormatter(fmt)
+                logger.addHandler(fh)
+                logger.warning(
+                    "File logging fallback enabled (original locked). File: %s",
+                    str(alt_path),
+                )
+                return
+            except Exception:
+                # If fallback also fails, continue with console only.
+                logger.error(
+                    "Failed to create file logging handler (permission denied); continuing with console only: %s",
+                    str(log_path),
+                )
+                return
+
+        # Other failures: keep the traceback for diagnostics.
         logger.exception(
             "Failed to create file logging handler; continuing with console only"
         )

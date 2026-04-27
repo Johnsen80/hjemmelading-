@@ -1,23 +1,29 @@
 """
 Chronograph Auto-Import System
-Støtter LabRadar, Garmin Xero, MagnetoSpeed
+Supports LabRadar, Garmin Xero, and MagnetoSpeed
 """
 
 import csv
+import hashlib
+import importlib
+import json
 import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QTableWidget,
@@ -27,17 +33,162 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from HjemmeladingApp.utils.safe_logger import append_exception
-from src.database.database import get_database
-from src.logging_config import configure_logging, get_logger
+from ..database.database import get_database
+from ..logging_config import configure_logging, get_logger
+from ..tools.load_session_runtime_service import (
+    build_active_workflow_context_from_settings,
+    refresh_load_session_measurement_summary,
+)
+from ..utils.i18n import tr
+from ..utils.unit_preferences import format_temperature_c, format_velocity_fps
+from .batch_workspace import recompute_batch_analysis_from_db
+
+_safe_logger_module = importlib.import_module("HjemmeladingApp.utils.safe_logger")
+append_exception = getattr(_safe_logger_module, "append_exception")
 
 configure_logging()
 logger = get_logger(__name__)
 
 
+def _get_active_workflow_context() -> dict[str, object]:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    try:
+        database = get_database()
+    except Exception:
+        database = None
+    return build_active_workflow_context_from_settings(settings, database)
+
+
+def _get_active_import_focus() -> dict[str, str]:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    focus = str(settings.value("workflow_context/import_focus", "") or "").strip()
+    reason = str(
+        settings.value("workflow_context/import_focus_reason", "") or ""
+    ).strip()
+    if not focus and not reason:
+        return {}
+    return {"focus": focus, "reason": reason}
+
+
+def _get_global_unit_system() -> str:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    return str(settings.value("units/global", "metric") or "metric").strip().lower()
+
+
+def _format_velocity(fps_value: float) -> str:
+    if _get_global_unit_system() == "metric":
+        return format_velocity_fps(fps_value)
+    return format_velocity_fps(fps_value)
+
+
+def _format_temperature(temp_c: float | None) -> str:
+    if temp_c is None:
+        return "N/A"
+    return format_temperature_c(temp_c)
+
+
+def _get_active_batch_context() -> dict[str, object]:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    batch_id = settings.value("batch_context/batch_id")
+    if batch_id in (None, ""):
+        return {}
+    try:
+        batch_id = int(batch_id)
+    except Exception:
+        pass
+    powder_component_lot_id = settings.value("batch_context/powder_component_lot_id")
+    try:
+        powder_component_lot_id = (
+            int(powder_component_lot_id)
+            if powder_component_lot_id not in (None, "")
+            else None
+        )
+    except Exception:
+        powder_component_lot_id = None
+    return {
+        "batch_id": batch_id,
+        "batch_number": str(
+            settings.value("batch_context/batch_number", "") or ""
+        ).strip(),
+        "batch_name": str(settings.value("batch_context/batch_name", "") or "").strip(),
+        "powder_id": settings.value("batch_context/powder_id"),
+        "powder_name": str(
+            settings.value("batch_context/powder_name", "") or ""
+        ).strip(),
+        "powder_lot_number": str(
+            settings.value("batch_context/powder_lot_number", "") or ""
+        ).strip(),
+        "powder_component_lot_id": powder_component_lot_id,
+    }
+
+
+def build_chronograph_quality_summary(session: "ChronographSession") -> dict[str, str]:
+    shot_count = int(session.shot_count or 0)
+    es = float(session.es or 0.0)
+    sd = float(session.sd or 0.0)
+
+    if shot_count < 5:
+        return {
+            "level": "needs_more_data",
+            "title": tr("chrono_quality_needs_more_title"),
+            "message": tr("chrono_quality_needs_more_message"),
+        }
+    if es >= 40 or sd >= 15:
+        return {
+            "level": "unstable",
+            "title": tr("chrono_quality_unstable_title"),
+            "message": tr("chrono_quality_unstable_message"),
+        }
+    if es <= 20 and sd <= 8:
+        return {
+            "level": "ready",
+            "title": tr("chrono_quality_ready_title"),
+            "message": tr("chrono_quality_ready_message"),
+        }
+    return {
+        "level": "watch",
+        "title": tr("chrono_quality_watch_title"),
+        "message": tr("chrono_quality_watch_message"),
+    }
+
+
+def build_chronograph_evidence_basis(session: "ChronographSession") -> dict[str, str]:
+    measured_parts = [
+        tr(
+            "chrono_evidence_measured_shots",
+            count=int(session.shot_count or 0),
+            device=session.device_type or "chrono",
+        ),
+        tr("chrono_evidence_measured_es_sd"),
+    ]
+    if session.temperature is not None:
+        measured_parts.append(tr("chrono_evidence_measured_temp"))
+
+    modeled_parts = [
+        tr("chrono_evidence_modeled"),
+    ]
+
+    recommended_parts = [
+        tr("chrono_evidence_recommended_quality"),
+    ]
+    if int(session.shot_count or 0) < 5:
+        recommended_parts.append(tr("chrono_evidence_recommended_more"))
+    else:
+        recommended_parts.append(tr("chrono_evidence_recommended_compare"))
+
+    return {
+        "title": tr("chrono_evidence_title"),
+        "message": (
+            f"{tr('evidence_measured')}: {', '.join(measured_parts)}. "
+            f"{tr('evidence_modeled')}: {', '.join(modeled_parts)}. "
+            f"{tr('evidence_recommended')}: {', '.join(recommended_parts)}."
+        ),
+    }
+
+
 @dataclass
 class ChronographReading:
-    """En enkelt hastighets-måling"""
+    """A single velocity reading."""
 
     shot_number: int
     velocity_fps: float
@@ -48,7 +199,7 @@ class ChronographReading:
 
 @dataclass
 class ChronographSession:
-    """En komplett chrono-sesjon"""
+    """A complete chronograph session."""
 
     device_type: str  # "LabRadar", "Garmin", "MagnetoSpeed"
     session_name: str
@@ -71,7 +222,7 @@ class LabRadarImporter:
     @staticmethod
     def parse_csv(file_path: str) -> Optional[ChronographSession]:
         """
-        Parser LabRadar CSV format
+        Parse the LabRadar CSV format.
         Format: Series, Shot, V0, V0 Units, Time, Date, Temperature, etc.
         """
         try:
@@ -114,11 +265,11 @@ class LabRadarImporter:
             variance = sum((v - avg) ** 2 for v in velocities) / len(velocities)
             sd = variance**0.5
 
-            # Get session info from filename
+            # Get session info from the filename
             session_name = os.path.basename(file_path).replace(".csv", "")
             date = datetime.now().strftime("%Y-%m-%d")
 
-            # Try to extract date from filename or data
+            # Try to extract the date from the filename or data
             if readings[0].timestamp:
                 try:
                     date = readings[0].timestamp.split()[0]
@@ -155,7 +306,7 @@ class GarminXeroImporter:
     @staticmethod
     def parse_csv(file_path: str) -> Optional[ChronographSession]:
         """
-        Parser Garmin Xero CSV format
+        Parse the Garmin Xero CSV format.
         Format: Shot #, Velocity (fps), Timestamp
         """
         try:
@@ -171,7 +322,7 @@ class GarminXeroImporter:
                             "Velocity (fps)", row.get("Velocity", "0")
                         )
 
-                        # Remove any non-numeric characters except decimal point
+                        # Remove any non-numeric characters except the decimal point
                         velocity_str = re.sub(r"[^\d.]", "", str(velocity_str))
                         velocity = float(velocity_str)
 
@@ -226,7 +377,7 @@ class MagnetoSpeedImporter:
     @staticmethod
     def parse_txt(file_path: str) -> Optional[ChronographSession]:
         """
-        Parser MagnetoSpeed TXT/CSV format
+        Parse the MagnetoSpeed TXT/CSV format.
         Format: Shot, Velocity, etc.
         """
         try:
@@ -245,8 +396,8 @@ class MagnetoSpeedImporter:
                     if not line or line.startswith("#") or line.startswith("//"):
                         continue
 
-                    # Look for velocity data
-                    # Format: "Shot X: YYYY fps" or just numbers
+                    # Look for velocity data.
+                    # Format: "Shot X: YYYY fps" or just numbers.
                     velocity_match = re.search(
                         r"(\d+\.?\d*)\s*fps", line, re.IGNORECASE
                     )
@@ -260,7 +411,7 @@ class MagnetoSpeedImporter:
                         )
                         continue
 
-                    # Try simple number format
+                    # Try a simple number format
                     try:
                         parts = line.split(",")
                         for part in parts:
@@ -343,84 +494,181 @@ class ChronographImporter(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        """Initialiserer brukergrensesnittet"""
+        """Initialize the user interface."""
         layout = QVBoxLayout()
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
         self.setLayout(layout)
 
-        # Tittel
-        title = QLabel("📊 Chronograph Auto-Import")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        layout.addWidget(title)
+        # Title
+        header = QFrame()
+        header.setObjectName("sectionHeader")
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(12, 12, 12, 12)
+        header_layout.setSpacing(4)
 
-        subtitle = QLabel("Import data fra LabRadar, Garmin Xero, MagnetoSpeed")
-        subtitle.setStyleSheet("color: gray; font-size: 11pt;")
-        layout.addWidget(subtitle)
+        title = QLabel(tr("chrono_import_title"))
+        title.setObjectName("sectionTitle")
+        header_layout.addWidget(title)
 
-        # Device selector og import
-        import_group = QGroupBox("📁 Import Data")
-        import_layout = QHBoxLayout()
+        subtitle = QLabel(tr("chrono_import_subtitle"))
+        subtitle.setObjectName("sectionSubtitle")
+        header_layout.addWidget(subtitle)
+
+        layout.addWidget(header)
+
+        import_focus = _get_active_import_focus()
+        if import_focus.get("focus") == "workflow_data_capture":
+            focus_text = import_focus.get("reason") or (
+                tr("chrono_data_capture_reason")
+            )
+            self.focus_label = QLabel(f"{tr('chrono_data_capture')}: {focus_text}")
+            self.focus_label.setObjectName("sectionSubtitle")
+            self.focus_label.setWordWrap(True)
+            self.focus_label.setStyleSheet(
+                "background-color: #e8f4fd; color: #0b5394; border: 1px solid #9fc5e8; "
+                "border-radius: 6px; padding: 8px;"
+            )
+            layout.addWidget(self.focus_label)
+
+        self.quality_label = QLabel(tr("chrono_quality_intro"))
+        self.quality_label.setWordWrap(True)
+        self.quality_label.setStyleSheet(
+            "background-color: #f5f5f5; color: #444; border: 1px solid #d9d9d9; "
+            "border-radius: 6px; padding: 8px;"
+        )
+        layout.addWidget(self.quality_label)
+
+        self.evidence_basis_label = QLabel(f"{tr('bw_evidence_basis')}: --")
+        self.evidence_basis_label.setWordWrap(True)
+        self.evidence_basis_label.setStyleSheet(
+            "background-color: #f5f5f5; color: #444; border: 1px solid #d9d9d9; "
+            "border-radius: 6px; padding: 8px;"
+        )
+        layout.addWidget(self.evidence_basis_label)
+
+        # Device selector and import
+        import_group = QGroupBox(tr("chrono_import_group"))
+        import_layout = QVBoxLayout()
         import_group.setLayout(import_layout)
 
+        device_row = QHBoxLayout()
+        device_label = QLabel(tr("chrono_device"))
         self.device_combo = QComboBox()
         self.device_combo.addItems(
             ["LabRadar (CSV)", "Garmin Xero (CSV)", "MagnetoSpeed (TXT/CSV)"]
         )
-        import_layout.addWidget(QLabel("Enhet:"))
-        import_layout.addWidget(self.device_combo, 1)
+        device_row.addWidget(device_label)
+        device_row.addWidget(self.device_combo, 1)
+        import_layout.addLayout(device_row)
 
-        import_btn = QPushButton("📂 Velg fil og importer")
+        file_row = QHBoxLayout()
+        file_label = QLabel(tr("chrono_file"))
+        self.file_path_input = QLineEdit()
+        self.file_path_input.setObjectName("filePathInput")
+        self.file_path_input.setReadOnly(True)
+        self.file_path_input.setPlaceholderText(tr("chrono_no_file_selected"))
+        import_btn = QPushButton(tr("chrono_import_button"))
         import_btn.setMinimumHeight(40)
-        import_btn.setStyleSheet(
-            "font-size: 12pt; font-weight: bold; background-color: #4CAF50; color: white;"
-        )
+        import_btn.setProperty("variant", "primary")
         import_btn.clicked.connect(self.import_file)
-        import_layout.addWidget(import_btn)
+        file_row.addWidget(file_label)
+        file_row.addWidget(self.file_path_input, 1)
+        file_row.addWidget(import_btn)
+        import_layout.addLayout(file_row)
+
+        hint = QLabel(tr("chrono_file_hint"))
+        hint.setObjectName("statLabel")
+        import_layout.addWidget(hint)
 
         layout.addWidget(import_group)
 
         # Results display
-        results_group = QGroupBox("📈 Import-resultat")
+        results_group = QGroupBox(tr("chrono_results"))
         results_layout = QVBoxLayout()
         results_group.setLayout(results_layout)
 
-        self.results_text = QTextEdit()
-        self.results_text.setReadOnly(True)
-        self.results_text.setMaximumHeight(200)
-        results_layout.addWidget(self.results_text)
+        stats_row = QHBoxLayout()
+        left_stats = QFormLayout()
+        left_stats.setContentsMargins(0, 0, 0, 0)
+        right_stats = QFormLayout()
+        right_stats.setContentsMargins(0, 0, 0, 0)
+
+        self.stat_fields = {}
+
+        def add_stat(form: QFormLayout, label: str, key: str) -> None:
+            label_widget = QLabel(label)
+            label_widget.setObjectName("statLabel")
+            value_widget = QLabel("--")
+            value_widget.setObjectName("statValue")
+            form.addRow(label_widget, value_widget)
+            self.stat_fields[key] = value_widget
+
+        add_stat(left_stats, "Device", "device")
+        add_stat(left_stats, "Session", "session")
+        add_stat(left_stats, "Date", "date")
+        add_stat(left_stats, "Shot Count", "shots")
+        add_stat(left_stats, "Temperature (F)", "temperature")
+
+        add_stat(right_stats, "Average", "avg")
+        add_stat(right_stats, "Minimum", "min")
+        add_stat(right_stats, "Maximum", "max")
+        add_stat(right_stats, "ES", "es")
+        add_stat(right_stats, "SD", "sd")
+
+        stats_row.addLayout(left_stats, 1)
+        stats_row.addLayout(right_stats, 1)
+        results_layout.addLayout(stats_row)
 
         layout.addWidget(results_group)
 
         # Shot data table
-        table_group = QGroupBox("🎯 Skudd-data")
+        table_group = QGroupBox(tr("chrono_shot_data"))
         table_layout = QVBoxLayout()
         table_group.setLayout(table_layout)
 
         self.shots_table = QTableWidget()
         self.shots_table.setColumnCount(4)
         self.shots_table.setHorizontalHeaderLabels(
-            ["Skudd #", "Hastighet (fps)", "Tid", "Notater"]
+            ["Shot #", "Velocity (fps)", "Time", "Notes"]
         )
+        self.shots_table.setAlternatingRowColors(True)
+        self.shots_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.shots_table.setSelectionMode(
+            QAbstractItemView.SelectionMode.SingleSelection
+        )
+        self.shots_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.shots_table.verticalHeader().setVisible(False)  # type: ignore[union-attr]
         table_layout.addWidget(self.shots_table)
 
         layout.addWidget(table_group)
 
         # Save section
-        save_group = QGroupBox("💾 Lagre til ammunisjonsprofil")
+        save_group = QGroupBox(tr("chrono_save_to_ammo"))
         save_layout = QFormLayout()
         save_group.setLayout(save_layout)
 
         self.ammo_combo = QComboBox()
-        self.ammo_combo.addItem("Velg ammunisjonsprofil...", None)
+        self.ammo_combo.addItem(tr("chrono_select_ammo"), None)
         self.load_ammo_profiles()
-        save_layout.addRow("Ammunisjon:", self.ammo_combo)
+        save_layout.addRow("Ammunition:", self.ammo_combo)
+
+        self.session_notes = QTextEdit()
+        self.session_notes.setPlaceholderText(tr("chrono_session_notes"))
+        self.session_notes.setMaximumHeight(120)
+        save_layout.addRow("Notes:", self.session_notes)
 
         save_btn_layout = QHBoxLayout()
 
-        update_velocity_btn = QPushButton("✅ Oppdater hastighet")
+        update_velocity_btn = QPushButton(tr("chrono_update_velocity"))
+        update_velocity_btn.setProperty("variant", "secondary")
         update_velocity_btn.clicked.connect(self.update_ammo_velocity)
         save_btn_layout.addWidget(update_velocity_btn)
 
-        save_session_btn = QPushButton("💾 Lagre sesjon")
+        save_session_btn = QPushButton(tr("chrono_save_session"))
+        save_session_btn.setProperty("variant", "primary")
         save_session_btn.clicked.connect(self.save_session)
         save_btn_layout.addWidget(save_session_btn)
 
@@ -429,7 +677,7 @@ class ChronographImporter(QWidget):
         layout.addWidget(save_group)
 
     def import_file(self):
-        """Import fil fra chronograph"""
+        """Import a chronograph file."""
         device = self.device_combo.currentText()
 
         if "LabRadar" in device:
@@ -440,11 +688,13 @@ class ChronographImporter(QWidget):
             file_filter = "Text Files (*.txt);;CSV Files (*.csv);;All Files (*.*)"
 
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Velg chronograph-fil", "", file_filter
+            self, tr("chrono_choose_file"), "", file_filter
         )
 
         if not file_path:
             return
+
+        self.file_path_input.setText(file_path)
 
         # Import based on device
         session = None
@@ -461,45 +711,59 @@ class ChronographImporter(QWidget):
             self.display_session(session)
             QMessageBox.information(
                 self,
-                "Import vellykket!",
-                f"Importert {session.shot_count} skudd fra {session.device_type}\n\n"
-                f"Gj.snitt: {session.avg_velocity:.1f} fps\n"
+                tr("chrono_import_success"),
+                f"Imported {session.shot_count} shots from {session.device_type}\n\n"
+                f"Average: {session.avg_velocity:.1f} fps\n"
                 f"ES: {session.es:.1f} fps\n"
                 f"SD: {session.sd:.2f} fps",
             )
         else:
             QMessageBox.warning(
                 self,
-                "Import feilet",
-                f"Kunne ikke lese data fra filen.\n\n"
-                f"Sjekk at:\n"
-                f"- Filen er riktig format for {device}\n"
-                f"- Filen inneholder gyldige hastighets-data\n"
-                f"- Filen ikke er korrupt",
+                tr("chrono_import_failed"),
+                f"Could not read data from the file.\n\n"
+                f"Check that:\n"
+                f"- The file format is correct for {device}\n"
+                f"- The file contains valid velocity data\n"
+                f"- The file is not corrupted",
             )
 
     def display_session(self, session: ChronographSession):
-        """Viser sesjon-data"""
-        # Results text
-        results_html = f"""
-<h3>📊 {session.device_type} - {session.session_name}</h3>
-<p><b>Dato:</b> {session.date}</p>
-<p><b>Antall skudd:</b> {session.shot_count}</p>
+        """Display imported session data."""
+        summary = build_chronograph_quality_summary(session)
+        if hasattr(self, "quality_label"):
+            self.quality_label.setText(f"{summary['title']}: {summary['message']}")
+        if hasattr(self, "evidence_basis_label"):
+            evidence_basis = build_chronograph_evidence_basis(session)
+            self.evidence_basis_label.setText(
+                f"{evidence_basis['title']}: {evidence_basis['message']}"
+            )
+        if "device" in self.stat_fields:
+            self.stat_fields["device"].setText(session.device_type)
+        if "session" in self.stat_fields:
+            self.stat_fields["session"].setText(session.session_name)
+        if "date" in self.stat_fields:
+            self.stat_fields["date"].setText(session.date)
+        if "shots" in self.stat_fields:
+            self.stat_fields["shots"].setText(str(session.shot_count))
+        if "temperature" in self.stat_fields:
+            self.stat_fields["temperature"].setText(
+                _format_temperature(session.temperature)
+            )
+        if "avg" in self.stat_fields:
+            self.stat_fields["avg"].setText(_format_velocity(session.avg_velocity))
+        if "min" in self.stat_fields:
+            self.stat_fields["min"].setText(_format_velocity(session.min_velocity))
+        if "max" in self.stat_fields:
+            self.stat_fields["max"].setText(_format_velocity(session.max_velocity))
+        if "es" in self.stat_fields:
+            self.stat_fields["es"].setText(_format_velocity(session.es))
+        if "sd" in self.stat_fields:
+            self.stat_fields["sd"].setText(_format_velocity(session.sd))
 
-<h4>Statistikk:</h4>
-<ul>
-<li><b>Gjennomsnitt:</b> {session.avg_velocity:.1f} fps</li>
-<li><b>Minimum:</b> {session.min_velocity:.1f} fps</li>
-<li><b>Maksimum:</b> {session.max_velocity:.1f} fps</li>
-<li><b>Extreme Spread (ES):</b> {session.es:.1f} fps</li>
-<li><b>Standard Deviation (SD):</b> {session.sd:.2f} fps</li>
-</ul>
-"""
-
-        if session.temperature:
-            results_html += f"<p><b>Temperatur:</b> {session.temperature:.1f}°F</p>"
-
-        self.results_text.setHtml(results_html)
+        if hasattr(self, "session_notes"):
+            if self.session_notes.toPlainText().strip() == "":
+                self.session_notes.setPlainText(session.notes or "")
 
         # Table
         self.shots_table.setRowCount(len(session.raw_data))
@@ -515,7 +779,7 @@ class ChronographImporter(QWidget):
         self.shots_table.resizeColumnsToContents()
 
     def load_ammo_profiles(self):
-        """Laster ammunisjonsprofiler"""
+        """Load ammunition profiles."""
         ammos = self.db.execute_query(
             """
             SELECT id, name, caliber, velocity_fps
@@ -525,52 +789,189 @@ class ChronographImporter(QWidget):
         )
 
         for row in ammos:
-            ammo_id, name, caliber, velocity = row
+            ammo_id = row.get("id")
+            name = row.get("name")
+            caliber = row.get("caliber")
+            velocity = row.get("velocity_fps")
+            if ammo_id is None or name is None:
+                continue
             display = f"{name} ({caliber})" + (f" - {velocity} fps" if velocity else "")
             self.ammo_combo.addItem(display, ammo_id)
 
     def update_ammo_velocity(self):
-        """Oppdaterer ammunisjonsprofil med ny hastighet"""
+        """Update the ammunition profile with the new velocity."""
         if not self.current_session:
-            QMessageBox.warning(self, "Ingen data", "Importer chronograph-data først!")
+            QMessageBox.warning(self, tr("msg_no_data"), tr("chrono_import_first"))
             return
 
         ammo_id = self.ammo_combo.currentData()
         if not ammo_id:
-            QMessageBox.warning(self, "Ingen profil", "Velg ammunisjonsprofil!")
+            QMessageBox.warning(self, tr("msg_no_selection"), tr("chrono_select_ammo"))
+            return
+        ammo_profile = self.db.get_by_id("ammo_profiles", ammo_id)
+        if not ammo_profile:
+            QMessageBox.warning(
+                self,
+                tr("chrono_profile_missing_title"),
+                tr("chrono_profile_missing_message"),
+            )
             return
 
         try:
-            self.db.execute_query(
-                """
-                UPDATE ammo_profiles
-                SET velocity_fps = ?
-                WHERE id = ?
-            """,
-                (self.current_session.avg_velocity, ammo_id),
+            self.db.update(
+                "ammo_profiles",
+                {"velocity_fps": self.current_session.avg_velocity},
+                "id = ?",
+                (ammo_id,),
             )
 
             QMessageBox.information(
                 self,
-                "Oppdatert!",
-                f"Ammunisjonsprofil oppdatert med ny hastighet:\n\n"
-                f"{self.current_session.avg_velocity:.1f} fps\n"
-                f"(ES: {self.current_session.es:.1f}, SD: {self.current_session.sd:.2f})",
+                tr("chrono_profile_updated_title"),
+                tr(
+                    "chrono_profile_updated_message",
+                    velocity=self.current_session.avg_velocity,
+                    es=self.current_session.es,
+                    sd=self.current_session.sd,
+                ),
             )
 
         except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Kunne ikke oppdatere: {str(e)}")
+            QMessageBox.critical(
+                self, tr("msg_error"), tr("chrono_profile_update_failed", error=str(e))
+            )
 
     def save_session(self):
-        """Lagrer hele sesjonen til database"""
+        """Save the full session to the database."""
         if not self.current_session:
-            QMessageBox.warning(self, "Ingen data", "Importer chronograph-data først!")
+            QMessageBox.warning(self, tr("msg_no_data"), tr("chrono_import_first"))
             return
 
-        # TODO: Implementer saving til dedicated chronograph_sessions table
+        if hasattr(self, "session_notes"):
+            self.current_session.notes = self.session_notes.toPlainText().strip()
+
+        ammo_id = self.ammo_combo.currentData()
+        if ammo_id and not self.db.get_by_id("ammo_profiles", ammo_id):
+            QMessageBox.warning(
+                self,
+                tr("chrono_profile_missing_title"),
+                tr("chrono_profile_missing_message"),
+            )
+            return
+        raw_payload = [
+            {
+                "shot_number": reading.shot_number,
+                "velocity_fps": reading.velocity_fps,
+                "timestamp": reading.timestamp,
+                "temperature": reading.temperature,
+                "notes": reading.notes,
+            }
+            for reading in self.current_session.raw_data
+        ]
+        raw_json = json.dumps(raw_payload, ensure_ascii=False)
+        source_path = self.file_path_input.text().strip()
+        source_file = os.path.basename(source_path) if source_path else None
+        raw_hash = hashlib.sha256(raw_json.encode("utf-8")).hexdigest()
+        workflow_context = _get_active_workflow_context()
+        batch_context = _get_active_batch_context()
+        import_meta = {
+            "imported_at": datetime.now().isoformat(timespec="seconds"),
+            "source_file": source_file,
+            "source_path": source_path or None,
+            "device_type": self.current_session.device_type,
+            "shot_count": self.current_session.shot_count,
+            "raw_sha256": raw_hash,
+            "workflow_context": workflow_context,
+            "batch_context": batch_context,
+        }
+
+        session_id = self.db.insert(
+            "chronograph_sessions",
+            {
+                "ammo_profile_id": ammo_id,
+                "device_type": self.current_session.device_type,
+                "session_name": self.current_session.session_name,
+                "session_date": self.current_session.date,
+                "avg_velocity_fps": self.current_session.avg_velocity,
+                "es_fps": self.current_session.es,
+                "sd_fps": self.current_session.sd,
+                "min_velocity_fps": self.current_session.min_velocity,
+                "max_velocity_fps": self.current_session.max_velocity,
+                "shot_count": self.current_session.shot_count,
+                "temperature_f": self.current_session.temperature,
+                "notes": self.current_session.notes,
+                "raw_data_json": raw_json,
+                "import_source": source_file,
+                "import_meta_json": json.dumps(import_meta, ensure_ascii=False),
+            },
+        )
+        if session_id is None:
+            QMessageBox.critical(
+                self, "Error", "Could not save session: database insert failed."
+            )
+            return
+
+        for reading in self.current_session.raw_data:
+            self.db.insert(
+                "chronograph_readings",
+                {
+                    "session_id": session_id,
+                    "shot_number": reading.shot_number,
+                    "velocity_fps": reading.velocity_fps,
+                    "timestamp": reading.timestamp,
+                    "temperature_f": reading.temperature,
+                    "notes": reading.notes,
+                },
+            )
+
+        rifle_id = workflow_context.get("rifle_id")
+        if rifle_id in (None, "") and ammo_id:
+            ammo_profile = self.db.get_by_id("ammo_profiles", int(ammo_id))
+            rifle_id = ammo_profile.get("rifle_id") if ammo_profile else None
+        try:
+            rifle_id_int = int(rifle_id) if rifle_id not in (None, "") else None
+        except Exception:
+            rifle_id_int = None
+        if rifle_id_int:
+            self.db.record_barrel_chronograph_observation(
+                rifle_id_int,
+                workflow_context.get("barrel_id"),
+                workflow_context.get("barrel_name"),
+                {
+                    "session_name": self.current_session.session_name,
+                    "session_date": self.current_session.date,
+                    "avg_velocity_fps": self.current_session.avg_velocity,
+                    "es_fps": self.current_session.es,
+                    "sd_fps": self.current_session.sd,
+                    "temperature_f": self.current_session.temperature,
+                },
+                barrel_configuration_id=workflow_context.get("barrel_configuration_id"),
+                barrel_configuration_name=workflow_context.get(
+                    "barrel_configuration_name"
+                ),
+            )
+        batch_id = batch_context.get("batch_id")
+        if batch_id not in (None, ""):
+            try:
+                recompute_batch_analysis_from_db(self.db, batch_id)
+            except Exception:
+                pass
+        refresh_load_session_measurement_summary(
+            self.db,
+            workflow_context.get("load_session_id"),
+            source="chronograph_importer.save_session",
+        )
+        powder_component_lot_id = batch_context.get("powder_component_lot_id")
+        if powder_component_lot_id not in (None, ""):
+            try:
+                self.db.refresh_powder_lot_learning_profile(
+                    int(powder_component_lot_id)
+                )
+            except Exception:
+                pass
+
         QMessageBox.information(
             self,
-            "Funksjon kommer snart",
-            "Full sesjon-lagring kommer i neste oppdatering.\n\n"
-            "Bruk 'Oppdater hastighet' for å lagre gjennomsnittet til ammunisjonsprofilen.",
+            "Session Saved",
+            "The chronograph session was saved to the database.",
         )

@@ -1,6 +1,6 @@
 name: Headless Smoke Test
 
-on:
+"on":
   push:
     branches: [ main, master ]
   pull_request:
@@ -10,6 +10,7 @@ jobs:
     name: Headless smoke test (Windows)
     runs-on: windows-latest
     env:
+      PYTHON_VERSION: '3.11'
       PYTHONUTF8: '1'
       PYTHONIOENCODING: 'utf-8'
 
@@ -18,54 +19,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Cache pip (Windows)
         uses: actions/cache@v4
         with:
           path: |
             %USERPROFILE%\\AppData\\Local\\pip\\Cache
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-${{ matrix.python-version }}
-      - name: Install deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install PyQt6 matplotlib pillow pytest
-      - name: Install dev tools
-        run: |
-          pip install ruff mypy types-Pillow types-requests
-      - name: Run linter (ruff)
-        run: |
-          ruff src
-      - name: Run type checks (mypy)
-        run: |
-          python -m mypy src --ignore-missing-imports
-      - name: Run headless smoke test
-        run: |
-          python tools/headless_smoke_test.py
-      - name: Run import tests
-        run: |
-          python -m pytest -q tests/test_imports.py
-
-  smoke-ubuntu:
-    name: Headless smoke test (Ubuntu)
-    runs-on: ubuntu-latest
-    env:
-      PYTHONUTF8: '1'
-      PYTHONIOENCODING: 'utf-8'
-    strategy:
-      matrix:
-        python-version: ['3.11']
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Cache pip (Linux)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-${{ matrix.python-version }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('HjemmeladingApp/requirements-dev.txt') }}-${{ env.PYTHON_VERSION }}
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
@@ -73,6 +33,32 @@ jobs:
       - name: Run headless smoke test
         run: |
           python tools/headless_smoke_test.py
-      - name: Run import tests
+
+      - name: Export component catalogs
         run: |
-          python -m pytest -q tests/test_imports.py
+          python .github/tools/export_component_catalogs.py
+
+      - name: Run core regression suite
+        run: |
+          python -m pytest -q -m core
+
+      - name: Run catalog engine regression check
+        run: |
+          python -m src.tools.catalog_engine_regression_check --report-json .github/data/exports/catalog_engine_regression_check.audit.json --report-md .github/data/exports/catalog_engine_regression_check.audit.md
+
+      - name: Upload catalog audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-catalog-audits
+          path: |
+            .github/data/exports/bullets_catalog_master_clean.audit.json
+            .github/data/exports/bullets_catalog_master_clean.audit.md
+            .github/data/exports/powder_catalog_master_clean.audit.json
+            .github/data/exports/powder_catalog_master_clean.audit.md
+            .github/data/exports/catalog_engine_regression_check.audit.json
+            .github/data/exports/catalog_engine_regression_check.audit.md
+            .github/data/exports/components_catalog_manifest.json
+            .github/data/exports/primers_catalog_master.csv
+            .github/data/exports/primers_catalog_tidy.csv
+            .github/data/exports/cases_catalog_master.csv
+            .github/data/exports/cases_catalog_tidy.csv

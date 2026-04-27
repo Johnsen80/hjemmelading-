@@ -1,0 +1,72 @@
+{
+  "DFS": {
+    "100m": {
+      "width_cm": 60,
+      "height_cm": 60,
+      "rings_cm": {"10": 6, "9": 12, "8": 18, "7": 24, "6": 30, "5": 36, "4": 42, "3": 48, "2": 54, "1": 60},
+      "black_center_to_ring": 7,
+      "notes": "Tvillingskive, fritekst: avstand, skytestilling, utstyr, vær, etc."
+    },
+    "200m": {
+      "width_cm": 100,
+      "height_cm": 100,
+      "rings_cm": {"10": 10, "9": 20, "8": 30, "7": 40, "6": 50, "5": 60, "4": 70, "3": 80, "2": 90, "1": 100},
+      "black_center_to_ring": 6,
+      "notes": "Normalskive, fritekst: avstand, skytestilling, utstyr, vær, etc."
+    },
+    "300m": {
+      "width_cm": 150,
+      "height_cm": 150,
+      "rings_cm": {"10": 15, "9": 30, "8": 45, "7": 60, "6": 75, "5": 90, "4": 105, "3": 120, "2": 135, "1": 150},
+      "black_center_to_ring": 5,
+      "notes": "1,5 m skive, fritekst: avstand, skytestilling, utstyr, vær, etc."
+    }
+  },
+  "IPSC": {
+    "classic": {
+      "width_mm": 460,
+      "height_mm": 760,
+      "zones": {
+        "A_body": {"width_mm": 150, "height_mm": 280},
+        "C_zone": "surrounding middle zone",
+        "D_zone": "outer target"
+      },
+      "head_box": {"width_mm": 150, "height_mm": 150},
+      "notes": "Fritekst: avstand, skytestilling, stage, etc."
+    }
+  },
+  "ISSF": {
+    "10m_rifle": {
+      "diameter_mm": 45.5,
+      "ring_10_mm": 0.5,
+      "notes": "Fritekst: avstand, skytestilling, etc."
+    },
+    "50m_rifle": {
+      "diameter_mm": 154.4,
+      "notes": "Fritekst: avstand, skytestilling, etc."
+    },
+    "25m_pistol": {
+      "diameter_mm": 500,
+      "notes": "Fritekst: avstand, skytestilling, etc."
+    }
+  },
+  "Hunting": {
+    "moose": {
+      "width_cm": 120,
+      "height_cm": 80,
+      "notes": "Elgskive, fritekst: avstand, skytestilling, etc."
+    },
+    "boar": {
+      "width_cm": 60,
+      "height_cm": 40,
+      "notes": "Villsvin, fritekst: avstand, skytestilling, etc."
+    }
+  },
+  "Training": {
+    "sight_in": {
+      "width_cm": 51,
+      "height_cm": 51,
+      "notes": "Halvmeterskive, fritekst: avstand, skytestilling, etc."
+    }
+  }
+}

@@ -20,7 +20,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.modules.workflow_state import WorkflowState, WorkflowStateManager
+from ..utils.i18n import tr
+from .workflow_state import WorkflowState, WorkflowStateManager
 
 
 class WorkflowResumeItem(QListWidgetItem):
@@ -34,8 +35,16 @@ class WorkflowResumeItem(QListWidgetItem):
         dt = datetime.fromisoformat(state.last_updated)
         time_str = dt.strftime("%Y-%m-%d %H:%M")
 
-        self.setText(f"🔄 {state.workflow_name}\n    Last updated: {time_str}")
-        self.setToolTip(f"Workflow: {state.workflow_id}\nSaved: {time_str}")
+        self.setText(
+            tr("workflow_resume_item_text", name=state.workflow_name, time=time_str)
+        )
+        self.setToolTip(
+            tr(
+                "workflow_resume_item_tooltip",
+                workflow_id=state.workflow_id,
+                time=time_str,
+            )
+        )
 
 
 class WorkflowResumeDialog(QDialog):
@@ -48,12 +57,18 @@ class WorkflowResumeDialog(QDialog):
 
     def __init__(self, state_manager: WorkflowStateManager, parent=None):
         super().__init__(parent)
+        try:
+            from src.ui.theme import apply_modern_theme
+
+            apply_modern_theme(self)
+        except Exception:
+            pass
         self.state_manager = state_manager
         from typing import Optional
 
         self.selected_workflow_id: Optional[str] = None
 
-        self.setWindowTitle("Resume Workflow?")
+        self.setWindowTitle(tr("workflow_resume_title"))
         self.setModal(True)
         self.setMinimumSize(600, 500)
 
@@ -64,7 +79,7 @@ class WorkflowResumeDialog(QDialog):
         layout = QVBoxLayout()
 
         # Header
-        header_label = QLabel("🔄 Resume Saved Workflows?")
+        header_label = QLabel(tr("workflow_resume_header"))
         header_label.setStyleSheet(
             """
             font-size: 20px;
@@ -75,16 +90,13 @@ class WorkflowResumeDialog(QDialog):
         )
         layout.addWidget(header_label)
 
-        desc = QLabel(
-            "Du har aktive workflows som ikke er fullført.\n"
-            "Vil du fortsette der du slapp?"
-        )
+        desc = QLabel(tr("workflow_resume_description"))
         desc.setStyleSheet("color: #7f8c8d; padding: 5px; font-size: 13px;")
         desc.setWordWrap(True)
         layout.addWidget(desc)
 
         # List of workflows
-        workflow_group = QGroupBox("📋 Active Workflows")
+        workflow_group = QGroupBox(tr("workflow_resume_active_group"))
         workflow_layout = QVBoxLayout()
 
         self.workflow_list = QListWidget()
@@ -119,7 +131,7 @@ class WorkflowResumeDialog(QDialog):
         layout.addWidget(workflow_group)
 
         # Details panel
-        details_group = QGroupBox("📊 Workflow Details")
+        details_group = QGroupBox(tr("workflow_resume_details_group"))
         details_layout = QVBoxLayout()
 
         self.details_text = QTextEdit()
@@ -145,7 +157,7 @@ class WorkflowResumeDialog(QDialog):
         btn_layout = QHBoxLayout()
 
         # Resume button
-        self.btn_resume = QPushButton("✅ Resume Selected")
+        self.btn_resume = QPushButton(tr("workflow_resume_selected"))
         self.btn_resume.setEnabled(False)
         self.btn_resume.setStyleSheet(
             """
@@ -169,7 +181,7 @@ class WorkflowResumeDialog(QDialog):
         btn_layout.addWidget(self.btn_resume)
 
         # Clear button
-        btn_clear = QPushButton("🗑️ Clear Selected")
+        btn_clear = QPushButton(tr("workflow_clear_selected"))
         btn_clear.setStyleSheet(
             """
             QPushButton {
@@ -189,7 +201,7 @@ class WorkflowResumeDialog(QDialog):
         btn_layout.addWidget(btn_clear)
 
         # Clear all button
-        btn_clear_all = QPushButton("🗑️ Clear All")
+        btn_clear_all = QPushButton(tr("workflow_clear_all"))
         btn_clear_all.setStyleSheet(
             """
             QPushButton {
@@ -209,7 +221,7 @@ class WorkflowResumeDialog(QDialog):
         btn_layout.addStretch()
 
         # Start fresh button
-        btn_fresh = QPushButton("🆕 Start Fresh")
+        btn_fresh = QPushButton(tr("workflow_start_fresh"))
         btn_fresh.setStyleSheet(
             """
             QPushButton {
@@ -261,11 +273,11 @@ class WorkflowResumeDialog(QDialog):
         # Format data for display
         html = f"""
         <h3 style='color: #2c3e50;'>{state.workflow_name}</h3>
-        <p><b>Workflow ID:</b> {state.workflow_id}</p>
-        <p><b>Created:</b> {datetime.fromisoformat(state.timestamp).strftime("%Y-%m-%d %H:%M:%S")}</p>
-        <p><b>Last Updated:</b> {datetime.fromisoformat(state.last_updated).strftime("%Y-%m-%d %H:%M:%S")}</p>
+        <p><b>{tr("workflow_resume_workflow_id")}:</b> {state.workflow_id}</p>
+        <p><b>{tr("workflow_resume_created")}:</b> {datetime.fromisoformat(state.timestamp).strftime("%Y-%m-%d %H:%M:%S")}</p>
+        <p><b>{tr("workflow_resume_last_updated")}:</b> {datetime.fromisoformat(state.last_updated).strftime("%Y-%m-%d %H:%M:%S")}</p>
 
-        <h4 style='color: #3498db;'>Saved State:</h4>
+        <h4 style='color: #3498db;'>{tr("workflow_resume_saved_state")}:</h4>
         <pre style='background-color: #ecf0f1; padding: 10px; border-radius: 5px;'>
         """
 
@@ -296,13 +308,10 @@ class WorkflowResumeDialog(QDialog):
         if not current:
             return
 
-            message = (
-                f"Er du sikker på at du vil slette saved state for:\n\n{current.state.workflow_name}\n\n"
-                "Dette kan ikke angres!"
-            )
+        message = tr("workflow_resume_clear_message", name=current.state.workflow_name)
         reply = QMessageBox.question(
             self,
-            "Clear Workflow?",
+            tr("workflow_resume_clear_title"),
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
@@ -318,8 +327,8 @@ class WorkflowResumeDialog(QDialog):
             if self.workflow_list.count() == 0:
                 QMessageBox.information(
                     self,
-                    "No Workflows",
-                    "Ingen flere saved workflows.\n\nStarting fresh!",
+                    tr("workflow_resume_none_left_title"),
+                    tr("workflow_resume_none_left_message"),
                 )
                 self.reject()
 
@@ -327,8 +336,8 @@ class WorkflowResumeDialog(QDialog):
         """Clear all workflow states"""
         reply = QMessageBox.question(
             self,
-            "Clear All Workflows?",
-            "Er du sikker på at du vil slette ALLE saved workflows?\n\nDette kan ikke angres!",
+            tr("workflow_resume_clear_all_title"),
+            tr("workflow_resume_clear_all_message"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -337,7 +346,9 @@ class WorkflowResumeDialog(QDialog):
             self.workflow_list.clear()
 
             QMessageBox.information(
-                self, "Cleared", "Alle workflow states er slettet.\n\nStarting fresh!"
+                self,
+                tr("workflow_resume_cleared_title"),
+                tr("workflow_resume_cleared_message"),
             )
             self.reject()
 
@@ -370,7 +381,7 @@ if __name__ == "__main__":
     dialog = WorkflowResumeDialog(manager)
 
     def on_workflow_selected(workflow_id):
-        from src.logging_config import configure_logging, get_logger
+        from ..logging_config import configure_logging, get_logger
 
         configure_logging()
         logger = get_logger(__name__)
@@ -379,7 +390,7 @@ if __name__ == "__main__":
     dialog.workflow_selected.connect(on_workflow_selected)
 
     result = dialog.exec()
-    from src.logging_config import get_logger
+    from ..logging_config import get_logger
 
     logger = get_logger(__name__)
     logger.info("Dialog result: %s", "Accepted" if result else "Rejected")

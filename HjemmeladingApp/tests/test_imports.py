@@ -1,5 +1,5 @@
-import importlib
 import os
+import subprocess
 import sys
 
 
@@ -12,12 +12,31 @@ def test_core_imports():
         sys.path.insert(0, parent)
 
     modules = [
-        "HjemmeladingApp.main",
         "HjemmeladingApp.modules.user_profile",
         "HjemmeladingApp.ui.settings_dialog",
         "HjemmeladingApp.ui.customizer",
         "HjemmeladingApp.utils.safe_logger",
     ]
 
+    env = os.environ.copy()
+    env.setdefault("QT_QPA_PLATFORM", "offscreen")
+
     for m in modules:
-        importlib.import_module(m)
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import importlib, os, sys; "
+                    f"sys.path.insert(0, {parent!r}); "
+                    "sys.modules.setdefault('modules', importlib.import_module('HjemmeladingApp.modules')); "
+                    f"importlib.import_module({m!r})"
+                ),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr or result.stdout

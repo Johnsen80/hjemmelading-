@@ -9,6 +9,7 @@ Usage (from project root, venv activated):
   .\scripts\build_windows.ps1
 
 #>
+# This script uses approved PowerShell verbs only.
 Write-Host "Valkyrie Ballistics: onedir build helper (PyInstaller)"
 
 # Try to prefer the venv python if present
@@ -48,7 +49,7 @@ function Test-EnvFlag([string] $value) {
     return $normalized -in @("1", "true", "yes", "y", "on")
 }
 
-function Invoke-LoggedCommand([string[]] $cmd) {
+function Invoke-BuildLoggedProcess([string[]] $cmd) {
     Write-Host "Running: $($cmd -join ' ')"
     $proc = Start-Process -FilePath $cmd[0] -ArgumentList $cmd[1..($cmd.Length-1)] -NoNewWindow -PassThru -Wait -RedirectStandardOutput $buildLog -RedirectStandardError $buildErrLog
     return $proc.ExitCode
@@ -186,14 +187,14 @@ try {
 } catch {}
 
 # Entry script
-$entry = Join-Path $projectRoot 'HjemmeladingApp\main.py'
+$entry = Join-Path $projectRoot 'main.py'
 $pyInstallerArgs += $entry
 
 Write-Host "pyinstaller args: $($pyInstallerArgs -join ' ')"
 
 # Run PyInstaller and capture output to build_output.log
 $cmd = @($python, '-m', 'PyInstaller') + $pyInstallerArgs
-$exit = Invoke-LoggedCommand $cmd
+$exit = Invoke-BuildLoggedProcess -cmd $cmd
 if ($exit -ne 0) {
     Write-Error "PyInstaller failed with exit code $exit. See $buildLog for details."
     exit $exit
@@ -223,10 +224,11 @@ if ($buildInstaller) {
         $env:VALKYRIE_INSTALLER_OUT = $installerOut
 
         $iss = Join-Path $projectRoot "installer\VALKYRIE_BALLISTICS_installer.iss"
-        $instExit = Invoke-LoggedCommand @($iscc, $iss)
-        if ($instExit -ne 0) {
-            Write-Error "Inno Setup failed with exit code $instExit. See $buildLog for details."
-            exit $instExit
+        $installerCmd = @($iscc, $iss)
+        $installerExitCode = Invoke-BuildLoggedProcess -cmd $installerCmd
+        if ($installerExitCode -ne 0) {
+            Write-Error "Inno Setup failed with exit code $installerExitCode. See $buildLog for details."
+            exit $installerExitCode
         }
 
         if ($signRequested) {

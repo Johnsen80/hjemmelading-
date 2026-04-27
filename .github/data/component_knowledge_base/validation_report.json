@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-03-31T16:11:07.316270+00:00",
+  "summary": {
+    "bullets": 16,
+    "powders": 2,
+    "calibers": 8
+  },
+  "bullets": {
+    "source_breakdown": {
+      "component_xml": 6,
+      "load_snapshot": 10
+    },
+    "rows_with_missing_bc": 0,
+    "rows_with_zero_bc": 6,
+    "assessment": "Not manufacturer-verified by default; mixed user and reference snapshot data."
+  },
+  "powders": {
+    "source_breakdown": {
+      "load_snapshot": 2
+    },
+    "rows_with_complete_simulation_fields": 2,
+    "assessment": "Simulation-capable rows are reference-derived seeds, not independently manufacturer-verified."
+  },
+  "calibers": {
+    "source_kind_breakdown": {
+      "reference_snapshot": 5,
+      "user_measurement": 1,
+      "official_cip": 2
+    },
+    "evidence_breakdown": {
+      "imported_reference": 5,
+      "user_reference": 1,
+      "official_standard": 2
+    },
+    "rows_with_drawing_pdf": 3,
+    "assessment": "Primarily CIP/reference-derived; not a complete SAAMI library."
+  }
+}

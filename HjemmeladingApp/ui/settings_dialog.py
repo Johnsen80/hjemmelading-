@@ -1,70 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-try:
-    from PyQt6 import QtCore, QtGui, QtWidgets
-
-    _HAS_QT = True
-except Exception:  # pragma: no cover - optional dependency fallback
-    _HAS_QT = False
-
-    class _Simple:
-        pass
-
-    # Create minimal stand-ins for the Qt submodules so module import
-    # succeeds in environments where PyQt6 isn't installed. Tests or
-    # runtime code that needs real widgets should install PyQt6.
-    QtCore = type("QtCore", (), {})()
-    setattr(
-        QtCore,
-        "Qt",
-        type(
-            "QtConsts",
-            (),
-            {
-                "AlignmentFlag": type("AF", (), {"AlignCenter": 0}),
-                "Orientation": type("O", (), {"Vertical": 0}),
-            },
-        ),
-    )
-
-    QtGui = type("QtGui", (), {})()
-
-    QtWidgets = type("QtWidgets", (), {})()
-    for name in (
-        "QDialog",
-        "QWidget",
-        "QVBoxLayout",
-        "QHBoxLayout",
-        "QLabel",
-        "QTabWidget",
-        "QFormLayout",
-        "QComboBox",
-        "QSlider",
-        "QLineEdit",
-        "QPushButton",
-        "QGroupBox",
-        "QDialogButtonBox",
-        "QDialogButtonBox",
-        "QGroupBox",
-        "QDialogButtonBox",
-        "QGroupBox",
-    ):
-        setattr(QtWidgets, name, _Simple)
-
+from ..i18n import get_language, set_language, translate
 from ..settings import settings
 from ..utils import backgrounds, safe_logger
+from ..utils.qt_compat import QSettings, QtCore, QtGui, QtWidgets
 
-# Expose common safe_logger callables at module scope so language servers
-# and existing fallback code can resolve the symbol names. This keeps
-# the behaviour identical while making static analysis happier.
-_append_exception = getattr(safe_logger, "append_exception", None)
-_handle_suppressed = getattr(safe_logger, "handle_suppressed", None)
-
-# Prefer the project's logging config when present, otherwise None
-_logger = None
+_HAS_QT = all(part is not None for part in (QtCore, QtGui, QtWidgets))
 
 
 DEFAULT_LOGO_PATH = Path(
@@ -72,1246 +16,497 @@ DEFAULT_LOGO_PATH = Path(
 )
 
 
-class SettingsDialog(QtWidgets.QDialog):
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(parent)
-        # Wrap initialization so any unexpected error doesn't crash the whole app.
-        self.setWindowTitle("Innstillinger — Valkyrie Ballistics")
-        self.resize(600, 420)
+if TYPE_CHECKING:
 
-        layout = QtWidgets.QVBoxLayout(self)
+    class SettingsDialog(QtWidgets.QDialog):
+        pass
 
-        # Top: logo
-        self.logo_label = QtWidgets.QLabel()
-        self.logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.logo_label.setFixedHeight(100)
-        layout.addWidget(self.logo_label)
-        try:
+elif _HAS_QT:
+
+    class SettingsDialog(QtWidgets.QDialog):
+        def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+            super().__init__(parent)
+            self._bg_changed = False
+            self._default_preview_text = ""
+            self._build_ui()
             self._load_logo()
-        except Exception as _suppressed_exc:
-            try:
-                # bruk `safe_logger`-modulen slik språkserveren finner funksjonen
-                safe_logger.handle_suppressed(_suppressed_exc, "ui/settings_dialog.py")
-            except Exception:
-                try:
-                    import sys
-
-                    sys.stderr.write(
-                        "ui/settings_dialog.py suppressed exception: "
-                        + str(_suppressed_exc)
-                        + "\n"
-                    )
-                except Exception:
-                    pass
-            pass
-
-        # Tabs
-        tabs = QtWidgets.QTabWidget()
-        layout.addWidget(tabs, 1)
-
-        # Appearance tab
-        appearance = QtWidgets.QWidget()
-        tabs.addTab(appearance, "Utseende")
-        app_layout = QtWidgets.QFormLayout(appearance)
-
-        # Theme combo
-        self.theme_combo = QtWidgets.QComboBox()
-        self.theme_combo.addItems(["light", "dark", "high-contrast"])
-        try:
-            self.theme_combo.setCurrentText(settings.get().get("theme", "light"))
-        except (AttributeError, TypeError, KeyError):
-            self.theme_combo.setCurrentText("light")
-        app_layout.addRow("Tema:", self.theme_combo)
-
-        # RGB sliders
-        rgb_group = QtWidgets.QWidget()
-        rgb_layout = QtWidgets.QHBoxLayout(rgb_group)
-        self.sliders = {}
-        for comp in ("r", "g", "b"):
-            v = QtWidgets.QVBoxLayout()
-            lbl = QtWidgets.QLabel(comp.upper())
-            s = QtWidgets.QSlider(QtCore.Qt.Orientation.Vertical)
-            s.setRange(0, 255)
-            s.setTickInterval(16)
-            s.setTickPosition(QtWidgets.QSlider.TickPosition.TicksRight)
-            try:
-                s.setValue(settings.get().get("rgb", {}).get(comp, 128))
-            except (AttributeError, TypeError, KeyError, ValueError):
-                s.setValue(128)
-            v.addWidget(lbl)
-            v.addWidget(s)
-            rgb_layout.addLayout(v)
-            self.sliders[comp] = s
-        app_layout.addRow("Fargejustering (RGB):", rgb_group)
-
-        # Button style
-        self.btn_style = QtWidgets.QComboBox()
-        self.btn_style.addItems(["filled", "outlined", "flat"])
-        try:
-            self.btn_style.setCurrentText(settings.get().get("button_style", "filled"))
-        except (AttributeError, TypeError, KeyError):
-            self.btn_style.setCurrentText("filled")
-        app_layout.addRow("Knappestil:", self.btn_style)
-
-        # Background chooser
-        bg_widget = QtWidgets.QWidget()
-        bg_h = QtWidgets.QHBoxLayout(bg_widget)
-        self.bg_path_edit = QtWidgets.QLineEdit()
-        self.bg_path_edit.setReadOnly(True)
-        self.bg_choose = QtWidgets.QPushButton("Velg bilde...")
-        bg_h.addWidget(self.bg_path_edit)
-        bg_h.addWidget(self.bg_choose)
-        app_layout.addRow("Bakgrunn:", bg_widget)
-
-        # Background mode (fill/fit/center/stretch)
-        self.bg_mode = QtWidgets.QComboBox()
-        self.bg_mode.addItems(["fill", "fit", "center", "stretch"])
-        # Set from settings if present
-        try:
-            self.bg_mode.setCurrentText(
-                settings.get().get("background", {}).get("mode", "fill")
-            )
-        except (AttributeError, TypeError, KeyError):
-            self.bg_mode.setCurrentText("fill")
-        app_layout.addRow("Bakgrunnsmodus:", self.bg_mode)
-
-        # Units tab
-        units = QtWidgets.QWidget()
-        tabs.addTab(units, "Enheter")
-        u_layout = QtWidgets.QFormLayout(units)
-        self.unit_global = QtWidgets.QComboBox()
-        self.unit_global.addItems(["metric", "imperial"])
-        try:
-            self.unit_global.setCurrentText(
-                settings.get().get("units", {}).get("global", "metric")
-            )
-        except (AttributeError, TypeError, KeyError):
-            self.unit_global.setCurrentText("metric")
-        u_layout.addRow("Globalt system:", self.unit_global)
-
-        # Buttons
-        btns = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Save
-            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
-        )
-        layout.addWidget(btns)
-
-        # Preview area
-        preview_group = QtWidgets.QGroupBox("Forhåndsvisning")
-        preview_layout = QtWidgets.QHBoxLayout(preview_group)
-        self.preview_label = QtWidgets.QLabel("Dette er en forhåndsvisning")
-        self.preview_btn = QtWidgets.QPushButton("Eksempel")
-        preview_layout.addWidget(self.preview_label)
-        preview_layout.addStretch(1)
-        preview_layout.addWidget(self.preview_btn)
-        layout.addWidget(preview_group)
-
-        # Connections
-        self.bg_choose.clicked.connect(self._choose_background)
-        btns.accepted.connect(self._on_save)
-        btns.rejected.connect(self.reject)
-        for s in self.sliders.values():
-            s.valueChanged.connect(self._on_rgb_change)
-        self.theme_combo.currentTextChanged.connect(self._on_theme_change)
-        self.bg_mode.currentTextChanged.connect(self._apply_preview)
-
-        # Initialize preview style
-        try:
+            self._load_config_into_widgets()
+            self._wire_signals()
+            self._refresh_language_status()
             self._apply_preview()
-        except Exception as e:
-            # Log the preview failure and record in safe logger. Provide a
-            # minimal fallback UI so the user can continue using the app.
+
+        def _build_ui(self) -> None:
+
+            self.setWindowTitle(f"{translate('Settings')} - Hjemmelading")
+            self.resize(680, 520)
             try:
-                if _logger:
-                    _logger.exception(
-                        "Failed initial preview application in SettingsDialog: %s", e
-                    )
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
+                from src.ui.theme import apply_modern_theme
 
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-            try:
-                safe_logger.append_exception("SettingsDialog.__init__ failed", e)
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-            # Build a minimal error dialog UI so dialog remains usable
-            try:
-                try:
-                    super().__init__(parent)
-                except Exception as _suppressed_exc:
-                    try:
-                        _mod_logger = globals().get("_logger") or globals().get(
-                            "logger"
-                        )
-                        if _mod_logger:
-                            _mod_logger.exception(
-                                "Unhandled exception in settings_dialog.py: %s",
-                                _suppressed_exc,
-                            )
-                    except Exception:
-                        pass
-                    try:
-                        _append = globals().get("append_exception")
-                        if _append:
-                            _append(
-                                "settings_dialog.py suppressed exception",
-                                _suppressed_exc,
-                            )
-                        else:
-                            _safe = globals().get("safe_logger")
-                            if _safe:
-                                try:
-                                    _safe.append_exception(
-                                        "settings_dialog.py suppressed exception",
-                                        _suppressed_exc,
-                                    )
-                                except Exception:
-                                    pass
-                            else:
-                                try:
-                                    import sys
-
-                                    sys.stderr.write(
-                                        f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                    )
-                                except Exception:
-                                    pass
-                    except Exception:
-                        try:
-                            import sys
-
-                            sys.stderr.write(
-                                f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                            )
-                        except Exception:
-                            pass
-                    pass
-                self.setWindowTitle("Innstillinger — Feil")
-                self.resize(400, 120)
-                err_layout = QtWidgets.QVBoxLayout(self)
-                lbl = QtWidgets.QLabel(
-                    "En feil oppstod ved åpning av innstillinger. Se debug_err.log for detaljer."
-                )
-                err_layout.addWidget(lbl)
-                btn = QtWidgets.QPushButton("Lukk")
-                btn.clicked.connect(self.reject)
-                err_layout.addWidget(btn)
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                # If even fallback UI fails, swallow to avoid crashing the app
-                pass
-
-    def _safe_log_exception(self, msg: str = "", exc: Exception | None = None) -> None:
-        try:
-            if _logger:
-                if exc:
-                    try:
-                        _logger.exception(msg or "Exception in SettingsDialog")
-                    except Exception as _suppressed_exc:
-                        try:
-                            _mod_logger = globals().get("_logger") or globals().get(
-                                "logger"
-                            )
-                            if _mod_logger:
-                                _mod_logger.exception(
-                                    "Unhandled exception in settings_dialog.py: %s",
-                                    _suppressed_exc,
-                                )
-                        except Exception:
-                            pass
-                        try:
-                            _append = globals().get("append_exception")
-                            if _append:
-                                _append(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            else:
-                                _safe = globals().get("safe_logger")
-                                if _safe:
-                                    try:
-                                        _safe.append_exception(
-                                            "settings_dialog.py suppressed exception",
-                                            _suppressed_exc,
-                                        )
-                                    except Exception:
-                                        pass
-                                else:
-                                    try:
-                                        import sys
-
-                                        sys.stderr.write(
-                                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                        )
-                                    except Exception:
-                                        pass
-                        except Exception:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                        pass
-                else:
-                    try:
-                        _logger.error(msg)
-                    except Exception as _suppressed_exc:
-                        try:
-                            _mod_logger = globals().get("_logger") or globals().get(
-                                "logger"
-                            )
-                            if _mod_logger:
-                                _mod_logger.exception(
-                                    "Unhandled exception in settings_dialog.py: %s",
-                                    _suppressed_exc,
-                                )
-                        except Exception:
-                            pass
-                        try:
-                            _append = globals().get("append_exception")
-                            if _append:
-                                _append(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            else:
-                                _safe = globals().get("safe_logger")
-                                if _safe:
-                                    try:
-                                        _safe.append_exception(
-                                            "settings_dialog.py suppressed exception",
-                                            _suppressed_exc,
-                                        )
-                                    except Exception:
-                                        pass
-                                else:
-                                    try:
-                                        import sys
-
-                                        sys.stderr.write(
-                                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                        )
-                                    except Exception:
-                                        pass
-                        except Exception:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                        pass
-            # Use the centralized safe_logger to append to per-user debug file
-            try:
-                safe_logger.append_exception(msg or "SettingsDialog exception", exc)
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-        except Exception as _suppressed_exc:
-            try:
-                _mod_logger = globals().get("_logger") or globals().get("logger")
-                if _mod_logger:
-                    _mod_logger.exception(
-                        "Unhandled exception in settings_dialog.py: %s", _suppressed_exc
-                    )
+                apply_modern_theme(self)
             except Exception:
                 pass
+
+            layout = QtWidgets.QVBoxLayout(self)
+
+            self.logo_label = QtWidgets.QLabel()
+            self.logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            self.logo_label.setMinimumHeight(72)
+            layout.addWidget(self.logo_label)
+
+            self.tabs = QtWidgets.QTabWidget()
+            layout.addWidget(self.tabs, 1)
+
+            appearance = QtWidgets.QWidget()
+            self.tabs.addTab(appearance, translate("Theme"))
+            appearance_layout = QtWidgets.QFormLayout(appearance)
+
+            self.theme_combo = QtWidgets.QComboBox()
+            self._populate_combo(
+                self.theme_combo,
+                [
+                    ("light", "Theme Light"),
+                    ("dark", "Theme Dark"),
+                    ("high-contrast", "Theme High Contrast"),
+                ],
+            )
+            appearance_layout.addRow(f"{translate('Theme')}:", self.theme_combo)
+
+            self.btn_style = QtWidgets.QComboBox()
+            self._populate_combo(
+                self.btn_style,
+                [
+                    ("filled", "Button Style Filled"),
+                    ("outlined", "Button Style Outlined"),
+                    ("flat", "Button Style Flat"),
+                ],
+            )
+            appearance_layout.addRow(f"{translate('Button Style')}:", self.btn_style)
+
+            self.bg_mode = QtWidgets.QComboBox()
+            self._populate_combo(
+                self.bg_mode,
+                [
+                    ("fill", "Background Mode Fill"),
+                    ("fit", "Background Mode Fit"),
+                    ("center", "Background Mode Center"),
+                    ("stretch", "Background Mode Stretch"),
+                ],
+            )
+            appearance_layout.addRow(f"{translate('Background')} mode:", self.bg_mode)
+
+            bg_widget = QtWidgets.QWidget()
+            bg_layout = QtWidgets.QHBoxLayout(bg_widget)
+            bg_layout.setContentsMargins(0, 0, 0, 0)
+            self.bg_path_edit = QtWidgets.QLineEdit()
+            self.bg_path_edit.setReadOnly(True)
+            self.bg_choose = QtWidgets.QPushButton(translate("Choose Image"))
+            self.bg_clear = QtWidgets.QPushButton(translate("Clear"))
+            bg_layout.addWidget(self.bg_path_edit, 1)
+            bg_layout.addWidget(self.bg_choose)
+            bg_layout.addWidget(self.bg_clear)
+            appearance_layout.addRow(f"{translate('Background')}:", bg_widget)
+
+            rgb_widget = QtWidgets.QWidget()
+            rgb_layout = QtWidgets.QHBoxLayout(rgb_widget)
+            rgb_layout.setContentsMargins(0, 0, 0, 0)
+            self.sliders: dict[str, QtWidgets.QSlider] = {}
+            for comp in ("r", "g", "b"):
+                column = QtWidgets.QVBoxLayout()
+                label = QtWidgets.QLabel(comp.upper())
+                slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+                slider.setRange(0, 255)
+                slider.setValue(128)
+                column.addWidget(label)
+                column.addWidget(slider)
+                rgb_layout.addLayout(column)
+                self.sliders[comp] = slider
+            appearance_layout.addRow(
+                f"{translate('Color Adjustment')} (RGB):", rgb_widget
+            )
+
+            units = QtWidgets.QWidget()
+            self.tabs.addTab(units, translate("Units"))
+            units_layout = QtWidgets.QFormLayout(units)
+            self.unit_global = QtWidgets.QComboBox()
+            self._populate_combo(
+                self.unit_global,
+                [
+                    ("metric", "Metric"),
+                    ("imperial", "Imperial"),
+                ],
+            )
+            units_layout.addRow(f"{translate('Global System')}:", self.unit_global)
+
+            general = QtWidgets.QWidget()
+            self.tabs.addTab(general, translate("Language"))
+            general_layout = QtWidgets.QFormLayout(general)
+            self.lang_combo = QtWidgets.QComboBox()
+            self._populate_combo(
+                self.lang_combo,
+                [
+                    ("no", "Norwegian"),
+                    ("en", "English"),
+                ],
+            )
+            general_layout.addRow(f"{translate('Language')}:", self.lang_combo)
+
+            self.lang_status = QtWidgets.QLabel("")
+            self.lang_status.setWordWrap(True)
+            general_layout.addRow(f"{translate('I18n Status')}:", self.lang_status)
+
+            preview_group = QtWidgets.QGroupBox(translate("Preview"))
+            preview_layout = QtWidgets.QVBoxLayout(preview_group)
+            self.preview_label = QtWidgets.QLabel()
+            self.preview_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            self.preview_label.setMinimumHeight(140)
+            self.preview_btn = QtWidgets.QPushButton(translate("Example"))
+            preview_layout.addWidget(self.preview_label)
+            preview_layout.addWidget(self.preview_btn, 0)
+            self._default_preview_text = translate("Preview")
+            layout.addWidget(preview_group)
+
+            self.buttons = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.StandardButton.Save
+                | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            )
+            layout.addWidget(self.buttons)
+
+        def _populate_combo(
+            self,
+            combo: QtWidgets.QComboBox,
+            items: list[tuple[str, str]],
+        ) -> None:
+            combo.clear()
+            for value, label_key in items:
+                combo.addItem(translate(label_key), value)
+
+        def _set_combo_by_data(
+            self, combo: QtWidgets.QComboBox, value: str, fallback: str
+        ) -> None:
+            index = combo.findData(value)
+            if index < 0:
+                index = combo.findData(fallback)
+            combo.setCurrentIndex(max(index, 0))
+
+        def _wire_signals(self) -> None:
+            self.bg_choose.clicked.connect(self._choose_background)
+            self.bg_clear.clicked.connect(self._clear_background_selection)
+            self.theme_combo.currentTextChanged.connect(self._on_theme_change)
+            self.bg_mode.currentTextChanged.connect(self._apply_preview)
+            self.btn_style.currentTextChanged.connect(self._apply_preview)
+            self.lang_combo.currentTextChanged.connect(self._on_language_change)
+            self.unit_global.currentTextChanged.connect(self._on_unit_change)
+            self.buttons.accepted.connect(self._on_save)
+            self.buttons.rejected.connect(self.reject)
+            for slider in self.sliders.values():
+                slider.valueChanged.connect(self._on_rgb_change)
+
+        def _safe_log_exception(
+            self, msg: str = "", exc: Exception | None = None
+        ) -> None:
             try:
-                _append = globals().get("append_exception")
-                if _append:
-                    _append("settings_dialog.py suppressed exception", _suppressed_exc)
-                else:
-                    _safe = globals().get("safe_logger")
-                    if _safe:
-                        try:
-                            _safe.append_exception(
-                                "settings_dialog.py suppressed exception",
-                                _suppressed_exc,
-                            )
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            import sys
-
-                            sys.stderr.write(
-                                f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                            )
-                        except Exception:
-                            pass
+                safe_logger.append_exception(msg or "SettingsDialog error", exc)
             except Exception:
-                try:
-                    import sys
+                pass
 
-                    sys.stderr.write(
-                        f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                    )
-                except Exception:
-                    pass
-            # Intentionally swallow all errors during logging
-            pass
+        def _load_logo(self) -> None:
+            try:
+                if not DEFAULT_LOGO_PATH.exists():
+                    self.logo_label.setText("Hjemmelading")
+                    return
+                for candidate in (
+                    DEFAULT_LOGO_PATH / "logo.png",
+                    DEFAULT_LOGO_PATH / "hjemmelading_logo.png",
+                    DEFAULT_LOGO_PATH / "logo.svg",
+                ):
+                    if not candidate.exists():
+                        continue
+                    pixmap = QtGui.QPixmap(str(candidate))
+                    if pixmap and not pixmap.isNull():
+                        self.logo_label.setPixmap(
+                            pixmap.scaledToHeight(
+                                72, QtCore.Qt.TransformationMode.SmoothTransformation
+                            )
+                        )
+                        return
+                self.logo_label.setText("Hjemmelading")
+            except Exception as exc:
+                self._safe_log_exception("Failed to load settings logo", exc)
+                self.logo_label.setText("Hjemmelading")
 
-    def _load_logo(self) -> None:
-        # Try to load a logo from the provided Logo path; if it's a directory, pick a PNG/JPG inside.
-        try:
-            p = DEFAULT_LOGO_PATH
-            pix = None
-            if p.exists():
-                if p.is_file():
-                    pix = QtGui.QPixmap(str(p))
-                else:
-                    for ext in ("*.png", "*.jpg", "*.jpeg", "*.svg"):
-                        found = list(p.glob(ext))
-                        if found:
-                            pix = QtGui.QPixmap(str(found[0]))
-                            break
-            if pix and not pix.isNull():
-                self.logo_label.setPixmap(
-                    pix.scaledToHeight(
-                        96, QtCore.Qt.TransformationMode.SmoothTransformation
-                    )
+        def _choose_background(self) -> None:
+            try:
+                path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                    self,
+                    translate("Background"),
+                    "",
+                    translate("Images Filter Extended"),
                 )
+            except Exception as exc:
+                self._safe_log_exception("Background picker failed", exc)
+                return
+
+            if path:
+                self._set_background_path(path, mark_changed=True)
+
+        def _load_config_into_widgets(self) -> None:
+            cfg = settings.get()
+            theme = str(cfg.get("theme", "light"))
+            button_style = str(cfg.get("button_style", "filled"))
+            rgb = cfg.get("rgb", {}) if isinstance(cfg.get("rgb"), dict) else {}
+            background = (
+                cfg.get("background", {})
+                if isinstance(cfg.get("background"), dict)
+                else {}
+            )
+            units = cfg.get("units", {}) if isinstance(cfg.get("units"), dict) else {}
+
+            self._set_combo_by_data(self.theme_combo, theme, "light")
+            self._set_combo_by_data(self.btn_style, button_style, "filled")
+            self._set_combo_by_data(
+                self.bg_mode, str(background.get("mode", "fill")), "fill"
+            )
+            self._set_combo_by_data(
+                self.unit_global, str(units.get("global", "metric")), "metric"
+            )
+
+            for comp, slider in self.sliders.items():
+                try:
+                    slider.setValue(int(rgb.get(comp, 128)))
+                except Exception:
+                    slider.setValue(128)
+
+            self._set_background_path(background.get("path"), mark_changed=False)
+
+            lang_code = "no"
+            if QSettings is not None:
+                try:
+                    qs = QSettings("ReloadingWorkshop", "ReloadingManager")
+                    lang_code = str(qs.value("language", "no"))
+                except Exception:
+                    lang_code = "no"
+            self._set_combo_by_data(
+                self.lang_combo,
+                lang_code if lang_code in ("no", "en") else "no",
+                "no",
+            )
+
+        def _set_background_path(
+            self, path: Optional[str], *, mark_changed: bool
+        ) -> None:
+            normalized = str(path) if path else ""
+            self.bg_path_edit.setText(normalized)
+            self.bg_clear.setEnabled(bool(normalized))
+            if mark_changed:
+                self._bg_changed = True
+            self._apply_preview()
+
+        def _clear_background_selection(self) -> None:
+            self._set_background_path(None, mark_changed=True)
+
+        def _reset_preview_label(self) -> None:
+            self.preview_label.clear()
+            self.preview_label.setText(self._default_preview_text)
+
+        def _on_rgb_change(self) -> None:
+            self._apply_preview()
+
+        def _on_theme_change(self) -> None:
+            self._apply_preview()
+
+        def _apply_preview(self) -> None:
+            rgb = {name: slider.value() for name, slider in self.sliders.items()}
+            accent = f"rgb({rgb['r']}, {rgb['g']}, {rgb['b']})"
+            is_dark = self.theme_combo.currentData() == "dark"
+            bg_color = "#101317" if is_dark else "#f6f4f0"
+            text_color = "#f2f4f8" if is_dark else "#0b1320"
+            border = "#364152" if is_dark else "#d6d2cb"
+
+            self.preview_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {accent}; color: {text_color}; "
+                f"border: 1px solid {border}; border-radius: 6px; padding: 8px 12px; }}"
+            )
+            self.preview_label.setStyleSheet(
+                f"QLabel {{ background-color: {bg_color}; color: {text_color}; "
+                f"border: 1px solid {border}; border-radius: 8px; padding: 12px; }}"
+            )
+
+            path = self.bg_path_edit.text().strip()
+            if path:
+                self._update_bg_preview(path, str(self.bg_mode.currentData() or "fill"))
             else:
-                self.logo_label.setText("VALKYRIE BALLISTICS")
-        except (OSError, RuntimeError, TypeError):
+                self._reset_preview_label()
+
+        def _on_language_change(self, _text: str) -> None:
+            lang_code = str(self.lang_combo.currentData() or "no")
             try:
-                if _logger:
-                    _logger.exception("Failed to load settings dialog logo")
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
+                set_language(lang_code)
+                self._retranslate_dynamic_options()
+                self._refresh_language_status()
+            except Exception as exc:
+                self._safe_log_exception("Failed to change language", exc)
 
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
+        def _on_unit_change(self, _text: str) -> None:
+            self._apply_preview()
 
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
+        def _on_save(self) -> None:
             try:
-                self.logo_label.setText("VALKYRIE BALLISTICS")
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-
-    def _choose_background(self) -> None:
-        try:
-            fn, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self,
-                "Velg bakgrunnsbilde",
-                str(Path.home()),
-                "Images (*.png *.jpg *.jpeg *.bmp)",
-            )
-            if fn:
-                self.bg_path_edit.setText(fn)
-        except (OSError, RuntimeError):
-            try:
-                if _logger:
-                    _logger.exception("Failed during background selection dialog")
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-
-    def _on_rgb_change(self) -> None:
-        self._apply_preview()
-
-    def _on_theme_change(self) -> None:
-        self._apply_preview()
-
-    def _apply_preview(self) -> None:
-        r = self.sliders["r"].value()
-        g = self.sliders["g"].value()
-        b = self.sliders["b"].value()
-        btn_style = self.btn_style.currentText()
-        # Theme presets
-        theme = self.theme_combo.currentText()
-        base_color = QtGui.QColor(r, g, b)
-        # Determine colors depending on theme and build a stylesheet so the
-        # entire dialog and surrounding widgets look consistent. Palette-only
-        # changes sometimes leave parts using the platform style, causing
-        # mismatched light/dark areas.
-        if theme == "light":
-            window_color = base_color.lighter(180)
-            text_color = QtGui.QColor(20, 20, 20)
-        elif theme == "dark":
-            # Make a properly dark window background and light text
-            window_color = (
-                QtGui.QColor(28, 28, 30) if r + g + b < 200 else base_color.darker(180)
-            )
-            text_color = QtGui.QColor(235, 235, 235)
-        else:  # high-contrast
-            window_color = QtGui.QColor(0, 0, 0)
-            text_color = QtGui.QColor(255, 255, 0)
-
-        # Build a dialog-level stylesheet for consistent contrast
-        win_hex = window_color.name()
-        text_hex = text_color.name()
-        btn_hex = base_color.name()
-
-        # Precompute repeated QColor names to avoid very long lines
-        lineedit_bg = QtGui.QColor(window_color).darker(110).name()
-        lineedit_border = QtGui.QColor(window_color).lighter(120).name()
-        combobox_bg = QtGui.QColor(window_color).darker(110).name()
-
-        dialog_parts = [
-            f"QWidget{{ background-color: {win_hex}; color: {text_hex}; }}",
-            f"QGroupBox{{ background-color: transparent; color: {text_hex}; border: none; }}",
-            f"QLabel{{ color: {text_hex}; }}",
-            (
-                f"QLineEdit{{ background-color: {lineedit_bg}; color: {text_hex}; "
-                f"border: 1px solid {lineedit_border}; padding:4px; }}"
-            ),
-            f"QComboBox{{ background-color: {combobox_bg}; color: {text_hex}; }}",
-            f"QTabWidget::pane {{ background: {win_hex}; }}",
-        ]
-
-        dialog_css = "\n".join(dialog_parts) + "\n"
-
-        # Button styles adjusted by chosen button style
-        if btn_style == "filled":
-            btn_css = (
-                f"background-color: {btn_hex}; color: {text_hex}; "
-                "padding:6px 12px; border-radius:6px;"
-            )
-        elif btn_style == "outlined":
-            btn_css = (
-                f"background-color: transparent; color: {text_hex}; "
-                f"border: 2px solid {btn_hex}; padding:4px 10px; border-radius:6px;"
-            )
-        else:  # flat
-            btn_css = (
-                f"background-color: transparent; color: {text_hex}; "
-                "border: none; padding:4px 10px;"
-            )
-
-        # Apply built styles
-        dialog_css += f"\nQPushButton{{ {btn_css} }}\n"
-        self.setStyleSheet(dialog_css)
-        # Ensure preview has explicit styles as well
-        self.preview_btn.setStyleSheet(btn_css)
-        self.preview_label.setStyleSheet(f"color: {text_hex}; background: transparent;")
-
-        # If a custom background path was chosen, try to show it in preview
-        try:
-            cur_bg = self.bg_path_edit.text()
-            if cur_bg:
-                self._update_bg_preview(cur_bg, self.bg_mode.currentText())
-        except (OSError, RuntimeError, AttributeError):
-            try:
-                if _logger:
-                    _logger.exception("Error updating background preview")
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-
-    def _on_save(self) -> None:
-        cfg = settings.get()
-        cfg["theme"] = self.theme_combo.currentText()
-        cfg["rgb"] = {k: v.value() for k, v in self.sliders.items()}
-        cfg["button_style"] = self.btn_style.currentText()
-        bg_path = self.bg_path_edit.text() or None
-        if bg_path:
-            try:
-                saved = backgrounds.save_background(bg_path)
-            except ValueError as e:
-                QtWidgets.QMessageBox.warning(
-                    self, "Ugyldig bakgrunn", f"Kan ikke bruke valgt bilde: {e}"
+                rgb = {name: slider.value() for name, slider in self.sliders.items()}
+                settings.set_theme(str(self.theme_combo.currentData() or "light"), rgb)
+                settings.set_button_style(str(self.btn_style.currentData() or "filled"))
+                settings.set_unit(
+                    "global", str(self.unit_global.currentData() or "metric")
                 )
-                return
-            except OSError as e:
-                QtWidgets.QMessageBox.critical(
-                    self, "Feil ved lagring", f"Kunne ikke lagre bakgrunn: {e}"
+
+                background_path = self.bg_path_edit.text().strip()
+                background_type = "custom" if background_path else "default"
+                stored_path = None
+                if background_path:
+                    if self._bg_changed:
+                        stored_path = backgrounds.save_background(background_path)
+                    else:
+                        stored_path = background_path
+                settings.set_background(
+                    {
+                        "type": background_type,
+                        "path": stored_path,
+                        "mode": str(self.bg_mode.currentData() or "fill"),
+                    }
                 )
-                if _logger:
-                    _logger.exception("Failed to save background")
-                return
-            mode = self.bg_mode.currentText()
-            cfg["background"] = {"type": "custom", "path": saved, "mode": mode}
-        else:
-            cfg["background"] = {"type": "default", "path": None, "mode": "fill"}
-        try:
-            cfg.setdefault("units", {})["global"] = self.unit_global.currentText()
-            try:
-                settings.import_config(cfg)
-            except (ValueError, TypeError):
-                try:
-                    if _logger:
-                        _logger.exception(
-                            "Failed to import config in SettingsDialog._on_save"
-                        )
-                except Exception as _suppressed_exc:
+
+                lang_code = str(self.lang_combo.currentData() or "no")
+                if QSettings is not None:
                     try:
-                        _mod_logger = globals().get("_logger") or globals().get(
-                            "logger"
-                        )
-                        if _mod_logger:
-                            _mod_logger.exception(
-                                "Unhandled exception in settings_dialog.py: %s",
-                                _suppressed_exc,
-                            )
+                        qs = QSettings("ReloadingWorkshop", "ReloadingManager")
+                        qs.setValue("language", lang_code)
                     except Exception:
                         pass
-                    try:
-                        _append = globals().get("append_exception")
-                        if _append:
-                            _append(
-                                "settings_dialog.py suppressed exception",
-                                _suppressed_exc,
-                            )
-                        else:
-                            _safe = globals().get("safe_logger")
-                            if _safe:
-                                try:
-                                    _safe.append_exception(
-                                        "settings_dialog.py suppressed exception",
-                                        _suppressed_exc,
-                                    )
-                                except Exception:
-                                    pass
-                            else:
-                                try:
-                                    import sys
-
-                                    sys.stderr.write(
-                                        f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                    )
-                                except Exception:
-                                    pass
-                    except Exception:
-                        try:
-                            import sys
-
-                            sys.stderr.write(
-                                f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                            )
-                        except Exception:
-                            pass
-                    pass
-            try:
+                set_language(lang_code)
+                self._refresh_language_status()
                 settings.save()
-            except OSError:
-                try:
-                    if _logger:
-                        _logger.exception(
-                            "Failed to save settings in SettingsDialog._on_save"
-                        )
-                except Exception as _suppressed_exc:
-                    try:
-                        _mod_logger = globals().get("_logger") or globals().get(
-                            "logger"
-                        )
-                        if _mod_logger:
-                            _mod_logger.exception(
-                                "Unhandled exception in settings_dialog.py: %s",
-                                _suppressed_exc,
-                            )
-                    except Exception:
-                        pass
-                    try:
-                        _append = globals().get("append_exception")
-                        if _append:
-                            _append(
-                                "settings_dialog.py suppressed exception",
-                                _suppressed_exc,
-                            )
-                        else:
-                            _safe = globals().get("safe_logger")
-                            if _safe:
-                                try:
-                                    _safe.append_exception(
-                                        "settings_dialog.py suppressed exception",
-                                        _suppressed_exc,
-                                    )
-                                except Exception:
-                                    pass
-                            else:
-                                try:
-                                    import sys
+                self.accept()
+            except Exception as exc:
+                self._safe_log_exception("Failed to save settings", exc)
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    translate("Settings"),
+                    translate("Settings Save Error"),
+                )
 
-                                    sys.stderr.write(
-                                        f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                    )
-                                except Exception:
-                                    pass
-                    except Exception:
-                        try:
-                            import sys
-
-                            sys.stderr.write(
-                                f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                            )
-                        except Exception:
-                            pass
-                    pass
-            self.accept()
-        except Exception as e:
-            # Last-resort: log and notify user but don't crash app
+        def _refresh_language_status(self) -> None:
             try:
-                self._safe_log_exception(
-                    "Unhandled error during SettingsDialog save", e
-                )
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
+                from src.utils.i18n import get_missing_translation_report
 
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-            try:
-                QtWidgets.QMessageBox.critical(
-                    self, "Feil", f"Kunne ikke lagre innstillinger: {e}"
-                )
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
-
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
-
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
-
-    def _update_bg_preview(self, path: str, mode: str) -> None:
-        """Load image from path and set it on the preview label using the chosen mode."""
-        try:
-            pix = QtGui.QPixmap(path)
-            if pix.isNull():
-                # invalid image, just leave text
-                return
-            w = self.preview_label.width() or 200
-            h = self.preview_label.height() or 120
-            if mode == "fill":
-                scaled = pix.scaled(
-                    w,
-                    h,
-                    QtCore.Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                    QtCore.Qt.TransformationMode.SmoothTransformation,
-                )
-            elif mode == "fit":
-                scaled = pix.scaled(
-                    w,
-                    h,
-                    QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                    QtCore.Qt.TransformationMode.SmoothTransformation,
-                )
-            elif mode == "stretch":
-                scaled = pix.scaled(
-                    w,
-                    h,
-                    QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
-                    QtCore.Qt.TransformationMode.SmoothTransformation,
-                )
-            else:  # center
-                scaled = pix.scaled(
-                    w,
-                    h,
-                    QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                    QtCore.Qt.TransformationMode.SmoothTransformation,
-                )
-            self.preview_label.setPixmap(scaled)
-        except Exception as _suppressed_exc:
-            try:
-                _mod_logger = globals().get("_logger") or globals().get("logger")
-                if _mod_logger:
-                    _mod_logger.exception(
-                        "Unhandled exception in settings_dialog.py: %s", _suppressed_exc
+                current_lang = get_language()
+                missing = get_missing_translation_report(current_lang)
+                if missing:
+                    preview = ", ".join(missing[:3])
+                    extra = ""
+                    if len(missing) > 3:
+                        extra = f" (+{len(missing) - 3} {translate('And More')})"
+                    self.lang_status.setText(
+                        f"{translate('Missing Keys For')} '{current_lang}': {preview}{extra}"
                     )
-            except Exception:
-                pass
-            try:
-                _append = globals().get("append_exception")
-                if _append:
-                    _append("settings_dialog.py suppressed exception", _suppressed_exc)
+                    self.lang_status.setStyleSheet("color: #92400e;")
                 else:
-                    _safe = globals().get("safe_logger")
-                    if _safe:
-                        try:
-                            _safe.append_exception(
-                                "settings_dialog.py suppressed exception",
-                                _suppressed_exc,
-                            )
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            import sys
-
-                            sys.stderr.write(
-                                f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                            )
-                        except Exception:
-                            pass
-            except Exception:
-                try:
-                    import sys
-
-                    sys.stderr.write(
-                        f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
+                    self.lang_status.setText(
+                        f"{translate('No Registered Missing Keys For')} '{current_lang}'."
                     )
-                except Exception:
-                    pass
-            # on preview failure, log and continue
-            try:
-                if _logger:
-                    _logger.exception("Preview image update failed for %s", path)
-            except Exception as _suppressed_exc:
-                try:
-                    _mod_logger = globals().get("_logger") or globals().get("logger")
-                    if _mod_logger:
-                        _mod_logger.exception(
-                            "Unhandled exception in settings_dialog.py: %s",
-                            _suppressed_exc,
-                        )
-                except Exception:
-                    pass
-                try:
-                    _append = globals().get("append_exception")
-                    if _append:
-                        _append(
-                            "settings_dialog.py suppressed exception", _suppressed_exc
-                        )
-                    else:
-                        _safe = globals().get("safe_logger")
-                        if _safe:
-                            try:
-                                _safe.append_exception(
-                                    "settings_dialog.py suppressed exception",
-                                    _suppressed_exc,
-                                )
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                import sys
+                    self.lang_status.setStyleSheet("color: #166534;")
+            except Exception as exc:
+                self._safe_log_exception("Failed to refresh language status", exc)
+                self.lang_status.setText(translate("Could Not Read I18n Status"))
+                self.lang_status.setStyleSheet("color: #991b1b;")
 
-                                sys.stderr.write(
-                                    f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                                )
-                            except Exception:
-                                pass
-                except Exception:
-                    try:
-                        import sys
+        def _update_bg_preview(self, path: str, _mode: str) -> None:
+            pixmap = backgrounds.get_background_preview(path)
+            if pixmap is None:
+                self.preview_label.setText(path)
+                return
+            self.preview_label.setPixmap(
+                pixmap.scaled(
+                    self.preview_label.size() or QtCore.QSize(320, 140),
+                    QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                    QtCore.Qt.TransformationMode.SmoothTransformation,
+                )
+            )
 
-                        sys.stderr.write(
-                            f"settings_dialog.py suppressed exception: {_suppressed_exc}\n"
-                        )
-                    except Exception:
-                        pass
-                pass
+        def _retranslate_dynamic_options(self) -> None:
+            theme = str(self.theme_combo.currentData() or "light")
+            style = str(self.btn_style.currentData() or "filled")
+            bg_mode = str(self.bg_mode.currentData() or "fill")
+            units = str(self.unit_global.currentData() or "metric")
+            lang = str(self.lang_combo.currentData() or "no")
+
+            self._populate_combo(
+                self.theme_combo,
+                [
+                    ("light", "Theme Light"),
+                    ("dark", "Theme Dark"),
+                    ("high-contrast", "Theme High Contrast"),
+                ],
+            )
+            self._populate_combo(
+                self.btn_style,
+                [
+                    ("filled", "Button Style Filled"),
+                    ("outlined", "Button Style Outlined"),
+                    ("flat", "Button Style Flat"),
+                ],
+            )
+            self._populate_combo(
+                self.bg_mode,
+                [
+                    ("fill", "Background Mode Fill"),
+                    ("fit", "Background Mode Fit"),
+                    ("center", "Background Mode Center"),
+                    ("stretch", "Background Mode Stretch"),
+                ],
+            )
+            self._populate_combo(
+                self.unit_global,
+                [
+                    ("metric", "Metric"),
+                    ("imperial", "Imperial"),
+                ],
+            )
+            self._populate_combo(
+                self.lang_combo,
+                [
+                    ("no", "Norwegian"),
+                    ("en", "English"),
+                ],
+            )
+
+            self._set_combo_by_data(self.theme_combo, theme, "light")
+            self._set_combo_by_data(self.btn_style, style, "filled")
+            self._set_combo_by_data(self.bg_mode, bg_mode, "fill")
+            self._set_combo_by_data(self.unit_global, units, "metric")
+            self._set_combo_by_data(self.lang_combo, lang, "no")
+
+else:
+
+    class SettingsDialog:  # pragma: no cover - used only when Qt is unavailable
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("A Qt binding is required to use SettingsDialog")
+
+        def exec(self) -> int:
+            raise RuntimeError("A Qt binding is required to use SettingsDialog")
+
+        def exec_(self) -> int:
+            raise RuntimeError("A Qt binding is required to use SettingsDialog")
+
+        def show(self) -> None:
+            raise RuntimeError("A Qt binding is required to use SettingsDialog")
+
+        def close(self) -> None:
+            raise RuntimeError("A Qt binding is required to use SettingsDialog")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _HAS_QT:
     import sys
 
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
     dlg = SettingsDialog()
     dlg.show()
-    sys.exit(app.exec())
+    raise SystemExit(app.exec())

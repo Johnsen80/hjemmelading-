@@ -18,8 +18,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
-from src.utils.analysis import compute_stats, detect_outliers
+from ..database.database import get_database
+from ..utils.analysis import compute_stats, detect_outliers
 
 
 class MeasurementSessionDialog(QDialog):
@@ -178,6 +178,15 @@ class MeasurementSessionDialog(QDialog):
         lot_id = self.lot_combo.currentData()
         if not lot_id:
             QMessageBox.warning(self, "Invalid lot", "Selected lot invalid")
+            return
+        lot = self.db.get_by_id("inventory_lots", lot_id)
+        if not lot:
+            QMessageBox.warning(
+                self,
+                "Missing lot",
+                "The selected inventory lot no longer exists.",
+            )
+            self.load_lots()
             return
 
         session_id = self.db.create_measurement_session(

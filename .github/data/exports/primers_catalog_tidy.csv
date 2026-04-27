@@ -1,0 +1,25 @@
+﻿id;display_name;manufacturer;name;type;size;primer_family;product_line;part_number;match_grade_label;magnum_label;ar_variant_label;non_corrosive_label;lead_free_label;ignition_strength_class;pressure_tolerance_class;cup_hardness_class;cup_thickness_in;recommended_pressure_min_psi;recommended_pressure_max_psi;cold_weather_suitability;temperature_claim;nominal_diameter_in;composition_class;used_for;primer_flags;evidence_level;reference_source;notes;quantity;box_count;case_count
+5;CCI 400;CCI;400;Standard;Small Rifle;small_rifle_military;;;nei;nei;nei;ja;nei;standard;high;hard;;38000.0;65000.0;standard;;;;;;;;General purpose;0;;
+20;CCI 41;CCI;41;Military;Small Rifle;small_rifle_magnum;;;nei;nei;nei;ja;nei;magnum;high;hard;;38000.0;65000.0;standard;;;;;;;;Harder cup for semi-auto rifles;0;;
+4;CCI 450;CCI;450;Magnum;Small Rifle;small_rifle_magnum;;;nei;nei;nei;ja;nei;magnum;high;hard;;38000.0;65000.0;good;;;;;;;;For ball powders and magnums;0;;
+3;CCI BR-2;CCI;BR-2;Benchrest;Large Rifle;large_rifle_benchrest;;;nei;nei;nei;ja;nei;standard_plus;high;hard;;42000.0;65000.0;moderate;;;;;;;;Most popular match primer;0;;
+21;CCI BR-4;CCI;BR-4;Small Rifle Benchrest;small rifle;small_rifle_benchrest;CCI Primers;19;ja;nei;nei;ja;nei;standard_plus;high;hard;0.025;50000.0;62000.0;good;;0.175;;Small rifle benchrest / precision reloading;match;reference_seed;Calhoon small-rifle pressure notes;Seedet primerprofil for referanse og simulering.;0;100;
+2;CCI CCI BR2;CCI;CCI BR2;Small Rifle;SR;;;;nei;nei;nei;ja;nei;;;;;;;;;;;;;;;Demo primers;500;;
+22;Federal 205;Federal;205;Small Rifle;small rifle;small_rifle;Federal Champion;100;nei;nei;nei;ja;nei;standard;high;medium;0.022;50000.0;62000.0;good;;0.1755;;Small rifle reloading;;reference_seed;Calhoon small-rifle pressure notes;Seedet primerprofil for referanse og simulering.;0;100;
+8;Federal 205M;Federal;205M;Match;Small Rifle;small_rifle_match;;;nei;nei;nei;ja;nei;standard_plus;high;hard;;38000.0;65000.0;moderate;;;;;;;;AR-15 match primer;0;;
+6;Federal 210M;Federal;210M;Match;Large Rifle;large_rifle_match;;;nei;nei;nei;ja;nei;standard_plus;high;hard;;42000.0;65000.0;moderate;;;;;;;;Gold Medal Match primer;0;;
+7;Federal 215M;Federal;215M;Match Magnum;Large Rifle;large_rifle_match;;;nei;nei;nei;ja;nei;magnum;high;hard;;42000.0;65000.0;good;;;;;;;;For slow powders;0;;
+1;Federal Federal 205;Federal;Federal 205;Small Rifle;SR;;;;nei;nei;nei;ja;nei;;;;;;;;;;;;;;;Demo primers;500;;
+19;Federal GM205MAR;Federal;GM205MAR;Match AR;Small Rifle;small_rifle_match;;;nei;nei;nei;ja;nei;standard_plus;high;hard;;38000.0;65000.0;moderate;;;;;;;;Specially for AR-15, harder cup;0;;
+15;Murom KVB-223;Murom;KVB-223;Match;Small Rifle;small_rifle_match;;;nei;nei;nei;ja;nei;standard_plus;medium_high;medium_hard;;38000.0;62000.0;moderate;;;;;;;;Russian match primer, very consistent;0;;
+16;Murom KVB-7.62;Murom;KVB-7.62;Match;Large Rifle;large_rifle_match;;;nei;nei;nei;ja;nei;standard_plus;high;hard;;42000.0;65000.0;moderate;;;;;;;;Russian match quality;0;;
+17;Norma Large Rifle;Norma;Large Rifle;Standard;Large Rifle;large_rifle_military;;;nei;nei;nei;ja;nei;standard;high;hard;;42000.0;65000.0;standard;;;;;;;;European quality;0;;
+18;Norma Small Rifle;Norma;Small Rifle;Standard;Small Rifle;small_rifle_military;;;nei;nei;nei;ja;nei;standard;high;hard;;38000.0;65000.0;standard;;;;;;;;Consistent ignition;0;;
+14;RWS 5333;RWS;5333;Standard;Small Rifle;small_rifle_military;;;nei;nei;nei;ja;nei;standard;high;hard;;38000.0;65000.0;standard;;;;;;;;European standard;0;;
+13;RWS 5341;RWS;5341;Standard;Large Rifle;large_rifle_magnum;;;nei;nei;nei;ja;nei;magnum;high;hard;;42000.0;65000.0;standard;;;;;;;;German quality, consistent;0;;
+23;Remington 6 1/2;Remington;6 1/2;Small Rifle;small rifle;small_rifle;Remington Primers;;nei;nei;nei;ja;nei;standard;moderate;soft;0.02;35000.0;50000.0;fair;;0.175;;Moderate small-rifle pressure applications;;reference_seed;Calhoon small-rifle pressure notes;Seedet primerprofil for referanse og simulering.;0;100;
+9;Remington 7 1/2;Remington;7 1/2;Benchrest;Small Rifle;small_rifle_benchrest;;;nei;nei;nei;ja;nei;standard_plus;high;hard;;38000.0;65000.0;moderate;;;;;;;;BR standard;0;;
+10;Remington 9 1/2;Remington;9 1/2;Magnum;Large Rifle;large_rifle_magnum;;;nei;nei;nei;ja;nei;magnum;high;hard;;42000.0;65000.0;good;;;;;;;;For magnums;0;;
+24;Winchester SR;Winchester;SR;Small Rifle;small rifle;small_rifle;Winchester Components;;nei;nei;nei;ja;nei;standard;moderate;medium;0.02;35000.0;50000.0;fair;all weather;0.175;lead styphnate-based;Small rifle reloading;;reference_seed;Calhoon small-rifle pressure notes;Seedet primerprofil for referanse og simulering.;0;100;
+11;Winchester WLR;Winchester;WLR;Standard;Large Rifle;large_rifle_military;;;nei;nei;nei;ja;nei;standard;high;hard;;42000.0;65000.0;standard;;;;;;;;General purpose;0;;
+12;Winchester WSR;Winchester;WSR;Standard;Small Rifle;small_rifle_military;;;nei;nei;nei;ja;nei;standard;high;hard;;38000.0;65000.0;standard;;;;;;;;General purpose;0;;

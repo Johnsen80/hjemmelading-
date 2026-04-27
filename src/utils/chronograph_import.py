@@ -13,10 +13,47 @@ import statistics
 from typing import Dict, List, Optional
 
 
+def _ensure_chronograph_imports_schema(db) -> None:
+    cur = db.cursor
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chronograph_imports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_path TEXT,
+            ammo_profile_id INTEGER,
+            load_session_id INTEGER,
+            import_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            velocity_count INTEGER,
+            velocity_avg REAL,
+            velocity_es REAL,
+            velocity_sd REAL,
+            velocities_json TEXT,
+            notes TEXT
+        )
+        """
+    )
+    columns = {
+        row[1] for row in db.conn.execute("PRAGMA table_info(chronograph_imports)")
+    }
+    if "load_session_id" not in columns:
+        cur.execute(
+            "ALTER TABLE chronograph_imports ADD COLUMN load_session_id INTEGER"
+        )
+
+
+def _detect_delimiter(sample: str) -> str:
+    candidates = [",", ";", "\t", "|"]
+    counts = {c: sample.count(c) for c in candidates}
+    best = max(counts, key=counts.get)
+    return best if counts[best] > 0 else ","
+
+
 def _extract_velocities_from_csv(path: str) -> List[float]:
     velocities: List[float] = []
     with open(path, newline="", encoding="utf-8") as fh:
-        reader = csv.reader(fh)
+        sample = fh.read(4096)
+        fh.seek(0)
+        reader = csv.reader(fh, delimiter=_detect_delimiter(sample))
         rows = list(reader)
 
     if not rows:
@@ -58,6 +95,11 @@ def _extract_velocities_from_csv(path: str) -> List[float]:
         try:
             # Remove common units
             v = val.lower().replace("fps", "").replace("ft/s", "").strip()
+            if "," in v:
+                if "." in v:
+                    v = v.replace(",", "")
+                else:
+                    v = v.replace(",", ".")
             velocities.append(float(v))
         except Exception:
             continue
@@ -78,6 +120,7 @@ def import_chronograph_csv(
     db,
     file_path: str,
     ammo_profile_id: Optional[int] = None,
+    load_session_id: Optional[int] = None,
     note: Optional[str] = None,
 ) -> Dict:
     """
@@ -90,29 +133,14 @@ def import_chronograph_csv(
     stats = summarize_velocities(velocities)
 
     cur = db.cursor
-    # Create table if missing
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chronograph_imports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            file_path TEXT NOT NULL,
-            ammo_profile_id INTEGER,
-            import_date TEXT DEFAULT CURRENT_TIMESTAMP,
-            velocity_count INTEGER,
-            velocity_avg REAL,
-            velocity_es REAL,
-            velocity_sd REAL,
-            velocities_json TEXT,
-            notes TEXT
-        )
-        """
-    )
+    _ensure_chronograph_imports_schema(db)
 
     cur.execute(
-        "INSERT INTO chronograph_imports (file_path, ammo_profile_id, velocity_count, velocity_avg, velocity_es, velocity_sd, velocities_json, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO chronograph_imports (file_path, ammo_profile_id, load_session_id, velocity_count, velocity_avg, velocity_es, velocity_sd, velocities_json, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             file_path,
             ammo_profile_id,
+            load_session_id,
             stats["count"],
             stats["avg"],
             stats["es"],
@@ -130,6 +158,7 @@ def import_velocities(
     db,
     velocities: List[float],
     ammo_profile_id: Optional[int] = None,
+    load_session_id: Optional[int] = None,
     note: Optional[str] = None,
 ) -> Dict:
     """
@@ -137,28 +166,14 @@ def import_velocities(
     """
     stats = summarize_velocities(velocities)
     cur = db.cursor
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chronograph_imports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            file_path TEXT,
-            ammo_profile_id INTEGER,
-            import_date TEXT DEFAULT CURRENT_TIMESTAMP,
-            velocity_count INTEGER,
-            velocity_avg REAL,
-            velocity_es REAL,
-            velocity_sd REAL,
-            velocities_json TEXT,
-            notes TEXT
-        )
-        """
-    )
+    _ensure_chronograph_imports_schema(db)
 
     cur.execute(
-        "INSERT INTO chronograph_imports (file_path, ammo_profile_id, velocity_count, velocity_avg, velocity_es, velocity_sd, velocities_json, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO chronograph_imports (file_path, ammo_profile_id, load_session_id, velocity_count, velocity_avg, velocity_es, velocity_sd, velocities_json, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             None,
             ammo_profile_id,
+            load_session_id,
             stats["count"],
             stats["avg"],
             stats["es"],

@@ -1,6 +1,6 @@
-"""
-Batch QC Dashboard - Production Quality Control
-Real-time quality control during loading (som ammofabrikker gjør!)
+"""Batch Workspace Dashboard - Production Quality Control.
+
+Real-time quality control during loading.
 """
 
 from datetime import datetime
@@ -29,18 +29,18 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
-from src.modules.live_visualization import LiveHistogram
+from ..database.database import get_database
+from .live_visualization import LiveHistogram
 
 
 class QCMeasurementDialog(QDialog):
-    """Dialog for å registrere QC-målinger"""
+    """Dialog for registering QC measurements."""
 
     def __init__(self, measurement_type: str, parent=None):
         super().__init__(parent)
         self.measurement_type = measurement_type
 
-        self.setWindowTitle(f"QC Måling: {measurement_type}")
+        self.setWindowTitle(f"QC Measurement: {measurement_type}")
         self.setModal(True)
         self.init_ui()
 
@@ -49,7 +49,7 @@ class QCMeasurementDialog(QDialog):
 
         # Patron number
         num_layout = QHBoxLayout()
-        num_layout.addWidget(QLabel("Patron #:"))
+        num_layout.addWidget(QLabel("Round #:"))
         self.spin_number = QSpinBox()
         self.spin_number.setRange(1, 1000)
         num_layout.addWidget(self.spin_number)
@@ -78,7 +78,7 @@ class QCMeasurementDialog(QDialog):
         layout.addLayout(val_layout)
 
         # Notes
-        layout.addWidget(QLabel("Notater (hvis outlier):"))
+        layout.addWidget(QLabel("Notes (if outlier):"))
         self.edit_notes = QTextEdit()
         self.edit_notes.setMaximumHeight(60)
         self.edit_notes.setPlaceholderText("Scratch on bullet, case dent, etc...")
@@ -95,7 +95,7 @@ class QCMeasurementDialog(QDialog):
         self.setLayout(layout)
 
     def get_data(self) -> Dict:
-        """Hent måle-data"""
+        """Fetch measurement data."""
         return {
             "patron_number": self.spin_number.value(),
             "value": self.spin_value.value(),
@@ -104,9 +104,9 @@ class QCMeasurementDialog(QDialog):
 
 
 class BatchQCDashboard(QWidget):
-    """
-    Batch Quality Control Dashboard
-    Real-time QC under loading - som ammofabrikker!
+    """Batch Quality Control Dashboard.
+
+    Real-time QC during loading.
     """
 
     def __init__(self, parent=None):
@@ -121,32 +121,33 @@ class BatchQCDashboard(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🎯 Batch QC Dashboard", self)
-        header.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
+        header = QLabel("Batch Workspace", self)
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
         desc = QLabel(
             "Production Quality Control - Real-time QC during loading.\n"
-            "Ammofabrikker måler 10-20% av hver batch. Du bør gjøre det samme!",
+            "Ammo factories measure 10-20% of each batch. You should do the same.",
             self,
         )
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
+        desc.setProperty("variant", "cardSubtitle")
         layout.addWidget(desc)
 
         # Batch setup section
-        setup_group = QGroupBox("📦 Batch Setup", self)
+        setup_group = QGroupBox("Batch Setup", self)
+        setup_group.setProperty("variant", "panel")
         setup_layout = QVBoxLayout()
 
         # Batch info
         info_layout = QHBoxLayout()
 
-        info_layout.addWidget(QLabel("Batch navn:", setup_group))
+        info_layout.addWidget(QLabel("Batch name:", setup_group))
         self.edit_batch_name = QLineEdit(setup_group)
         self.edit_batch_name.setPlaceholderText("6.5CM 140gr 43.5gr N140")
         info_layout.addWidget(self.edit_batch_name)
 
-        info_layout.addWidget(QLabel("Antall patroner:", setup_group))
+        info_layout.addWidget(QLabel("Number of cartridges:", setup_group))
         self.spin_batch_size = QSpinBox(setup_group)
         self.spin_batch_size.setRange(10, 1000)
         self.spin_batch_size.setValue(100)
@@ -200,22 +201,10 @@ class BatchQCDashboard(QWidget):
 
         # Start button
         btn_layout = QHBoxLayout()
-        self.btn_start_batch = QPushButton("🚀 Start Batch QC", setup_group)
+        self.btn_start_batch = QPushButton("Start Batch Workspace", setup_group)
+        self.btn_start_batch.setProperty("variant", "primary")
+        self.btn_start_batch.setProperty("size", "lg")
         self.btn_start_batch.clicked.connect(self.start_batch)
-        self.btn_start_batch.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #27ae60;
-                color: white;
-                font-weight: bold;
-                padding: 10px;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #2ecc71;
-            }
-        """
-        )
         btn_layout.addWidget(self.btn_start_batch)
         btn_layout.addStretch()
         setup_layout.addLayout(btn_layout)
@@ -224,7 +213,8 @@ class BatchQCDashboard(QWidget):
         layout.addWidget(setup_group)
 
         # Progress section
-        progress_group = QGroupBox("📊 Batch Progress", self)
+        progress_group = QGroupBox("Batch Progress", self)
+        progress_group.setProperty("variant", "panel")
         progress_layout = QVBoxLayout()
 
         self.progress_bar = QProgressBar(progress_group)
@@ -234,20 +224,16 @@ class BatchQCDashboard(QWidget):
         # Quick stats
         stats_layout = QHBoxLayout()
 
-        self.label_measured = QLabel("Målt: 0", progress_group)
-        self.label_measured.setStyleSheet("font-size: 14px; font-weight: bold;")
+        self.label_measured = QLabel("Measured: 0", progress_group)
+        self._apply_variant(self.label_measured, "statChip")
         stats_layout.addWidget(self.label_measured)
 
         self.label_outliers = QLabel("Outliers: 0", progress_group)
-        self.label_outliers.setStyleSheet(
-            "font-size: 14px; font-weight: bold; color: #e74c3c;"
-        )
+        self._apply_variant(self.label_outliers, "statChip")
         stats_layout.addWidget(self.label_outliers)
 
-        self.label_status = QLabel("Status: Venter", progress_group)
-        self.label_status.setStyleSheet(
-            "font-size: 14px; font-weight: bold; color: #7f8c8d;"
-        )
+        self.label_status = QLabel("Status: Idle", progress_group)
+        self._apply_variant(self.label_status, "statChip")
         stats_layout.addWidget(self.label_status)
 
         stats_layout.addStretch()
@@ -257,23 +243,27 @@ class BatchQCDashboard(QWidget):
         layout.addWidget(progress_group)
 
         # Measurement section
-        measure_group = QGroupBox("📏 QC Målinger", self)
+        measure_group = QGroupBox("QC Measurements", self)
+        measure_group.setProperty("variant", "panel")
         measure_layout = QVBoxLayout()
 
         # Measurement buttons
         btn_measure_layout = QHBoxLayout()
 
-        self.btn_charge = QPushButton("⚖️ Charge Weight", measure_group)
+        self.btn_charge = QPushButton("Charge Weight", measure_group)
+        self.btn_charge.setProperty("variant", "ghost")
         self.btn_charge.clicked.connect(lambda: self.add_measurement("charge_weight"))
         self.btn_charge.setEnabled(False)
         btn_measure_layout.addWidget(self.btn_charge)
 
-        self.btn_coal = QPushButton("📏 COAL", measure_group)
+        self.btn_coal = QPushButton("COAL", measure_group)
+        self.btn_coal.setProperty("variant", "ghost")
         self.btn_coal.clicked.connect(lambda: self.add_measurement("coal"))
         self.btn_coal.setEnabled(False)
         btn_measure_layout.addWidget(self.btn_coal)
 
-        self.btn_case = QPushButton("📦 Case Weight", measure_group)
+        self.btn_case = QPushButton("Case Weight", measure_group)
+        self.btn_case.setProperty("variant", "ghost")
         self.btn_case.clicked.connect(lambda: self.add_measurement("case_weight"))
         self.btn_case.setEnabled(False)
         btn_measure_layout.addWidget(self.btn_case)
@@ -285,9 +275,9 @@ class BatchQCDashboard(QWidget):
         self.table_measurements = QTableWidget(measure_group)
         self.table_measurements.setColumnCount(6)
         self.table_measurements.setHorizontalHeaderLabels(
-            ["Patron #", "Type", "Verdi", "Target", "Delta", "Status"]
+            ["Cartridge #", "Type", "Value", "Target", "Delta", "Status"]
         )
-        self.table_measurements.horizontalHeader().setSectionResizeMode(
+        self.table_measurements.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
             QHeaderView.ResizeMode.Stretch
         )
         measure_layout.addWidget(self.table_measurements)
@@ -296,7 +286,8 @@ class BatchQCDashboard(QWidget):
         layout.addWidget(measure_group)
 
         # Analysis section
-        analysis_group = QGroupBox("📈 Batch Analyse", self)
+        analysis_group = QGroupBox("Batch Analysis", self)
+        analysis_group.setProperty("variant", "panel")
         analysis_layout = QVBoxLayout()
 
         # LIVE HISTOGRAM TABS
@@ -304,32 +295,35 @@ class BatchQCDashboard(QWidget):
 
         # Charge weight histogram
         self.live_hist_charge = LiveHistogram(width=8, height=4)
-        hist_tabs.addTab(self.live_hist_charge, "⚖️ Charge Weight")
+        hist_tabs.addTab(self.live_hist_charge, "Charge Weight")
 
         # COAL histogram
         self.live_hist_coal = LiveHistogram(width=8, height=4)
-        hist_tabs.addTab(self.live_hist_coal, "📏 COAL")
+        hist_tabs.addTab(self.live_hist_coal, "COAL")
 
         # Case weight histogram
         self.live_hist_case = LiveHistogram(width=8, height=4)
-        hist_tabs.addTab(self.live_hist_case, "📦 Case Weight")
+        hist_tabs.addTab(self.live_hist_case, "Case Weight")
 
         analysis_layout.addWidget(hist_tabs)
 
         # Analysis buttons
         analysis_btn_layout = QHBoxLayout()
 
-        self.btn_analyze = QPushButton("🔍 Analyser Batch")
+        self.btn_analyze = QPushButton("Analyze Batch")
+        self.btn_analyze.setProperty("variant", "primary")
         self.btn_analyze.clicked.connect(self.analyze_batch)
         self.btn_analyze.setEnabled(False)
         analysis_btn_layout.addWidget(self.btn_analyze)
 
-        self.btn_complete = QPushButton("✅ Godkjenn Batch")
+        self.btn_complete = QPushButton("Approve Batch")
+        self.btn_complete.setProperty("variant", "secondary")
         self.btn_complete.clicked.connect(self.complete_batch)
         self.btn_complete.setEnabled(False)
         analysis_btn_layout.addWidget(self.btn_complete)
 
-        self.btn_reject = QPushButton("❌ Avvis Batch")
+        self.btn_reject = QPushButton("Reject Batch")
+        self.btn_reject.setProperty("variant", "ghost")
         self.btn_reject.clicked.connect(self.reject_batch)
         self.btn_reject.setEnabled(False)
         analysis_btn_layout.addWidget(self.btn_reject)
@@ -348,10 +342,19 @@ class BatchQCDashboard(QWidget):
 
         self.setLayout(layout)
 
+    @staticmethod
+    def _apply_variant(widget: QWidget, variant: str) -> None:
+        widget.setProperty("variant", variant)
+        try:
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+        except Exception:
+            pass
+
     def start_batch(self):
         """Start ny batch QC"""
         if not self.edit_batch_name.text():
-            QMessageBox.warning(self, "Mangler navn", "Angi batch navn!")
+            QMessageBox.warning(self, "Missing name", "Enter a batch name.")
             return
 
         # Save batch to database
@@ -417,20 +420,18 @@ class BatchQCDashboard(QWidget):
         self.progress_bar.setMaximum(self.spin_batch_size.value())
         self.progress_bar.setValue(0)
 
-        self.label_status.setText("Status: 🟢 QC i gang")
-        self.label_status.setStyleSheet(
-            "font-size: 14px; font-weight: bold; color: #27ae60;"
-        )
+        self.label_status.setText("Status: QC Running")
+        self._apply_variant(self.label_status, "successText")
 
         QMessageBox.information(
             self,
-            "Batch startet",
-            f"Batch QC startet!\n\n"
-            f"Anbefaling: Mål 10-20% av patroner ({int(self.spin_batch_size.value() * 0.15)} stk)",
+            "Batch started",
+            f"Batch Workspace started.\n\n"
+            f"Recommendation: measure 10-20% of cartridges ({int(self.spin_batch_size.value() * 0.15)} pcs)",
         )
 
     def add_measurement(self, measurement_type: str):
-        """Legg til QC-måling"""
+        """Add a QC measurement."""
         if not self.current_batch_id:
             return
 
@@ -522,7 +523,7 @@ class BatchQCDashboard(QWidget):
                 delta_item.setBackground(QColor(255, 200, 200))
             self.table_measurements.setItem(row, 4, delta_item)
 
-            status_item = QTableWidgetItem("❌ OUTLIER" if is_outlier else "✅ OK")
+            status_item = QTableWidgetItem("OUTLIER" if is_outlier else "OK")
             if is_outlier:
                 status_item.setForeground(QColor(231, 76, 60))
             else:
@@ -535,13 +536,13 @@ class BatchQCDashboard(QWidget):
                 1 for v in self.qc_data.values() for m in v if m["outlier"]
             )
 
-            self.label_measured.setText(f"Målt: {total_measured}")
+            self.label_measured.setText(f"Measured: {total_measured}")
             self.label_outliers.setText(f"Outliers: {total_outliers}")
 
             if total_outliers > 0:
-                self.label_outliers.setStyleSheet(
-                    "font-size: 14px; font-weight: bold; color: #e74c3c;"
-                )
+                self._apply_variant(self.label_outliers, "warningText")
+            else:
+                self._apply_variant(self.label_outliers, "statChip")
 
             self.progress_bar.setValue(total_measured)
 
@@ -552,7 +553,9 @@ class BatchQCDashboard(QWidget):
     def analyze_batch(self):
         """Analyser batch QC data"""
         if not self.qc_data["charge_weight"] and not self.qc_data["coal"]:
-            QMessageBox.warning(self, "For lite data", "Trenger minst noen målinger!")
+            QMessageBox.warning(
+                self, "Not enough data", "You need at least a few measurements."
+            )
             return
 
         # Calculate statistics
@@ -635,7 +638,7 @@ class BatchQCDashboard(QWidget):
     def generate_qc_report(self, stats: Dict) -> str:
         """Generate QC report HTML"""
         html = """
-        <h2 style='color: #2c3e50;'>📊 Batch QC Report</h2>
+        <h2 style='color: #2c3e50;'>Batch Workspace Report</h2>
         """
 
         for mtype, stat in stats.items():
@@ -647,13 +650,13 @@ class BatchQCDashboard(QWidget):
             # Determine pass/fail
             if stat["outlier_pct"] <= 5:
                 status_color = "#27ae60"
-                status_text = "✅ PASS"
+                status_text = "PASS"
             elif stat["outlier_pct"] <= 10:
                 status_color = "#f39c12"
-                status_text = "⚠️ MARGINAL"
+                status_text = "MARGINAL"
             else:
                 status_color = "#e74c3c"
-                status_text = "❌ FAIL"
+                status_text = "FAIL"
 
             html += f"""
             <h3>{type_name}: <span style='color: {status_color};'>{status_text}</span></h3>
@@ -668,31 +671,29 @@ class BatchQCDashboard(QWidget):
 
         # Factory comparison
         html += """
-        <h3>🏭 Sammenligning mot ammofabrikker:</h3>
+        <h3>Comparison against factory ammunition:</h3>
         <p style='color: #7f8c8d;'>
         """
 
         if "charge_weight" in stats:
             charge_std = stats["charge_weight"]["std"]
             if charge_std < 0.05:
-                html += "✅ <b>Excellent!</b> Din konsistens er på factory-nivå (Federal: ±0.05gr)<br>"
+                html += "<b>Excellent!</b> Your consistency is at factory level (Federal: ±0.05gr)<br>"
             elif charge_std < 0.1:
                 html += (
-                    "👍 <b>Good!</b> Din konsistens er akseptabel (Hornady: ±0.1gr)<br>"
+                    "<b>Good!</b> Your consistency is acceptable (Hornady: ±0.1gr)<br>"
                 )
             else:
-                html += (
-                    "⚠️ <b>Poor!</b> Fabrikk-ammo er bedre. Sjekk powder thrower!<br>"
-                )
+                html += "<b>Poor!</b> Factory ammunition is better. Check the powder thrower.<br>"
 
         if "coal" in stats:
             coal_std = stats["coal"]["std"]
             if coal_std < 0.002:
-                html += '✅ <b>Excellent COAL!</b> Match-grade presisjon (±0.002")<br>'
+                html += '<b>Excellent COAL!</b> Match-grade presisjon (±0.002")<br>'
             elif coal_std < 0.005:
-                html += '👍 <b>Good COAL!</b> Hunting-grade (±0.005")<br>'
+                html += '<b>Good COAL!</b> Hunting-grade (±0.005")<br>'
             else:
-                html += "⚠️ <b>Poor COAL!</b> Sjekk seating die setup!<br>"
+                html += "<b>Poor COAL!</b> Sjekk seating die setup!<br>"
 
         html += "</p>"
 
@@ -716,15 +717,15 @@ class BatchQCDashboard(QWidget):
 
         QMessageBox.information(
             self,
-            "Batch godkjent",
-            "✅ Batch godkjent og klar for bruk!\n\n"
-            "Batch har passert QC og er production-ready.",
+            "Batch Approved",
+            "Batch approved and ready for use!\n\n"
+            "The batch has passed QC and is production-ready.",
         )
 
         self.reset_ui()
 
     def reject_batch(self):
-        """Avvis batch"""
+        """Reject the batch."""
         if not self.current_batch_id:
             return
 
@@ -741,16 +742,16 @@ class BatchQCDashboard(QWidget):
 
         QMessageBox.warning(
             self,
-            "Batch avvist",
-            "❌ Batch avvist!\n\n"
-            "For mange outliers eller QC-feil.\n"
-            "Identifiser problem og lad på nytt.",
+            "Batch Rejected",
+            "Batch rejected!\n\n"
+            "Too many outliers or QC failures.\n"
+            "Identify the issue and reload the batch.",
         )
 
         self.reset_ui()
 
     def reset_ui(self):
-        """Reset UI etter batch completion"""
+        """Reset the UI after batch completion."""
         self.current_batch_id = None
         self.btn_start_batch.setEnabled(True)
         self.btn_charge.setEnabled(False)
@@ -760,10 +761,8 @@ class BatchQCDashboard(QWidget):
         self.btn_complete.setEnabled(False)
         self.btn_reject.setEnabled(False)
         self.progress_bar.setVisible(False)
-        self.label_status.setText("Status: Venter")
-        self.label_status.setStyleSheet(
-            "font-size: 14px; font-weight: bold; color: #7f8c8d;"
-        )
+        self.label_status.setText("Status: Idle")
+        self._apply_variant(self.label_status, "statChip")
 
 
 if __name__ == "__main__":

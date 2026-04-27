@@ -1,0 +1,193 @@
+{
+  "install_root": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY",
+  "exe_path": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary.exe",
+  "pdf_manuals": [
+    {
+      "name": "grt-manual-2021-09-29-de.pdf",
+      "size_bytes": 13517944
+    },
+    {
+      "name": "grt-manual-2021-09-29-en.pdf",
+      "size_bytes": 13664013
+    },
+    {
+      "name": "grt-manual-2021-09-29-fr.pdf",
+      "size_bytes": 13699368
+    },
+    {
+      "name": "grt-manual-2021-09-29-ru.pdf",
+      "size_bytes": 13694134
+    },
+    {
+      "name": "grt-manual-2021-09-29-uk.pdf",
+      "size_bytes": 11730838
+    }
+  ],
+  "appdata_expected_root": "C:\\Users\\bjjoh\\AppData\\Roaming\\ReferenceLibrary",
+  "appdata_expected_files": [
+    "projectile.xml",
+    "propellant.xml",
+    "caliber.xml"
+  ],
+  "capabilities": {
+    "sql_dump_table": {
+      "needle": "SqlDumpTable",
+      "present": true,
+      "index": 25498454,
+      "snippet": "            FindCaliberFromName                             %o<InnerBallistikCaliber>%sb                            FindProjectileFromName                          %o<InnerBallistikProjectile>%s                          SqlDumpTable                            SqlDump                             ConvertToMySQL                          XmlUserFileDump                             XmlUserFileImportPropellant                             XmlU"
+    },
+    "sql_dump": {
+      "needle": "SqlDump",
+      "present": true,
+      "index": 25498454,
+      "snippet": "            FindCaliberFromName                             %o<InnerBallistikCaliber>%sb                            FindProjectileFromName                          %o<InnerBallistikProjectile>%s                          SqlDumpTable                            SqlDump                             ConvertToMySQL                          XmlUserFileDump                             XmlUserFileImportPropellant                             XmlU"
+    },
+    "convert_to_mysql": {
+      "needle": "ConvertToMySQL",
+      "present": true,
+      "index": 25498530,
+      "snippet": "kCaliber>%sb                            FindProjectileFromName                          %o<InnerBallistikProjectile>%s                          SqlDumpTable                            SqlDump                             ConvertToMySQL                          XmlUserFileDump                             XmlUserFileImportPropellant                             XmlUserFileImportProjectile                             XmlUserFileImportCaliber"
+    },
+    "xml_dump_projectile": {
+      "needle": "XmlUserFileDumpProjectile",
+      "present": true,
+      "index": 25500918,
+      "snippet": "BallistikProjectile>%o<InnerBallistikProjectile>b                           XmlUserFileImport                           XmlUserFileDumpPropellant                           XmlUserFileDumpCaliber                          XmlUserFileDumpProjectile                           XmlUserFileDumpGun                          \\tmp\\20211008\\innereBallistik              (           (e:\\projekte\\innereBallistik\\Tools\\grtdb-                            "
+    },
+    "xml_dump_propellant": {
+      "needle": "XmlUserFileDumpPropellant",
+      "present": true,
+      "index": 25500818,
+      "snippet": "onary>%                             GetProjectileDuplicateCount                9           9%o<InnerBallistikProjectile>%o<InnerBallistikProjectile>b                           XmlUserFileImport                           XmlUserFileDumpPropellant                           XmlUserFileDumpCaliber                          XmlUserFileDumpProjectile                           XmlUserFileDumpGun                          \\tmp\\20211008\\innereBall"
+    },
+    "xml_dump_caliber": {
+      "needle": "XmlUserFileDumpCaliber",
+      "present": true,
+      "index": 25500870,
+      "snippet": "licateCount                9           9%o<InnerBallistikProjectile>%o<InnerBallistikProjectile>b                           XmlUserFileImport                           XmlUserFileDumpPropellant                           XmlUserFileDumpCaliber                          XmlUserFileDumpProjectile                           XmlUserFileDumpGun                          \\tmp\\20211008\\innereBallistik              (           (e:\\projekte\\innereBa"
+    },
+    "xml_import_projectile": {
+      "needle": "XmlUserFileImportProjectile",
+      "present": true,
+      "index": 25498670,
+      "snippet": "    SqlDumpTable                            SqlDump                             ConvertToMySQL                          XmlUserFileDump                             XmlUserFileImportPropellant                             XmlUserFileImportProjectile                             XmlUserFileImportCaliber                            SaveCaliber                             %i4%o<InnerBallistikCaliber>b                           SaveProjectile  "
+    },
+    "xml_import_propellant": {
+      "needle": "XmlUserFileImportPropellant",
+      "present": true,
+      "index": 25498614,
+      "snippet": "    %o<InnerBallistikProjectile>%s                          SqlDumpTable                            SqlDump                             ConvertToMySQL                          XmlUserFileDump                             XmlUserFileImportPropellant                             XmlUserFileImportProjectile                             XmlUserFileImportCaliber                            SaveCaliber                             %i4%o<InnerBalli"
+    },
+    "xml_import_caliber": {
+      "needle": "XmlUserFileImportCaliber",
+      "present": true,
+      "index": 25498726,
+      "snippet": "                        ConvertToMySQL                          XmlUserFileDump                             XmlUserFileImportPropellant                             XmlUserFileImportProjectile                             XmlUserFileImportCaliber                            SaveCaliber                             %i4%o<InnerBallistikCaliber>b                           SaveProjectile                          %i4%o<InnerBallistikProjectile>b"
+    },
+    "attach_database": {
+      "needle": "REALSQLDatabase.AttachDatabase",
+      "present": true,
+      "index": 26569102,
+      "snippet": "REALSQLDatabase.CreateDatabaseFile() as Boolean                $           $REALSQLDatabase.LastRowID() as Int64               6           6REALSQLDatabase.DetachDatabase(databaseName as String)             U           UREALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String) as Boolean              n           nREALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String, encryptionKey as String) as Boole"
+    },
+    "attach_database_with_key": {
+      "needle": "REALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String, encryptionKey as String)",
+      "present": true,
+      "index": 26569214,
+      "snippet": "               6           6REALSQLDatabase.DetachDatabase(databaseName as String)             U           UREALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String) as Boolean              n           nREALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String, encryptionKey as String) as Boolean             0           0REALSQLDatabase.Encrypt(encryptionKey as String)                            REALSQLD"
+    },
+    "encrypt": {
+      "needle": "REALSQLDatabase.Encrypt(encryptionKey as String)",
+      "present": true,
+      "index": 26569350,
+      "snippet": "se(file as FolderItem, databaseName as String) as Boolean              n           nREALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String, encryptionKey as String) as Boolean             0           0REALSQLDatabase.Encrypt(encryptionKey as String)                            REALSQLDatabase.Decrypt                d           dREALSQLDatabase.SQLSelect(SelectString As String, fastForwardCursor as Boolean = false) as R"
+    },
+    "decrypt": {
+      "needle": "REALSQLDatabase.Decrypt",
+      "present": true,
+      "index": 26569426,
+      "snippet": "       nREALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String, encryptionKey as String) as Boolean             0           0REALSQLDatabase.Encrypt(encryptionKey as String)                            REALSQLDatabase.Decrypt                d           dREALSQLDatabase.SQLSelect(SelectString As String, fastForwardCursor as Boolean = false) as RecordSet               H           HREALSQLDatabase.Prepare(statement As Str"
+    },
+    "cip_url": {
+      "needle": "https://bobp.cip-bobp.org",
+      "present": true,
+      "index": 25538674,
+      "snippet": "        vii                             viii                            ix                          xii                             /uploads/tdcc/tab-{id}/{file}                           {id}                            https://bobp.cip-bobp.org                           InnerBallistikCaliberGroup                          AddEntry                            %o<InnerBallistikCaliber>%i4                            RemoveEntry             "
+    },
+    "cip_url_builder": {
+      "needle": "/uploads/tdcc/tab-{id}/{file}",
+      "present": true,
+      "index": 25538586,
+      "snippet": "        iii                             iv                          vi                          vii                             viii                            ix                          xii                             /uploads/tdcc/tab-{id}/{file}                           {id}                            https://bobp.cip-bobp.org                           InnerBallistikCaliberGroup                          AddEntry                    "
+    },
+    "saami_token": {
+      "needle": " SAAMI ",
+      "present": true,
+      "index": 25508346,
+      "snippet": " NOT NULL,\r  geloescht       INTEGER NOT NULL\r);\r\r                          9                           a                           z                           m                            CIP                             SAAMI                 \t           \t Wildcat                            __                          %_                          _%             \n           \n<var name=                           value=                     "
+    },
+    "wildcat_token": {
+      "needle": " Wildcat ",
+      "present": true,
+      "index": 25508382,
+      "snippet": " NOT NULL\r);\r\r                          9                           a                           z                           m                            CIP                             SAAMI                 \t           \t Wildcat                            __                          %_                          _%             \n           \n<var name=                           value=                             \\u                          "
+    },
+    "projectilefile_tag": {
+      "needle": "<projectilefile>",
+      "present": true,
+      "index": 25559752,
+      "snippet": ")=round(                          ,4)                             0.000                           .000                            smax:                           `                                                         <projectilefile>                              <var name=                            </projectilefile>                             projectilefile                          can't find node <projectilefile>                  "
+    },
+    "propellantfile_tag": {
+      "needle": "<propellantfile>",
+      "present": true,
+      "index": 25565954,
+      "snippet": "='                          status='                            origin='                            descr='                             imageUuid='                             imageDetailUuid='                           <propellantfile>                            imagedetailfile                             </propellantfile>                           propellantfile                          can't find node <propellantfile>               \n"
+    },
+    "caliberfile_tag": {
+      "needle": "<caliberfile>",
+      "present": true,
+      "index": 25538006,
+      "snippet": "_M                          shot_b                          shot_d                          shot_g                          shot_h                          shot_l                          shot_t             \r           \r<caliberfile>                           header             \t           \tcartridge                           footer                          </caliberfile>                          can't find node <caliberfile>           "
+    },
+    "get_datasheet_url": {
+      "needle": "GetDatasheetURL",
+      "present": true,
+      "index": 25536398,
+      "snippet": "                ProjectileCaliber                           %o<UniversalJSONItem>%bb               \r           \rcomputeVolume                           computeS                            R1beta                          GetDatasheetURL                             %b%&s&s                             MaxLengthChamber                            MaxDiameterChamber                          N                           FLauf                   "
+    },
+    "get_cip_url": {
+      "needle": "GetCIPURL",
+      "present": true,
+      "index": 25537174,
+      "snippet": "t_Header                            DictionarySet_Footer                            DictionarySet_Cartridge                             DictionarySet_Chamber                           IsValid                \t           \tGetCIPURL                           Sebert                          emin                            FG                          L3G                             ='                          select * from caliber where     "
+    },
+    "commandline_token": {
+      "needle": "CommandLine",
+      "present": true,
+      "index": 27583,
+      "snippet": "   LoadResource    SetDllDirectoryW    LoadLibraryW    GetModuleFileNameW    MultiByteToWideChar   GetProcAddress    LoadLibraryA    LockResource  KERNEL32.dll    MessageBoxA USER32.dll    GetLastError    HeapFree  o GetCommandLineA   HeapSetInformation  : GetStartupInfoW - TerminateProcess    GetCurrentProcess > UnhandledExceptionFilter    SetUnhandledExceptionFilter   IsDebuggerPresent   HeapCreate    EncodePointer   DecodePointer   H"
+    },
+    "shell_execute": {
+      "needle": "Shell.Execute",
+      "present": true,
+      "index": 26577606,
+      "snippet": "s Integer) as String               A           ARegExMatch.SubExpressionStartB(MatchNumber as Integer) as Integer                           Shell.__init                            Shell.__exit                            Shell.Execute(command as String)               6           6Shell.Execute(command as String, parameters as String)                          Shell.ReadAll() as String                           Shell.Write(s as String)    "
+    },
+    "grtdb_dev_path": {
+      "needle": "e:\\projekte\\innereBallistik\\Tools\\grtdb-",
+      "present": true,
+      "index": 25501070,
+      "snippet": "                    XmlUserFileDumpCaliber                          XmlUserFileDumpProjectile                           XmlUserFileDumpGun                          \\tmp\\20211008\\innereBallistik              (           (e:\\projekte\\innereBallistik\\Tools\\grtdb-                            .db                3           3e:\\projekte\\innereBallistik\\ReferenceLibrary.db                               create table \"status\" (\r  id        IN"
+    }
+  },
+  "summary": {
+    "has_internal_sql_dump": true,
+    "has_xml_dump_routines": true,
+    "has_xml_import_routines": true,
+    "has_db_key_attach": true,
+    "cip_datasheet_support": true,
+    "saami_standard_token_present": true,
+    "native_component_tags_present": true
+  }
+}

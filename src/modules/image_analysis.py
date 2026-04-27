@@ -38,15 +38,29 @@ def analyze_group_image(image_path: str, dpi: Optional[float] = None) -> Dict[st
         # filter small contours
         blobs = [c for c in contours if cv2.contourArea(c) > 10]
         n = len(blobs)
-        # compute convex hull of all blob points to get spread
-        all_pts = np.vstack(blobs) if blobs else None
-        if all_pts is None:
+        if not blobs:
             return {"pixel_diameter": 0.0, "mm_diameter": 0.0, "n_shots": 0}
-        all_pts = all_pts.reshape(-1, 2)
-        (x, y), radius = cv2.minEnclosingCircle(all_pts.astype(np.float32))
-        pixel_diameter = float(radius * 2.0)
-        center_x = float(x)
-        center_y = float(y)
+
+        if n == 1:
+            contour = blobs[0]
+            area = float(cv2.contourArea(contour))
+            pixel_diameter = float(np.sqrt((4.0 * area) / np.pi))
+            moments = cv2.moments(contour)
+            if moments.get("m00"):
+                center_x = float(moments["m10"] / moments["m00"])
+                center_y = float(moments["m01"] / moments["m00"])
+            else:
+                (center_x, center_y), _ = cv2.minEnclosingCircle(
+                    contour.astype(np.float32)
+                )
+        else:
+            # For multiple impacts, approximate the overall group spread.
+            all_pts = np.vstack(blobs).reshape(-1, 2)
+            (center_x, center_y), radius = cv2.minEnclosingCircle(
+                all_pts.astype(np.float32)
+            )
+            pixel_diameter = float(radius * 2.0)
+
         mm_diameter = None
         if dpi:
             try:

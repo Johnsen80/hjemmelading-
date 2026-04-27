@@ -41,6 +41,7 @@ if TYPE_CHECKING:
         QGroupBox,
         QHBoxLayout,
         QHeaderView,
+        QInputDialog,
         QLabel,
         QLineEdit,
         QMessageBox,
@@ -61,6 +62,7 @@ else:
             QGroupBox,
             QHBoxLayout,
             QHeaderView,
+            QInputDialog,
             QLabel,
             QLineEdit,
             QMessageBox,
@@ -90,6 +92,7 @@ else:
         QHeaderView: Any = _Stub
         QLabel: Any = _Stub
         QLineEdit: Any = _Stub
+        QInputDialog: Any = _Stub
         QMessageBox: Any = _Stub
         QPushButton: Any = _Stub
         QSpinBox: Any = _Stub
@@ -99,13 +102,13 @@ else:
         QVBoxLayout: Any = _Stub
         QWidget: Any = object
 
-from src.database.database import get_database
+from ..database.database import get_database
 
 
 class TemperatureLadderTest(QWidget):
     """
     Temperature Ladder Test System
-    Tester samme ladning ved ulike temperaturer for å finne temp-stable loads
+    Tests the same load at different temperatures to find temperature-stable loads
     """
 
     def __init__(self, parent=None):
@@ -119,25 +122,25 @@ class TemperatureLadderTest(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🌡️ Temperature Ladder Test")
+        header = QLabel("Temperature Ladder Test")
         header.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
         layout.addWidget(header)
 
         desc = QLabel(
-            "Test samme ladning ved ulike temperaturer for å identifisere temp-stable loads.\n"
-            "Ammofabrikker tester -20°C til +40°C for å garantere sikkerhet i alle forhold!"
+            "Test the same load at different temperatures to identify temperature-stable loads.\n"
+            "Ammunition factories test from -20°C to +40°C to ensure safety in all conditions."
         )
         desc.setWordWrap(True)
         desc.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
         layout.addWidget(desc)
 
         # Test setup section
-        setup_group = QGroupBox("🔧 Test Oppsett")
+        setup_group = QGroupBox("Test Setup")
         setup_layout = QVBoxLayout()
 
         # Load selection
         load_layout = QHBoxLayout()
-        load_layout.addWidget(QLabel("Ammunisjonsprofil:"))
+        load_layout.addWidget(QLabel("Ammunition Profile:"))
         self.combo_ammo = QComboBox()
         self.load_ammo_profiles()
         load_layout.addWidget(self.combo_ammo)
@@ -152,9 +155,9 @@ class TemperatureLadderTest(QWidget):
         self.load_rifles()
         info_layout.addWidget(self.combo_rifle)
 
-        info_layout.addWidget(QLabel("Test navn:"))
+        info_layout.addWidget(QLabel("Test name:"))
         self.edit_test_name = QLineEdit()
-        self.edit_test_name.setPlaceholderText("Temp test N140 43.5gr")
+        self.edit_test_name.setPlaceholderText("Temp test N140 43.5 gr")
         info_layout.addWidget(self.edit_test_name)
 
         setup_layout.addLayout(info_layout)
@@ -162,11 +165,11 @@ class TemperatureLadderTest(QWidget):
         # Action buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_new_test = QPushButton("🆕 Ny Test")
+        self.btn_new_test = QPushButton("New Test")
         self.btn_new_test.clicked.connect(self.create_new_test)
         btn_layout.addWidget(self.btn_new_test)
 
-        self.btn_load_test = QPushButton("📂 Last Test")
+        self.btn_load_test = QPushButton("Load Test")
         self.btn_load_test.clicked.connect(self.load_existing_test)
         btn_layout.addWidget(self.btn_load_test)
 
@@ -177,7 +180,7 @@ class TemperatureLadderTest(QWidget):
         layout.addWidget(setup_group)
 
         # Data entry section
-        data_group = QGroupBox("📊 Temperatur & Velocity Data")
+        data_group = QGroupBox("Temperature & Velocity Data")
         data_layout = QVBoxLayout()
 
         # Entry row
@@ -209,7 +212,7 @@ class TemperatureLadderTest(QWidget):
         self.spin_sd.setDecimals(1)
         entry_layout.addWidget(self.spin_sd)
 
-        self.btn_add_data = QPushButton("➕ Legg til")
+        self.btn_add_data = QPushButton("Add")
         self.btn_add_data.clicked.connect(self.add_data_point)
         self.btn_add_data.setEnabled(False)
         entry_layout.addWidget(self.btn_add_data)
@@ -221,9 +224,9 @@ class TemperatureLadderTest(QWidget):
         self.table_data = QTableWidget()
         self.table_data.setColumnCount(6)
         self.table_data.setHorizontalHeaderLabels(
-            ["Temp (°C)", "Velocity (fps)", "ES", "SD", "Dato", "Slett"]
+            ["Temp (°C)", "Velocity (fps)", "ES", "SD", "Date", "Delete"]
         )
-        self.table_data.horizontalHeader().setSectionResizeMode(
+        self.table_data.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
             QHeaderView.ResizeMode.Stretch
         )
         data_layout.addWidget(self.table_data)
@@ -232,7 +235,7 @@ class TemperatureLadderTest(QWidget):
         layout.addWidget(data_group)
 
         # Analysis section
-        analysis_group = QGroupBox("📈 Analyse & Resultater")
+        analysis_group = QGroupBox("Analysis & Results")
         analysis_layout = QVBoxLayout()
 
         # Plot
@@ -243,12 +246,12 @@ class TemperatureLadderTest(QWidget):
         # Analysis buttons
         analysis_btn_layout = QHBoxLayout()
 
-        self.btn_analyze = QPushButton("🔍 Analyser")
+        self.btn_analyze = QPushButton("Analyze")
         self.btn_analyze.clicked.connect(self.analyze_data)
         self.btn_analyze.setEnabled(False)
         analysis_btn_layout.addWidget(self.btn_analyze)
 
-        self.btn_export = QPushButton("💾 Eksporter")
+        self.btn_export = QPushButton("Export")
         self.btn_export.clicked.connect(self.export_results)
         self.btn_export.setEnabled(False)
         analysis_btn_layout.addWidget(self.btn_export)
@@ -283,17 +286,60 @@ class TemperatureLadderTest(QWidget):
                 f"{rifle['name']} ({rifle['caliber']})", rifle["id"]
             )
 
+    def _format_date_label(self, date_value: Any) -> str:
+        if not date_value:
+            return ""
+        if isinstance(date_value, str):
+            try:
+                return datetime.fromisoformat(date_value).strftime("%Y-%m-%d %H:%M")
+            except ValueError:
+                return date_value
+        return str(date_value)
+
+    def _append_data_row(
+        self,
+        temp: float,
+        velocity: int,
+        es: Any,
+        sd: Any,
+        test_date: Any,
+        data_id: int,
+    ):
+        row = self.table_data.rowCount()
+        self.table_data.insertRow(row)
+
+        self.table_data.setItem(row, 0, QTableWidgetItem(f"{temp:.1f}"))
+        self.table_data.setItem(row, 1, QTableWidgetItem(f"{velocity}"))
+        self.table_data.setItem(
+            row, 2, QTableWidgetItem("-" if es is None else f"{es}")
+        )
+        self.table_data.setItem(
+            row, 3, QTableWidgetItem("-" if sd is None else f"{sd:.1f}")
+        )
+        self.table_data.setItem(
+            row, 4, QTableWidgetItem(self._format_date_label(test_date))
+        )
+
+        btn_delete = QPushButton("Delete")
+        btn_delete.setProperty("data_id", data_id)
+        btn_delete.clicked.connect(self.delete_row)
+        self.table_data.setCellWidget(row, 5, btn_delete)
+
+        self.test_data.append(
+            {"id": data_id, "temp": temp, "velocity": velocity, "es": es, "sd": sd}
+        )
+
     def create_new_test(self):
-        """Opprett ny temperature test"""
+        """Create a new temperature test"""
         if not self.edit_test_name.text():
-            QMessageBox.warning(self, "Mangler navn", "Angi et navn for testen!")
+            QMessageBox.warning(self, "Missing Name", "Enter a name for the test.")
             return
 
         ammo_id = self.combo_ammo.currentData()
         rifle_id = self.combo_rifle.currentData()
 
         if not ammo_id or not rifle_id:
-            QMessageBox.warning(self, "Mangler data", "Velg ammunisjon og rifle!")
+            QMessageBox.warning(self, "Missing Data", "Select ammunition and firearm.")
             return
 
         # Create test in database
@@ -317,18 +363,109 @@ class TemperatureLadderTest(QWidget):
         self.btn_export.setEnabled(False)
 
         QMessageBox.information(
-            self, "Test opprettet", f"Test ID: {self.current_test_id}"
+            self, "Test Created", f"Test ID: {self.current_test_id}"
         )
 
     def load_existing_test(self):
-        """Last eksisterende test"""
-        # TODO: Implement test selection dialog
-        QMessageBox.information(
-            self, "Under utvikling", "Load test dialog kommer snart!"
+        """Load an existing test"""
+        cursor = self.db.conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                tt.id,
+                tt.name,
+                tt.ammo_profile_id,
+                tt.rifle_id,
+                tt.created_date,
+                ap.name AS ammo_name,
+                r.name AS rifle_name,
+                r.caliber AS rifle_caliber
+            FROM temperature_tests tt
+            LEFT JOIN ammo_profiles ap ON ap.id = tt.ammo_profile_id
+            LEFT JOIN rifles r ON r.id = tt.rifle_id
+            ORDER BY tt.created_date DESC
+        """
         )
+        tests = cursor.fetchall() or []
+
+        if not tests:
+            QMessageBox.information(
+                self, "No Tests", "No saved temperature tests were found."
+            )
+            return
+
+        choices = []
+        for test in tests:
+            ammo_name = test["ammo_name"] or "Unknown ammunition"
+            rifle_name = test["rifle_name"] or "Unknown firearm"
+            rifle_caliber = test["rifle_caliber"]
+            if rifle_caliber:
+                rifle_name = f"{rifle_name} ({rifle_caliber})"
+            created_label = self._format_date_label(test["created_date"])
+            choices.append(
+                f"{test['name']} | {ammo_name} | {rifle_name} | {created_label}"
+            )
+
+        selected, ok = QInputDialog.getItem(
+            self,
+            "Select Test",
+            "Select temperature test:",
+            choices,
+            0,
+            False,
+        )
+        if not ok or not selected:
+            return
+
+        try:
+            index = choices.index(selected)
+        except ValueError:
+            return
+
+        test = tests[index]
+        self.current_test_id = test["id"]
+        self.edit_test_name.setText(test["name"])
+
+        ammo_index = self.combo_ammo.findData(test["ammo_profile_id"])
+        if ammo_index >= 0:
+            self.combo_ammo.setCurrentIndex(ammo_index)
+
+        rifle_index = self.combo_rifle.findData(test["rifle_id"])
+        if rifle_index >= 0:
+            self.combo_rifle.setCurrentIndex(rifle_index)
+
+        cursor.execute(
+            """
+            SELECT id, temperature_c, velocity_fps, es_fps, sd_fps, test_date
+            FROM temperature_test_data
+            WHERE test_id = ?
+            ORDER BY test_date
+        """,
+            (self.current_test_id,),
+        )
+        rows = cursor.fetchall() or []
+
+        self.table_data.setRowCount(0)
+        self.test_data = []
+        for row in rows:
+            self._append_data_row(
+                row["temperature_c"],
+                row["velocity_fps"],
+                row["es_fps"],
+                row["sd_fps"],
+                row["test_date"],
+                row["id"],
+            )
+
+        self.btn_add_data.setEnabled(True)
+        self.btn_analyze.setEnabled(len(self.test_data) >= 2)
+        self.btn_export.setEnabled(False)
+        self.text_results.clear()
+        self.figure.clear()
+        self.canvas.draw()
 
     def add_data_point(self):
-        """Legg til et datapunkt"""
+        """Add a data point"""
         if not self.current_test_id:
             return
 
@@ -339,55 +476,77 @@ class TemperatureLadderTest(QWidget):
 
         # Save to database
         cursor = self.db.conn.cursor()
+        now_iso = datetime.now().isoformat()
         cursor.execute(
             """
             INSERT INTO temperature_test_data (
                 test_id, temperature_c, velocity_fps, es_fps, sd_fps, test_date
             ) VALUES (?, ?, ?, ?, ?, ?)
         """,
-            (self.current_test_id, temp, velocity, es, sd, datetime.now().isoformat()),
+            (self.current_test_id, temp, velocity, es, sd, now_iso),
         )
         self.db.conn.commit()
 
-        # Add to table
-        row = self.table_data.rowCount()
-        self.table_data.insertRow(row)
+        data_id = cursor.lastrowid
+        test_date = now_iso
 
-        self.table_data.setItem(row, 0, QTableWidgetItem(f"{temp:.1f}"))
-        self.table_data.setItem(row, 1, QTableWidgetItem(f"{velocity}"))
-        self.table_data.setItem(row, 2, QTableWidgetItem(f"{es}"))
-        self.table_data.setItem(row, 3, QTableWidgetItem(f"{sd:.1f}"))
-        self.table_data.setItem(
-            row, 4, QTableWidgetItem(datetime.now().strftime("%Y-%m-%d %H:%M"))
-        )
-
-        # Delete button
-        btn_delete = QPushButton("🗑️")
-        btn_delete.clicked.connect(lambda: self.delete_row(row))
-        self.table_data.setCellWidget(row, 5, btn_delete)
-
-        # Add to test_data
-        self.test_data.append({"temp": temp, "velocity": velocity, "es": es, "sd": sd})
+        if data_id is None:
+            QMessageBox.warning(self, "Save Failed", "Could not save the data point.")
+            return
+        self._append_data_row(temp, velocity, es, sd, test_date, int(data_id))
 
         # Enable analyze if we have 2+ points
         if len(self.test_data) >= 2:
             self.btn_analyze.setEnabled(True)
 
         QMessageBox.information(
-            self, "Lagt til", f"Datapunkt lagt til: {temp}°C @ {velocity} fps"
+            self, "Added", f"Data point added: {temp}°C @ {velocity} fps"
         )
 
-    def delete_row(self, row: int):
-        """Slett en rad"""
-        # TODO: Delete from database
-        self.table_data.removeRow(row)
-        if row < len(self.test_data):
-            self.test_data.pop(row)
+    def delete_row(self):
+        """Delete a row"""
+        btn = self.sender()
+        if btn is None:
+            return
+
+        data_id = btn.property("data_id")
+        if not data_id:
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            "Do you want to delete this data point?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        cursor = self.db.conn.cursor()
+        cursor.execute("DELETE FROM temperature_test_data WHERE id = ?", (data_id,))
+        self.db.conn.commit()
+
+        for row_index in range(self.table_data.rowCount()):
+            if self.table_data.cellWidget(row_index, 5) is btn:
+                self.table_data.removeRow(row_index)
+                break
+
+        self.test_data = [d for d in self.test_data if d.get("id") != data_id]
+
+        if len(self.test_data) < 2:
+            self.btn_analyze.setEnabled(False)
+        if not self.test_data:
+            self.btn_export.setEnabled(False)
+            self.text_results.clear()
+            self.figure.clear()
+            self.canvas.draw()
 
     def analyze_data(self):
-        """Analyser temperature sensitivity"""
+        """Analyze temperature sensitivity"""
         if len(self.test_data) < 2:
-            QMessageBox.warning(self, "For lite data", "Trenger minst 2 datapunkter!")
+            QMessageBox.warning(
+                self, "Too Little Data", "At least 2 data points are required."
+            )
             return
 
         # Extract data
@@ -420,7 +579,9 @@ class TemperatureLadderTest(QWidget):
         ax = self.figure.add_subplot(111)
 
         # Scatter plot
-        ax.scatter(temps, velocities, s=100, alpha=0.6, color="blue", label="Målinger")
+        ax.scatter(
+            temps, velocities, s=100, alpha=0.6, color="blue", label="Measurements"
+        )
 
         # Regression line
         temp_range = np.linspace(min(temps) - 5, max(temps) + 5, 100)
@@ -430,7 +591,7 @@ class TemperatureLadderTest(QWidget):
         )
 
         # Styling
-        ax.set_xlabel("Temperatur (°C)", fontsize=12, fontweight="bold")
+        ax.set_xlabel("Temperature (°C)", fontsize=12, fontweight="bold")
         ax.set_ylabel("Velocity (fps)", fontsize=12, fontweight="bold")
         ax.set_title("Temperature Sensitivity Analysis", fontsize=14, fontweight="bold")
         ax.grid(True, alpha=0.3)
@@ -447,7 +608,7 @@ class TemperatureLadderTest(QWidget):
         vel_spread = vel_at_plus40 - vel_at_minus20
 
         results = f"""
-        <h2 style='color: #2c3e50;'>📊 Analyse Resultater</h2>
+        <h2 style='color: #2c3e50;'>Analysis Results</h2>
 
         <h3>Temperature Sensitivity:</h3>
         <ul>
@@ -459,17 +620,17 @@ class TemperatureLadderTest(QWidget):
 
         <h3>Velocity Predictions:</h3>
         <ul>
-            <li><b>Ved -20°C:</b> {vel_at_minus20:.0f} fps</li>
-            <li><b>Ved +40°C:</b> {vel_at_plus40:.0f} fps</li>
+            <li><b>At -20°C:</b> {vel_at_minus20:.0f} fps</li>
+            <li><b>At +40°C:</b> {vel_at_plus40:.0f} fps</li>
             <li><b>Total spread:</b> {vel_spread:.0f} fps (60°C range)</li>
         </ul>
 
-        <h3>Sammenligning med ammofabrikker:</h3>
+        <h3>Comparison with factory ammunition:</h3>
         <p style='color: #7f8c8d;'>
         {self.compare_to_factory(abs(slope))}
         </p>
 
-        <h3>💡 Anbefalinger:</h3>
+        <h3>Recommendations:</h3>
         {self.get_recommendations(slope, r_squared)}
         """
 
@@ -479,33 +640,33 @@ class TemperatureLadderTest(QWidget):
     def rate_temp_stability(self, abs_slope: float) -> Tuple[str, str]:
         """Rate temperature stability"""
         if abs_slope < 0.5:
-            return ("🏆 EXCELLENT (Factory-grade)", "#27ae60")
+            return ("EXCELLENT (Factory-grade)", "#27ae60")
         elif abs_slope < 1.0:
-            return ("✅ VERY GOOD", "#2ecc71")
+            return ("VERY GOOD", "#2ecc71")
         elif abs_slope < 2.0:
-            return ("👍 GOOD", "#f39c12")
+            return ("GOOD", "#f39c12")
         elif abs_slope < 3.0:
-            return ("⚠️ MODERATE", "#e67e22")
+            return ("MODERATE", "#e67e22")
         else:
-            return ("❌ POOR", "#e74c3c")
+            return ("POOR", "#e74c3c")
 
     def get_slope_emoji(self, slope: float) -> str:
-        """Get emoji for slope direction"""
+        """Get label for slope direction"""
         if slope > 0:
-            return "📈 (velocity øker med temp)"
+            return "(velocity increases with temperature)"
         else:
-            return "📉 (velocity synker med temp)"
+            return "(velocity decreases with temperature)"
 
     def compare_to_factory(self, abs_slope: float) -> str:
         """Compare to factory ammo standards"""
         if abs_slope < 0.5:
-            return "Din ladning er BEDRE enn de fleste fabrikk-ammunisjoner! Federal Gold Medal: ~0.8 fps/°C"
+            return "Your load is BETTER than most factory ammunition. Federal Gold Medal: about 0.8 fps/°C"
         elif abs_slope < 1.0:
-            return "Din ladning er PÅ NIVÅ med premium fabrikk-ammo. Hornady Match: ~1.0 fps/°C"
+            return "Your load is ON PAR with premium factory ammunition. Hornady Match: about 1.0 fps/°C"
         elif abs_slope < 2.0:
-            return "Din ladning er OK, men fabrikk-ammo er bedre. Vurder temp-stable krutt."
+            return "Your load is OK, but factory ammunition is better. Consider temperature-stable powder."
         else:
-            return "Din ladning er DÅRLIGERE enn fabrikk-ammo. Dette krutt er temp-sensitive!"
+            return "Your load is WORSE than factory ammunition. This powder is temperature-sensitive."
 
     def get_recommendations(self, slope: float, r_squared: float) -> str:
         """Get recommendations based on results"""
@@ -513,7 +674,7 @@ class TemperatureLadderTest(QWidget):
 
         if abs(slope) > 2.0:
             recs += """
-            <li style='color: #e74c3c;'><b>⚠️ Høy temp-sensitivitet!</b> Vurder:
+            <li style='color: #e74c3c;'><b>High temperature sensitivity.</b> Consider:
                 <ul>
                     <li>Hodgdon Extreme-series (H4350, Varget, H1000)</li>
                     <li>Vihtavuori N500-series (N540, N550, N560)</li>
@@ -524,23 +685,23 @@ class TemperatureLadderTest(QWidget):
 
         if r_squared < 0.8:
             recs += """
-            <li style='color: #f39c12;'><b>⚠️ Lav R²!</b> Dataene er ikke lineære. Mulige årsaker:
+            <li style='color: #f39c12;'><b>Low R².</b> The data is not linear. Possible causes:
                 <ul>
-                    <li>Inkonsistent lading (varying powder charges)</li>
-                    <li>Pressure limit nådd ved høy temp</li>
-                    <li>Måle-feil i kronograf</li>
-                    <li>Test flere skudd per temp for bedre data</li>
+                    <li>Inconsistent loading (varying powder charges)</li>
+                    <li>Pressure limit reached at higher temperatures</li>
+                    <li>Chronograph measurement error</li>
+                    <li>Test more shots per temperature for better data</li>
                 </ul>
             </li>
             """
 
         if abs(slope) < 1.0:
             recs += """
-            <li style='color: #27ae60;'><b>✅ Excellent temp stability!</b>
+            <li style='color: #27ae60;'><b>Excellent temperature stability.</b>
                 <ul>
-                    <li>Denne ladningen er trygg i alle værforhold</li>
-                    <li>Kan bruke samme zero fra -20°C til +40°C</li>
-                    <li>Typisk for Hodgdon Extreme og Vihtavuori N500</li>
+                    <li>This load is safe across all weather conditions</li>
+                    <li>You can use the same zero from -20°C to +40°C</li>
+                    <li>Typical of Hodgdon Extreme and Vihtavuori N500</li>
                 </ul>
             </li>
             """
@@ -549,10 +710,10 @@ class TemperatureLadderTest(QWidget):
         return recs
 
     def export_results(self):
-        """Eksporter resultater til fil"""
+        """Export results to a file"""
         filename, _ = QFileDialog.getSaveFileName(
             self,
-            "Eksporter resultater",
+            "Export Results",
             f"temp_test_{datetime.now().strftime('%Y%m%d')}.txt",
             "Text Files (*.txt);;CSV Files (*.csv)",
         )
@@ -570,9 +731,7 @@ class TemperatureLadderTest(QWidget):
                         f"{d['temp']:.1f}°C: {d['velocity']} fps (ES: {d['es']}, SD: {d['sd']})\n"
                     )
 
-            QMessageBox.information(
-                self, "Eksportert", f"Resultater lagret til:\n{filename}"
-            )
+            QMessageBox.information(self, "Exported", f"Results saved to:\n{filename}")
 
 
 if __name__ == "__main__":

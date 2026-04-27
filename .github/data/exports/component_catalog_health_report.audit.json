@@ -1,0 +1,123 @@
+{
+  "bullets": {
+    "path": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\bullets_catalog_master.csv",
+    "rows": 5824,
+    "headers": 39,
+    "blank_display_name": 54,
+    "blank_source_label": 54,
+    "name_whitespace_noise": 1,
+    "manufacturer_whitespace_noise": 0,
+    "manufacturer_variant_groups": 1,
+    "manufacturer_variant_examples": {
+      "rg bullets": {
+        "RG Bullets": 1,
+        "RG bullets": 2
+      }
+    },
+    "raw_json_rows": 5814,
+    "raw_json_parse_fail": 0,
+    "raw_json_name_mismatch": 0,
+    "raw_json_manufacturer_mismatch": 0,
+    "duplicate_key_groups": 463,
+    "noise_score": 110,
+    "priority": "high",
+    "recommendation": "Catalog still contains visible data-quality noise and should be cleaned before broader dependence.",
+    "clean_artifact_present": true,
+    "effective_priority": "medium",
+    "effective_recommendation": "Raw master still has historical noise, but a clean export already exists and should be treated as the operational source.",
+    "catalog_sync_ready": true,
+    "operational_status": "ready_for_sync",
+    "operational_recommendation": "Catalog is suitable as an operational sync source under current regression monitoring."
+  },
+  "powders": {
+    "path": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\powder_catalog_master.csv",
+    "rows": 258,
+    "headers": 202,
+    "blank_display_name": 0,
+    "blank_source_label": 2,
+    "name_whitespace_noise": 0,
+    "manufacturer_whitespace_noise": 0,
+    "manufacturer_variant_groups": 1,
+    "manufacturer_variant_examples": {
+      "vectan": {
+        "VECTAN": 1,
+        "Vectan": 14
+      }
+    },
+    "raw_json_rows": 257,
+    "raw_json_parse_fail": 0,
+    "raw_json_name_mismatch": 1,
+    "raw_json_manufacturer_mismatch": 0,
+    "duplicate_key_groups": 0,
+    "noise_score": 4,
+    "priority": "high",
+    "recommendation": "Catalog still contains visible data-quality noise and should be cleaned before broader dependence.",
+    "clean_artifact_present": true,
+    "effective_priority": "medium",
+    "effective_recommendation": "Raw master still has historical noise, but a clean export already exists and should be treated as the operational source.",
+    "catalog_sync_ready": true,
+    "operational_status": "ready_for_sync",
+    "operational_recommendation": "Catalog is suitable as an operational sync source under current regression monitoring."
+  },
+  "cases": {
+    "path": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\cases_catalog_master.csv",
+    "rows": 3,
+    "headers": 23,
+    "blank_display_name": 0,
+    "blank_source_label": 0,
+    "name_whitespace_noise": 0,
+    "manufacturer_whitespace_noise": 0,
+    "manufacturer_variant_groups": 0,
+    "manufacturer_variant_examples": {},
+    "raw_json_rows": 0,
+    "raw_json_parse_fail": 0,
+    "raw_json_name_mismatch": 0,
+    "raw_json_manufacturer_mismatch": 0,
+    "duplicate_key_groups": 0,
+    "noise_score": 0,
+    "priority": "low",
+    "recommendation": "Catalog looks stable; keep it under regression monitoring only.",
+    "clean_artifact_present": false,
+    "effective_priority": "low",
+    "effective_recommendation": "Catalog looks stable; keep it under regression monitoring only.",
+    "catalog_sync_ready": true,
+    "operational_status": "ready_for_sync",
+    "operational_recommendation": "Catalog is suitable as an operational sync source under current regression monitoring."
+  },
+  "primers": {
+    "path": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\primers_catalog_master.csv",
+    "rows": 24,
+    "headers": 41,
+    "blank_display_name": 0,
+    "blank_source_label": 0,
+    "name_whitespace_noise": 0,
+    "manufacturer_whitespace_noise": 0,
+    "manufacturer_variant_groups": 0,
+    "manufacturer_variant_examples": {},
+    "raw_json_rows": 0,
+    "raw_json_parse_fail": 0,
+    "raw_json_name_mismatch": 0,
+    "raw_json_manufacturer_mismatch": 0,
+    "duplicate_key_groups": 0,
+    "noise_score": 0,
+    "priority": "low",
+    "recommendation": "Catalog looks stable; keep it under regression monitoring only.",
+    "clean_artifact_present": false,
+    "effective_priority": "low",
+    "effective_recommendation": "Catalog looks stable; keep it under regression monitoring only.",
+    "catalog_sync_ready": true,
+    "operational_status": "ready_for_sync",
+    "operational_recommendation": "Catalog is suitable as an operational sync source under current regression monitoring."
+  },
+  "summary": {
+    "highest_priority_catalogs": [],
+    "next_cleanup_candidate": "bullets",
+    "catalogs_ready_for_sync": [
+      "bullets",
+      "powders",
+      "cases",
+      "primers"
+    ],
+    "catalogs_blocking_sync": []
+  }
+}

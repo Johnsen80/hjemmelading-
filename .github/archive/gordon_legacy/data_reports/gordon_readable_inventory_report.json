@@ -1,0 +1,107 @@
+{
+  "summary": {
+    "source_root": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\Data",
+    "output_root": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\tmp\\reference_extract_recheck",
+    "raw_projectiles": 16,
+    "raw_propellants": 10,
+    "raw_calibers": 10,
+    "measurements": 58,
+    "unique_bullets_for_app": 9,
+    "unique_powders_for_app": 2,
+    "unique_calibers_reference": 8,
+    "added_to_component_database": {
+      "bullets": 9,
+      "powders": 2
+    },
+    "note": "Gordon .db-filen var ikke lesbar som vanlig SQLite, så CSV-ene er bygd fra tilgjengelige XML/.load-kilder."
+  },
+  "raw_readable_counts": {
+    "projectiles": 16,
+    "propellants": 10
+  },
+  "projectiles": {
+    "unique_named_entries": 9,
+    "duplicate_snapshot_counts": {
+      "Hornady FMJ": 2,
+      "Norma EcoStrike": 2,
+      "North Fork SS": 2,
+      "Hornady BTHP Natl M #30501": 1,
+      "PPU PPB30MC150": 1,
+      "Hornady ELD-M #26175": 1,
+      "Hornady BTHP 26335": 1,
+      "Sierra, HPBT MatchK 1725C, 0.264, 120.00 grain": 2,
+      "Barnes MatchB 30381": 4
+    },
+    "lot_breakdown": {
+      "Hornady FMJ": [
+        "30196"
+      ],
+      "Norma EcoStrike": [
+        "20676941"
+      ],
+      "North Fork SS": [
+        "202301"
+      ],
+      "Hornady BTHP Natl M #30501": [
+        "2019"
+      ],
+      "PPU PPB30MC150": [
+        "M2 BALL RESIZED"
+      ],
+      "Hornady ELD-M #26175": [
+        "2019"
+      ],
+      "Hornady BTHP 26335": [
+        "2019"
+      ]
+    }
+  },
+  "powders": {
+    "unique_named_entries": 2,
+    "duplicate_snapshot_counts": {
+      "IMR 4166": 4,
+      "Vihtavuori N540": 6
+    },
+    "distinct_parameter_variants": {
+      "IMR 4166": [
+        {
+          "lotid": "2020-03-02",
+          "Ba": 0.602,
+          "Qex": 3860.0,
+          "k": 1.2333,
+          "pt": 12.777777777777777,
+          "source_file": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\doku\\en\\faq\\files\\30-06_168_hhpbt_imr4166_3.330_oal_2x2_1.load"
+        },
+        {
+          "lotid": "2020-03-02",
+          "Ba": 0.602,
+          "Qex": 3860.0,
+          "k": 1.2333,
+          "pt": 10.0,
+          "source_file": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\doku\\en\\faq\\files\\6.5_cm_120_heldm_imr4166_2.80_oal_2x2_1.load"
+        }
+      ],
+      "Vihtavuori N540": [
+        {
+          "lotid": "2020-08-01",
+          "Ba": 0.5816,
+          "Qex": 4000.0,
+          "k": 1.2131,
+          "pt": 21.0,
+          "source_file": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\doku\\en\\faq\\files\\powder-measure-template.load"
+        },
+        {
+          "lotid": "2021-09-30",
+          "Ba": 0.5728,
+          "Qex": 4000.0,
+          "k": 1.2171,
+          "pt": 21.0,
+          "source_file": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\loads\\POWDER-MEASURE-TEMPLATE Barens match.load"
+        }
+      ]
+    }
+  },
+  "assessment": {
+    "message": "Readable Gordon sources contain more raw snapshots and some distinct powder parameter variants than the deduplicated app library currently exposes."
+  }
+}

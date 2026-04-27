@@ -38,16 +38,14 @@ class PrimerSelectionGuide(QWidget):
         self.setLayout(layout)
 
         # Header
-        header = QLabel("💥 Primer Selection Guide (Tennhetter)")
-        header.setStyleSheet(
-            "font-size: 20px; font-weight: bold; color: #2c3e50; padding: 10px;"
-        )
+        header = QLabel("Primer Selection Guide (Tennhetter)")
+        header.setProperty("role", "title")
+        header.setWordWrap(True)
         layout.addWidget(header)
 
         # Info box
         info_html = """
-        <div style='background-color: #e8f4f8; padding: 15px; border-radius: 5px;'>
-        <h3>🎯 Primer Basics:</h3>
+        <h3>Primer basics</h3>
         <ul>
             <li><b>Small Rifle:</b> .223, 6mm BR, .22-250</li>
             <li><b>Large Rifle:</b> .308, 6.5 CM, .30-06, magnums</li>
@@ -55,7 +53,6 @@ class PrimerSelectionGuide(QWidget):
             <li><b>Magnum:</b> For slow powders, cold weather, big cases</li>
             <li><b>Match/Benchrest:</b> Most consistent, for precision shooting</li>
         </ul>
-        </div>
         """
 
         info_label = QLabel(info_html)
@@ -63,7 +60,8 @@ class PrimerSelectionGuide(QWidget):
         layout.addWidget(info_label)
 
         # Filter/recommendation section
-        rec_group = QGroupBox("🔍 Find Right Primer")
+        rec_group = QGroupBox("Find right primer")
+        rec_group.setProperty("variant", "panel")
         rec_layout = QFormLayout()
 
         self.cartridge_combo = QComboBox()
@@ -121,7 +119,8 @@ class PrimerSelectionGuide(QWidget):
         layout.addWidget(self.recommendation)
 
         # Full primer table
-        table_label = QLabel("<b>📋 All Available Primers:</b>")
+        table_label = QLabel("All available primers")
+        table_label.setProperty("role", "subtitle")
         layout.addWidget(table_label)
 
         self.primers_table = QTableWidget()
@@ -129,11 +128,12 @@ class PrimerSelectionGuide(QWidget):
         self.primers_table.setHorizontalHeaderLabels(
             ["Manufacturer", "Name", "Size", "Type", "Brisance", "Notes"]
         )
-        self.primers_table.horizontalHeader().setStretchLastSection(True)
+        self.primers_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         layout.addWidget(self.primers_table)
 
         # Primer comparison button
-        self.btn_compare = QPushButton("⚖️ Compare Primers")
+        self.btn_compare = QPushButton("Compare primers")
+        self.btn_compare.setProperty("variant", "secondary")
         self.btn_compare.clicked.connect(self.compare_primers)
         layout.addWidget(self.btn_compare)
 
@@ -261,14 +261,13 @@ class PrimerSelectionGuide(QWidget):
 
         # Format recommendation
         html = f"""
-        <div style='background-color: #d5f4e6; padding: 15px; border-radius: 5px;'>
-        <h3>🎯 Recommended Primers for Your Load:</h3>
+        <h3>Recommended primers for your load</h3>
         <p><b>Cartridge:</b> {cartridge}<br>
         <b>Powder Type:</b> {powder}<br>
         <b>Use Case:</b> {use}<br>
         <b>Primer Size Needed:</b> {size}</p>
 
-        <h4>Top Recommendations:</h4>
+        <h4>Top recommendations</h4>
         <ol>
         """
 
@@ -277,24 +276,19 @@ class PrimerSelectionGuide(QWidget):
 
         html += """
         </ol>
-        </div>
         """
 
         # Add powder-specific advice
         if "Ball powder" in powder:
             html += """
-            <div style='background-color: #fff9c4; padding: 10px; border-radius: 5px; margin-top: 10px;'>
-            <b>💡 Ball Powder Tip:</b> Ball powders often need magnum primers for consistent ignition.
-            CCI 450 (small) or CCI 250/Federal 215M (large) work best.
-            </div>
+            <p><b>Ball powder tip:</b> Ball powders often need magnum primers for consistent ignition.
+            CCI 450 (small) or CCI 250/Federal 215M (large) work best.</p>
             """
 
         if "Slow" in powder:
             html += """
-            <div style='background-color: #fff9c4; padding: 10px; border-radius: 5px; margin-top: 10px;'>
-            <b>💡 Slow Powder Tip:</b> Slow powders need more heat to ignite properly.
-            Consider magnum primers, especially in cold weather.
-            </div>
+            <p><b>Slow powder tip:</b> Slow powders need more heat to ignite properly.
+            Consider magnum primers, especially in cold weather.</p>
             """
 
         self.recommendation.setHtml(html)
@@ -310,7 +304,7 @@ class PrimerComparisonDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("⚖️ Primer Comparison")
+        self.setWindowTitle("Primer Comparison")
         self.resize(900, 600)
         self.init_ui()
 
@@ -319,11 +313,11 @@ class PrimerComparisonDialog(QDialog):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        title = QLabel("<h2>⚖️ Primer Characteristics Comparison</h2>")
+        title = QLabel("<h2>Primer Characteristics Comparison</h2>")
         layout.addWidget(title)
 
         comparison_html = """
-        <h3>🔥 Brisance (Flame Intensity):</h3>
+        <h3>Brisance (Flame Intensity):</h3>
         <table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'>
             <tr style='background-color: #ecf0f1;'>
                 <th>Level</th>
@@ -347,7 +341,7 @@ class PrimerComparisonDialog(QDialog):
             </tr>
         </table>
 
-        <h3 style='margin-top: 20px;'>📊 Consistency (SD in fps):</h3>
+        <h3 style='margin-top: 20px;'>Consistency (SD in fps):</h3>
         <table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'>
             <tr style='background-color: #ecf0f1;'>
                 <th>Rating</th>
@@ -371,7 +365,7 @@ class PrimerComparisonDialog(QDialog):
             </tr>
         </table>
 
-        <h3 style='margin-top: 20px;'>🌡️ Temperature Sensitivity:</h3>
+        <h3 style='margin-top: 20px;'>Temperature Sensitivity:</h3>
         <table border='1' cellpadding='8' style='border-collapse: collapse; width: 100%;'>
             <tr style='background-color: #ecf0f1;'>
                 <th>Primer</th>
@@ -401,7 +395,7 @@ class PrimerComparisonDialog(QDialog):
         </table>
 
         <div style='background-color: #fff9c4; padding: 15px; border-radius: 5px; margin-top: 20px;'>
-        <b>💡 Pro Tips:</b>
+        <b>Pro Tips:</b>
         <ul>
             <li><b>Consistency matters more than brisance</b> for match shooting</li>
             <li><b>Test multiple primers</b> - your rifle may prefer one over another</li>

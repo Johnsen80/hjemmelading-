@@ -10,6 +10,6 @@ if (Test-Path .\.venv\Scripts\Activate.ps1) {
 } else {
     Write-Host ".venv\Scripts\Activate.ps1 not found"
 }
-python .\HjemmeladingApp\main.py $args
+python .\main.py $args
 Pop-Location
 Pause

@@ -1,0 +1,64 @@
+{
+  "bullet_cleanup_stats": {
+    "display_name_filled": 54,
+    "raw_json_rewritten": 3,
+    "manufacturer_normalized": 2,
+    "display_name_normalized": 2,
+    "external_ref_rewritten": 2,
+    "rows_total": 5824,
+    "rows_changed": 57,
+    "blank_display_name_remaining": 0,
+    "manufacturer_variant_groups_remaining": 0
+  },
+  "powder_cleanup_stats": {
+    "display_name_normalized": 2,
+    "external_ref_rewritten": 2,
+    "raw_json_rewritten": 2,
+    "manufacturer_normalized": 1,
+    "rows_total": 258,
+    "rows_changed": 2,
+    "blank_display_name_remaining": 0,
+    "blank_source_label_remaining": 2,
+    "manufacturer_variant_groups_remaining": 0
+  },
+  "raw_import_report": {
+    "bullets_added": 5824,
+    "bullets_updated": 0,
+    "powders_added": 258,
+    "powders_updated": 0,
+    "lots_added": 906,
+    "powder_models_added": 258,
+    "powder_models_updated": 0,
+    "powder_models_usable_for_simulation": 256
+  },
+  "clean_import_report": {
+    "bullets_added": 5824,
+    "bullets_updated": 0,
+    "powders_added": 258,
+    "powders_updated": 0,
+    "lots_added": 906,
+    "powder_models_added": 258,
+    "powder_models_updated": 0,
+    "powder_models_usable_for_simulation": 256
+  },
+  "raw_counts": {
+    "bullets": 5824,
+    "powders": 258,
+    "lots": 906,
+    "powder_models": 258,
+    "powder_models_usable": 256
+  },
+  "clean_counts": {
+    "bullets": 5824,
+    "powders": 258,
+    "lots": 906,
+    "powder_models": 258,
+    "powder_models_usable": 256
+  },
+  "bullet_core_equal": true,
+  "powder_core_equal": true,
+  "powder_model_core_equal": true,
+  "bullet_core_delta": 0,
+  "powder_core_delta": 0,
+  "powder_model_core_delta": 0
+}

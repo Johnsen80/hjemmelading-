@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt6.QtCore import QPoint, Qt
-from PyQt6.QtGui import QMouseEvent, QPixmap
-from PyQt6.QtWidgets import (
-    QDialog,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QPushButton,
-    QVBoxLayout,
-)
+from src.qt_compat import QMouseEvent, QPixmap, QPoint, Qt, QtWidgets
+from src.utils.i18n import tr
+
+QDialog = QtWidgets.QDialog
+QHBoxLayout = QtWidgets.QHBoxLayout
+QLabel = QtWidgets.QLabel
+QMessageBox = QtWidgets.QMessageBox
+QPushButton = QtWidgets.QPushButton
+QVBoxLayout = QtWidgets.QVBoxLayout
 
 from src.ui.reloading_theme import ReloadingTheme
 
@@ -39,12 +38,17 @@ class ImageCalibrationDialog(QDialog):
 
     def __init__(self, image_path: str, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Calibrate image scale")
+        self.setWindowTitle(tr("image_calib_title"))
         self.setObjectName("imageCalibDialog")
         try:
-            self.setStyleSheet(ReloadingTheme.get_stylesheet())
+            from .theme import apply_modern_theme
+
+            apply_modern_theme(self)
         except Exception:
-            pass
+            try:
+                self.setStyleSheet(ReloadingTheme.get_stylesheet())
+            except Exception:
+                pass
         self.resize(800, 600)
         self.image_path = image_path
         self.mm_per_pixel: Optional[float] = None
@@ -52,16 +56,22 @@ class ImageCalibrationDialog(QDialog):
 
     def init_ui(self) -> None:
         layout = QVBoxLayout(self)
+        # Instruksjonstekst
+        instructions = QLabel(tr("image_calib_instructions"))
+        instructions.setWordWrap(True)
+        instructions.setStyleSheet("color: #2a5d8f; font-size: 11pt;")
+        layout.addWidget(instructions)
+
         pix = QPixmap(self.image_path)
         self.img_label = ClickableImageLabel(pix)
         self.img_label.setScaledContents(True)
         layout.addWidget(self.img_label)
 
         row = QHBoxLayout()
-        self.ok_btn = QPushButton("Set distance (click 2 points then confirm)")
+        self.ok_btn = QPushButton(tr("image_calib_set_distance"))
         self.ok_btn.setObjectName("imageCalibSetBtn")
         self.ok_btn.clicked.connect(self._on_set_distance)
-        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn = QPushButton(tr("rifle_optics_cancel"))
         self.cancel_btn.setObjectName("imageCalibCancelBtn")
         self.cancel_btn.clicked.connect(self.reject)
         row.addStretch()
@@ -74,8 +84,8 @@ class ImageCalibrationDialog(QDialog):
         if len(pts) < 2:
             QMessageBox.warning(
                 self,
-                "Need two points",
-                "Click two points on the image to indicate a known distance.",
+                tr("image_calib_need_two_points_title"),
+                tr("image_calib_need_two_points_message"),
             )
             return
         p1 = pts[-2]
@@ -84,15 +94,19 @@ class ImageCalibrationDialog(QDialog):
         dy = p1.y() - p2.y()
         pixel_dist = (dx * dx + dy * dy) ** 0.5
         if pixel_dist <= 0:
-            QMessageBox.warning(self, "Invalid points", "Points are too close.")
+            QMessageBox.warning(
+                self,
+                tr("image_calib_invalid_points_title"),
+                tr("image_calib_invalid_points_message"),
+            )
             return
         # ask user for real-world mm via input dialog
-        from PyQt6.QtWidgets import QInputDialog
+        QInputDialog = QtWidgets.QInputDialog
 
         txt, ok = QInputDialog.getText(
             self,
-            "Distance in mm",
-            "Enter the real-world distance between the two points (mm):",
+            tr("image_calib_distance_mm_title"),
+            tr("image_calib_distance_mm_message"),
         )
         if not ok:
             return
@@ -100,7 +114,9 @@ class ImageCalibrationDialog(QDialog):
             mm = float(txt)
         except Exception:
             QMessageBox.warning(
-                self, "Invalid value", "Please enter a numeric value in mm."
+                self,
+                tr("image_calib_invalid_value_title"),
+                tr("image_calib_invalid_value_message"),
             )
             return
         self.mm_per_pixel = mm / pixel_dist

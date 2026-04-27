@@ -27,7 +27,88 @@ from PyQt6.QtWidgets import (
     QWizardPage,
 )
 
-from src.database.database import get_database
+from ..database.database import get_database
+from ..utils.drag_models import parse_bc_segments
+
+
+def _format_bullet_drag_summary(bullet: dict) -> str:
+    segments = parse_bc_segments(bullet.get("bc_segments_json"))
+    if segments:
+        segment = segments[0]
+        model = str(segment.get("model") or "AUTO").strip().upper()
+        bc_value = segment.get("bc_g7") or segment.get("bc_g1") or segment.get("bc")
+        min_v = segment.get("velocity_fps_min")
+        max_v = segment.get("velocity_fps_max")
+        if bc_value is not None:
+            if max_v is not None:
+                return (
+                    f"{model} {float(bc_value):.3f} @ "
+                    f"{float(min_v or 0):.0f}-{float(max_v):.0f} fps"
+                )
+            return f"{model} {float(bc_value):.3f} @ {float(min_v or 0):.0f}+ fps"
+    bc_g7 = bullet.get("bc_g7")
+    bc_g1 = bullet.get("bc_g1")
+    parts: list[str] = []
+    if isinstance(bc_g7, (int, float)) and bc_g7 > 0:
+        parts.append(f"G7 {bc_g7:.3f}")
+    if isinstance(bc_g1, (int, float)) and bc_g1 > 0:
+        parts.append(f"G1 {bc_g1:.3f}")
+    if not parts:
+        return "-"
+    if len(parts) == 2:
+        return f"{parts[0]} | {parts[1]} (prefer G7)"
+    return parts[0]
+
+
+def _format_bullet_lot_learning(profile: dict) -> str:
+    if not profile:
+        return "No QC data"
+    status = str(profile.get("status") or "insufficient_data")
+    confidence = str(profile.get("confidence_label") or "no data yet")
+    parts = [f"{status} | {confidence}"]
+    qc_pass = profile.get("qc_pass_rate_percent")
+    if isinstance(qc_pass, (int, float)):
+        parts.append(f"QC pass {qc_pass:.0f}%")
+    weight_std = profile.get("weight_std_dev")
+    if isinstance(weight_std, (int, float)):
+        parts.append(f"Weight SD {weight_std:.3f} gr")
+    bto_std = profile.get("bto_std_dev")
+    if isinstance(bto_std, (int, float)):
+        parts.append(f'Ogive SD {bto_std:.4f}"')
+    best_moa = profile.get("best_recorded_moa")
+    if isinstance(best_moa, (int, float)):
+        parts.append(f"Best {best_moa:.2f} MOA")
+    drift_flag = str(profile.get("drift_flag") or "").strip()
+    if drift_flag:
+        parts.append(f"Flag {drift_flag}")
+    return "\n".join(parts)
+
+
+def _format_bullet_lot_advisory(db, bullet: dict) -> str:
+    lot_id = bullet.get("lot_id")
+    bullet_id = bullet.get("id")
+    if not lot_id or not bullet_id:
+        return ""
+    comparison = db.compare_bullet_lots(int(bullet_id), int(lot_id))
+    if not comparison:
+        return ""
+    focus = ""
+    verification_plan = comparison.get("verification_plan") or {}
+    if isinstance(verification_plan, dict):
+        focus = str(verification_plan.get("focus") or "").strip()
+        shots = verification_plan.get("shots")
+        if isinstance(shots, int) and shots > 0:
+            focus = f"{shots} confirmation shots. {focus}".strip()
+    parts = [comparison.get("title", "Bullet Lot")]
+    message = str(comparison.get("message") or "").strip()
+    if message:
+        parts.append(message)
+    recommended_action = str(comparison.get("recommended_action") or "").strip()
+    if recommended_action:
+        parts.append(f"Action: {recommended_action}")
+    if focus:
+        parts.append(f"Plan: {focus}")
+    return "\n".join(parts)
 
 
 class BrassSelectionPage(QWizardPage):
@@ -43,7 +124,7 @@ class BrassSelectionPage(QWizardPage):
         layout = QVBoxLayout()
 
         # Brass Batch Selection
-        batch_group = QGroupBox("📦 Brass Batch Selection")
+        batch_group = QGroupBox("Brass Batch Selection")
         batch_layout = QVBoxLayout()
 
         # Radio buttons for new vs existing
@@ -94,7 +175,7 @@ class BrassSelectionPage(QWizardPage):
         layout.addWidget(batch_group)
 
         # Batch Info Display
-        info_group = QGroupBox("📊 Brass Batch Info")
+        info_group = QGroupBox("Brass Batch Info")
         self.batch_info_layout = QFormLayout()
 
         self.batch_caliber_label = QLabel("-")
@@ -206,6 +287,13 @@ class BrassSelectionPage(QWizardPage):
             batch = db.get_by_id("brass_batches", batch_id)
             # Add case info
             case = db.get_by_id("cases", self.case_combo.currentData())
+            if not batch or not case:
+                QMessageBox.warning(
+                    self,
+                    "Batch creation failed",
+                    "The brass batch was created, but the related case data could not be loaded. Check the cases database and try again.",
+                )
+                return False
             batch["case_name"] = case["name"]
             batch["caliber"] = case["caliber"]
             batch["manufacturer"] = case["manufacturer"]
@@ -234,7 +322,7 @@ class BulletSelectionPage(QWizardPage):
         layout = QVBoxLayout()
 
         # Bullet Selection
-        bullet_group = QGroupBox("🎯 Bullet Selection")
+        bullet_group = QGroupBox("Bullet Selection")
         bullet_layout = QFormLayout()
 
         self.bullet_combo = QComboBox()
@@ -246,7 +334,7 @@ class BulletSelectionPage(QWizardPage):
         layout.addWidget(bullet_group)
 
         # Bullet Info
-        info_group = QGroupBox("📊 Bullet Info")
+        info_group = QGroupBox("Bullet Info")
         self.bullet_info_layout = QFormLayout()
 
         self.bullet_weight_label = QLabel("-")
@@ -257,7 +345,7 @@ class BulletSelectionPage(QWizardPage):
         self.bullet_qc_label = QLabel("-")
 
         self.bullet_info_layout.addRow("Weight:", self.bullet_weight_label)
-        self.bullet_info_layout.addRow("BC (G7):", self.bullet_bc_label)
+        self.bullet_info_layout.addRow("BC / drag:", self.bullet_bc_label)
         self.bullet_info_layout.addRow("Length:", self.bullet_length_label)
         self.bullet_info_layout.addRow("Lot Number:", self.bullet_lot_label)
         self.bullet_info_layout.addRow(
@@ -298,12 +386,11 @@ class BulletSelectionPage(QWizardPage):
         """Update bullet info"""
         bullet = self.bullet_combo.currentData()
         if bullet and isinstance(bullet, dict):
+            db = get_database()
             self.wizard.bullet_data = bullet
 
             self.bullet_weight_label.setText(f"{bullet.get('weight_grains', 0):.1f} gr")
-            self.bullet_bc_label.setText(
-                f"{bullet.get('bc_g7', 0):.3f}" if bullet.get("bc_g7") else "-"
-            )
+            self.bullet_bc_label.setText(_format_bullet_drag_summary(bullet))
             self.bullet_length_label.setText(
                 f"{bullet.get('length_mm', 0):.2f} mm"
                 if bullet.get("length_mm")
@@ -314,15 +401,20 @@ class BulletSelectionPage(QWizardPage):
                 str(bullet.get("quantity_remaining", bullet.get("quantity", 0)))
             )
 
-            if bullet.get("qc_performed"):
-                qc_text = (
-                    f"✅ QC Performed - {bullet.get('quality_rating', 'good').upper()}"
-                )
-                if bullet.get("weight_avg_grains"):
-                    qc_text += f"\nAvg Weight: {bullet['weight_avg_grains']:.2f}gr"
+            if bullet.get("lot_id"):
+                profile = db.refresh_bullet_lot_learning_profile(int(bullet["lot_id"]))
+                qc_text = _format_bullet_lot_learning(profile)
+                advisory_text = _format_bullet_lot_advisory(db, bullet)
+                if bullet.get("qc_performed") and bullet.get("quality_rating"):
+                    qc_text = (
+                        f"QC Performed - {bullet.get('quality_rating', 'good').upper()}\n"
+                        + qc_text
+                    )
+                if advisory_text:
+                    qc_text = qc_text + "\n" + advisory_text
                 self.bullet_qc_label.setText(qc_text)
             else:
-                self.bullet_qc_label.setText("⚠️ No QC data")
+                self.bullet_qc_label.setText("No QC data")
 
     def validatePage(self):
         """Validate bullet selection"""
@@ -345,7 +437,7 @@ class PowderPrimerPage(QWizardPage):
         layout = QVBoxLayout()
 
         # Powder Selection
-        powder_group = QGroupBox("💥 Powder Selection")
+        powder_group = QGroupBox("Powder Selection")
         powder_layout = QFormLayout()
 
         self.powder_combo = QComboBox()
@@ -361,7 +453,7 @@ class PowderPrimerPage(QWizardPage):
         layout.addWidget(powder_group)
 
         # Powder Info
-        powder_info_group = QGroupBox("📊 Powder Info")
+        powder_info_group = QGroupBox("Powder Info")
         self.powder_info_layout = QFormLayout()
 
         self.powder_type_label = QLabel("-")
@@ -378,7 +470,7 @@ class PowderPrimerPage(QWizardPage):
         layout.addWidget(powder_info_group)
 
         # Primer Selection
-        primer_group = QGroupBox("🔥 Primer Selection")
+        primer_group = QGroupBox("Primer Selection")
         primer_layout = QFormLayout()
 
         self.primer_combo = QComboBox()
@@ -394,7 +486,7 @@ class PowderPrimerPage(QWizardPage):
         layout.addWidget(primer_group)
 
         # Primer Info
-        primer_info_group = QGroupBox("📊 Primer Info")
+        primer_info_group = QGroupBox("Primer Info")
         self.primer_info_layout = QFormLayout()
 
         self.primer_type_label = QLabel("-")
@@ -501,7 +593,7 @@ class LoadDataPage(QWizardPage):
         layout = QVBoxLayout()
 
         # Charge Weight
-        charge_group = QGroupBox("⚖️ Charge Weight Range")
+        charge_group = QGroupBox("Charge Weight Range")
         charge_layout = QFormLayout()
 
         self.min_charge_spin = QDoubleSpinBox()
@@ -522,7 +614,7 @@ class LoadDataPage(QWizardPage):
         layout.addWidget(charge_group)
 
         # Seating Depth
-        seating_group = QGroupBox("📏 Seating Depth")
+        seating_group = QGroupBox("Seating Depth")
         seating_layout = QFormLayout()
 
         self.coal_spin = QDoubleSpinBox()
@@ -550,7 +642,7 @@ class LoadDataPage(QWizardPage):
         layout.addWidget(seating_group)
 
         # Test Parameters
-        test_group = QGroupBox("🧪 Test Parameters")
+        test_group = QGroupBox("Test Parameters")
         test_layout = QFormLayout()
 
         self.test_distance_spin = QSpinBox()
@@ -598,19 +690,19 @@ class LoadDataPage(QWizardPage):
 
 
 class AIPredictionPage(QWizardPage):
-    """Page 6: AI Load Prediction"""
+    """Page 6: guided load prediction."""
 
     def __init__(self, wizard):
         super().__init__(wizard)
         self.wizard = wizard
 
-        self.setTitle("Step 6: AI Prediction")
-        self.setSubTitle("AI-predicted optimal load based on your historical data")
+        self.setTitle("Step 6: Guided Prediction")
+        self.setSubTitle("Physics-based load prediction based on your historical data")
 
         layout = QVBoxLayout()
 
         # Prediction Display
-        prediction_group = QGroupBox("🤖 AI Load Prediction")
+        prediction_group = QGroupBox("Guided Load Prediction")
         self.prediction_text = QTextEdit()
         self.prediction_text.setReadOnly(True)
         self.prediction_text.setMinimumHeight(400)
@@ -618,7 +710,7 @@ class AIPredictionPage(QWizardPage):
         prediction_layout = QVBoxLayout()
         prediction_layout.addWidget(self.prediction_text)
 
-        self.calculate_btn = QPushButton("🎯 Calculate Optimal Load")
+        self.calculate_btn = QPushButton("Calculate Predicted Load")
         self.calculate_btn.clicked.connect(self.calculate_prediction)
         self.calculate_btn.setStyleSheet(
             "background: #27ae60; color: white; font-weight: bold; padding: 12px;"
@@ -635,8 +727,8 @@ class AIPredictionPage(QWizardPage):
         self.calculate_prediction()
 
     def calculate_prediction(self):
-        """Calculate AI prediction with REAL physics-based ballistics"""
-        from src.modules.ballistics_engine import get_ballistics_engine
+        """Calculate a guided prediction with physics-based ballistics."""
+        from .ballistics_engine import get_ballistics_engine
 
         db = get_database()
         engine = get_ballistics_engine()
@@ -646,7 +738,7 @@ class AIPredictionPage(QWizardPage):
         powder = self.wizard.powder_data
         params = self.wizard.load_params
 
-        html = "<h2 style='color: #27ae60;'>🤖 AI + Physics Load Prediction</h2>"
+        html = "<h2 style='color: #27ae60;'>Guided Physics Load Prediction</h2>"
 
         # Query historical data for ML prediction
         similar_loads = db.execute_query(
@@ -724,7 +816,7 @@ class AIPredictionPage(QWizardPage):
                 best = similar_loads[0]
 
                 html += f"""
-                <h3 style='color: #9b59b6;'>📚 Historical Data Analysis:</h3>
+                <h3 style='color: #9b59b6;'>Historical Data Analysis:</h3>
                 <p style='font-size: 11pt;'>Found {len(similar_loads)} similar loads in your database:</p>
                 <ul style='font-size: 10pt;'>
                     <li>Historical Best Charge: {hist_avg_charge:.1f} gr</li>
@@ -736,7 +828,7 @@ class AIPredictionPage(QWizardPage):
         # Show physics prediction
         if optimal:
             html += """
-            <h3 style='color: #3498db;'>🔬 Physics-Based Prediction:</h3>
+            <h3 style='color: #3498db;'>Physics-Based Prediction:</h3>
             <table style='font-size: 10pt; width: 100%; border-collapse: collapse;'>
                 <tr style='background: #ecf0f1;'>
                     <th style='padding: 8px; text-align: left;'>Charge (gr)</th>
@@ -752,7 +844,7 @@ class AIPredictionPage(QWizardPage):
                     if b["safety_margin_percent"] > 20
                     else "#e67e22" if b["safety_margin_percent"] > 10 else "#e74c3c"
                 )
-                optimal_marker = "⭐" if b["charge_weight_gr"] == optimal_charge else ""
+                optimal_marker = "*" if b["charge_weight_gr"] == optimal_charge else ""
 
                 html += f"""
                 <tr>
@@ -769,14 +861,14 @@ class AIPredictionPage(QWizardPage):
 
             # Show warnings
             if optimal["warnings"]:
-                html += "<h3 style='color: #e74c3c;'>⚠️ Safety Warnings:</h3><ul style='font-size: 10pt;'>"
+                html += "<h3 style='color: #e74c3c;'>Safety Warnings:</h3><ul style='font-size: 10pt;'>"
                 for warning in optimal["warnings"]:
                     html += f"<li>{warning}</li>"
                 html += "</ul>"
 
             # Recommended test charges
             html += f"""
-            <h3 style='color: #27ae60;'>🎯 Recommended Test Charges:</h3>
+            <h3 style='color: #27ae60;'>Recommended Test Charges:</h3>
             <p style='font-size: 11pt;'>
             Based on physics + your rifle specs:<br>
             <b style='color: #3498db;'>{test_charges[0]:.1f}, {test_charges[1]:.1f}, {test_charges[2]:.1f}, {test_charges[3]:.1f}, {test_charges[4]:.1f} gr</b>
@@ -802,7 +894,7 @@ class AIPredictionPage(QWizardPage):
                 "confidence": 0.9,  # High confidence - physics-based
             }
         else:
-            html += "<p style='color: #e74c3c;'>⚠️ Could not calculate ballistics - check rifle/bullet/powder data</p>"
+            html += "<p style='color: #e74c3c;'>Could not calculate ballistics - check rifle/bullet/powder data</p>"
             self.create_fallback_prediction(html, params)
 
         self.prediction_text.setHtml(html)
@@ -814,10 +906,10 @@ class AIPredictionPage(QWizardPage):
         mid_charge = (min_charge + max_charge) / 2
 
         html_fallback = f"""
-        <p style='font-size: 12pt; color: #e67e22;'><b>⚠️ No Historical Data Found</b></p>
+        <p style='font-size: 12pt; color: #e67e22;'><b>No Historical Data Found</b></p>
         <p>This is a new combination. Starting with conservative mid-range load.</p>
 
-        <h3 style='color: #3498db;'>📊 Recommended Starting Load:</h3>
+        <h3 style='color: #3498db;'>Recommended Starting Load:</h3>
         <ul style='font-size: 11pt; line-height: 1.8;'>
             <li><b>Starting Charge:</b> {mid_charge:.1f} gr (mid-range)</li>
             <li><b>Test Range:</b> {min_charge:.1f} - {max_charge:.1f} gr</li>
@@ -825,7 +917,7 @@ class AIPredictionPage(QWizardPage):
             <li><b>Safety:</b> Start low, work up carefully</li>
         </ul>
 
-        <h3 style='color: #e67e22;'>🎯 Recommended Test Charges:</h3>
+        <h3 style='color: #e67e22;'>Recommended Test Charges:</h3>
         <p style='font-size: 11pt;'>
         {min_charge:.1f}, {min_charge + (max_charge-min_charge)/4:.1f}, <b>{mid_charge:.1f}</b>, {min_charge + 3*(max_charge-min_charge)/4:.1f}, {max_charge:.1f} gr
         </p>
@@ -868,7 +960,7 @@ class TestProtocolPage(QWizardPage):
         protocol_text.setReadOnly(True)
         protocol_text.setHtml(
             """
-        <h2 style='color: #3498db;'>🧪 Recommended Test Protocol</h2>
+        <h2 style='color: #3498db;'>Recommended Test Protocol</h2>
 
         <h3 style='color: #27ae60;'>Method: Bayesian Optimization + OCW</h3>
 
@@ -880,7 +972,7 @@ class TestProtocolPage(QWizardPage):
         <ol style='font-size: 11pt; line-height: 1.8;'>
             <li><b>Load Test Charges</b> (5 charges × 3 rounds = 15 rounds total)
                 <ul>
-                    <li>Charges will be calculated based on AI prediction</li>
+                    <li>Charges will be calculated from guided prediction</li>
                     <li>Focus on predicted optimal window ±0.6gr</li>
                 </ul>
             </li>
@@ -907,7 +999,7 @@ class TestProtocolPage(QWizardPage):
             </li>
         </ol>
 
-        <h3 style='color: #c0392b;'>⚠️ Safety Reminders:</h3>
+        <h3 style='color: #c0392b;'>Safety Reminders:</h3>
         <ul style='font-size: 11pt;'>
             <li>Start with lowest charge first</li>
             <li>Watch for pressure signs (flattened primers, ejector marks, heavy bolt lift)</li>
@@ -937,7 +1029,7 @@ class BatchCreationPage(QWizardPage):
         layout = QVBoxLayout()
 
         # Batch Summary
-        summary_group = QGroupBox("📦 Test Batch Summary")
+        summary_group = QGroupBox("Test Batch Summary")
         self.summary_text = QTextEdit()
         self.summary_text.setReadOnly(True)
         self.summary_text.setMinimumHeight(250)
@@ -948,7 +1040,7 @@ class BatchCreationPage(QWizardPage):
         layout.addWidget(summary_group)
 
         # Batch Creation Options
-        options_group = QGroupBox("⚙️ Batch Options")
+        options_group = QGroupBox("Batch Options")
         options_layout = QFormLayout()
 
         self.batch_prefix_input = QLineEdit()
@@ -963,7 +1055,7 @@ class BatchCreationPage(QWizardPage):
         layout.addWidget(options_group)
 
         # Create Button
-        self.create_btn = QPushButton("✅ Create Test Batches")
+        self.create_btn = QPushButton("Create Test Batches")
         self.create_btn.clicked.connect(self.create_batches)
         self.create_btn.setStyleSheet(
             "background: #27ae60; color: white; font-weight: bold; padding: 12px; font-size: 12pt;"
@@ -971,7 +1063,7 @@ class BatchCreationPage(QWizardPage):
         layout.addWidget(self.create_btn)
 
         # Print batchark-knapp
-        self.print_btn = QPushButton("🖨️ Print Batchark")
+        self.print_btn = QPushButton("Print Batchark")
         self.print_btn.clicked.connect(self.print_batch_sheet)
         self.print_btn.setStyleSheet(
             "background: #2980b9; color: white; font-weight: bold; padding: 12px; font-size: 12pt;"
@@ -1035,9 +1127,9 @@ class BatchCreationPage(QWizardPage):
         params = self.wizard.load_params
 
         html = """
-        <h2 style='color:#2980b9;'>Batchark for Testlading</h2>
+        <h2 style='color:#2980b9;'>Batch Sheet for Test Loads</h2>
         <table border='1' cellpadding='6' style='border-collapse:collapse;width:100%;font-size:13pt;'>
-        <tr><th>Batchnummer</th><th>Kule</th><th>Vekt</th><th>Krutt</th><th>Ladning</th><th>Tennhette</th><th>Antall</th></tr>
+        <tr><th>Batch Number</th><th>Bullet</th><th>Weight</th><th>Powder</th><th>Charge</th><th>Primer</th><th>Quantity</th></tr>
         """
         for i, charge in enumerate(test_charges, 1):
             batch_num = f"{self.batch_prefix_input.text()}-{i:03d}"
@@ -1052,12 +1144,12 @@ class BatchCreationPage(QWizardPage):
             html += "</tr>"
         html += "</table>"
         html += f"<p><b>Rifle:</b> {rifle.get('name','-')}<br>"
-        html += f"<b>Hylsebatch:</b> {brass.get('batch_name','-')}<br>"
+        html += f"<b>Brass Batch:</b> {brass.get('batch_name','-')}<br>"
         html += f"<b>COAL:</b> {params.get('coal_mm','-')} mm | <b>CBTO:</b> {params.get('cbto_mm','-')} mm</p>"
 
         # Vis i nytt vindu
         dlg = QDialog(self)
-        dlg.setWindowTitle("Batchark for utskrift")
+        dlg.setWindowTitle("Batch Sheet for Printing")
         dlg.resize(800, 600)
         vbox = QVBoxLayout()
         text = QTextEdit()
@@ -1137,11 +1229,11 @@ class BatchCreationPage(QWizardPage):
 
             QMessageBox.information(
                 self,
-                "✅ Batches Created!",
+                "Batches Created!",
                 f"Successfully created {len(created_batches)} test batches:\n\n"
                 + "\n".join(created_batches)
                 + f"\n\nTotal: {len(test_charges) * shots_per_charge} rounds to load."
-                + "\n\n🎯 Next steps:"
+                + "\n\nNext steps:"
                 + "\n1. Load the test ammunition"
                 + "\n2. Perform QC measurements"
                 + "\n3. Test at the range"

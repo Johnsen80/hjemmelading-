@@ -2,6 +2,8 @@ import os
 import sqlite3
 import sys
 
+import pytest
+
 # make src importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -68,6 +70,7 @@ class SimpleDB:
         self.conn.commit()
 
 
+@pytest.mark.core
 def test_calibrator_finds_linear_mapping():
     db = SimpleDB()
     cur = db.cursor
@@ -106,3 +109,41 @@ def test_calibrator_finds_linear_mapping():
     assert res.get("used") >= 2
     # slope should be near 1.0 (measured ~ predicted), intercept near 0 within some error
     assert abs(res.get("slope") - 1.0) < 0.2
+
+
+@pytest.mark.core
+def test_benchmark_engine_reports_metrics():
+    db = SimpleDB()
+    cur = db.cursor
+
+    cur.execute(
+        "INSERT INTO ammo_profiles (name, powder_charge) VALUES (?, ?)", ("p1", 40.0)
+    )
+    ap1 = cur.lastrowid
+    cur.execute(
+        "INSERT INTO ammo_profiles (name, powder_charge) VALUES (?, ?)", ("p2", 44.0)
+    )
+    ap2 = cur.lastrowid
+
+    eng = FakeEngine(scale=1.01, bias=-2.0)
+
+    v1 = eng.predict_velocity(40.0) + 2.0
+    v2 = eng.predict_velocity(44.0) - 1.0
+
+    cur.execute(
+        "INSERT INTO chronograph_imports (ammo_profile_id, velocity_avg, velocities_json) VALUES (?, ?, ?)",
+        (ap1, v1, "[%.2f]" % v1),
+    )
+    id1 = cur.lastrowid
+    cur.execute(
+        "INSERT INTO chronograph_imports (ammo_profile_id, velocity_avg, velocities_json) VALUES (?, ?, ?)",
+        (ap2, v2, "[%.2f]" % v2),
+    )
+    id2 = cur.lastrowid
+    db.conn.commit()
+
+    res = calibrator.benchmark_engine(db, eng, [id1, id2])
+    assert res.get("ok") is True
+    assert res.get("used") == 2
+    assert res.get("mae") is not None
+    assert res.get("rmse") is not None

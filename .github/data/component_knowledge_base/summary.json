@@ -1,0 +1,33 @@
+{
+  "source_root": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\Data",
+  "output_root": "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\component_knowledge_base",
+  "load_snapshot_file_count": 10,
+  "component_xml_file_count": 3,
+  "component_xml_counts": {
+    "projectilefile": 3,
+    "propellantfile": 0,
+    "caliberfile": 0
+  },
+  "load_snapshot_counts": {
+    "projectile": 10,
+    "propellant": 10,
+    "caliber": 10,
+    "caliberfile": 10,
+    "measurement": 6,
+    "shots": 58
+  },
+  "database_counts": {
+    "sources": 13,
+    "raw_records": 49,
+    "bullets": 9,
+    "powders": 2,
+    "calibers": 8,
+    "loads": 10,
+    "measurements": 58
+  },
+  "note": "Databasen er frikoblet fra det tidligere referanseformatet og inneholder kun data som var lesbare fra XML/load-kildene.",
+  "unreadable_source_files": [
+    "c:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\ReferenceLibrary.db"
+  ]
+}
+

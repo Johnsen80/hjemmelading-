@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from src.ui.reloading_theme import ReloadingTheme
+from src.utils.i18n import tr
 
 
 class DisabledFeatureCard(QWidget):
@@ -20,9 +21,9 @@ class DisabledFeatureCard(QWidget):
         layout = QHBoxLayout()
         self.setLayout(layout)
         txt = ", ".join(missing)
-        lbl = QLabel(f"Optional packages missing: {txt}. Some features are disabled.")
+        lbl = QLabel(tr("disabled_feature_card_message", packages=txt))
         lbl.setWordWrap(True)
-        btn = QPushButton("How to install")
+        btn = QPushButton(tr("disabled_feature_card_install"))
         btn.setObjectName("bannerAction")
         # Try to add an info icon if available
         try:
@@ -51,7 +52,9 @@ class DisabledFeatureCard(QWidget):
                     from PyQt6.QtWidgets import QMessageBox
 
                     QMessageBox.information(
-                        self, "Info", "See OPTIONAL_DEPENDENCIES.md in project root."
+                        self,
+                        tr("msg_info"),
+                        tr("disabled_feature_card_fallback_info"),
                     )
                 except Exception:
                     pass

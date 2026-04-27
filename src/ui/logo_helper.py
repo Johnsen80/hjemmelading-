@@ -4,8 +4,7 @@ from typing import Optional
 
 # Guard Qt imports so this module can be imported in headless/test environments
 try:
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtGui import QPixmap
+    from ..qt_compat import QPixmap, Qt
 
     _HAS_QT = True
 except Exception:

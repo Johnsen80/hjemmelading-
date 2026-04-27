@@ -1,8 +1,13 @@
 ﻿import os
 from typing import Any, Dict, Optional
 
-from modules.hjemmelading.storage import load_profile, save_profile
-from modules.hjemmelading.validation import validate_profile
+try:
+    from .hjemmelading.storage import load_profile, save_profile
+    from .hjemmelading.validation import validate_profile
+except ImportError:
+    # Fallback for legacy launch paths where package prefix differs
+    from HjemmeladingApp.modules.hjemmelading.storage import load_profile, save_profile  # type: ignore[no-redef]
+    from HjemmeladingApp.modules.hjemmelading.validation import validate_profile  # type: ignore[no-redef]
 
 from ..utils import safe_logger
 

@@ -8,6 +8,8 @@ import math
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+from .environment import BallisticEnvironment
+
 
 @dataclass
 class AtmosphericConditions:
@@ -19,14 +21,18 @@ class AtmosphericConditions:
     altitude_ft: float = 0.0
 
     def get_density_ratio(self) -> float:
-        """Beregner lufttetthet ratio (rho/rho0)"""
-        # Standard conditions: 59°F, 29.92 inHg, sea level
-        temp_rankine = self.temperature_f + 459.67
-        pressure_ratio = self.pressure_inhg / 29.92
-        temp_ratio = 518.67 / temp_rankine
-
-        density_ratio = pressure_ratio * temp_ratio
-        return density_ratio
+        """Beregner lufttetthet ratio (rho/rho0) via felles miljømodell."""
+        environment = BallisticEnvironment(
+            temperature_c=(self.temperature_f - 32.0) * 5.0 / 9.0,
+            pressure_hpa=self.pressure_inhg * 33.8638866667,
+            humidity_percent=self.humidity_percent,
+            altitude_m=self.altitude_ft * 0.3048,
+            temperature_source="provided",
+            pressure_source="provided",
+            humidity_source="provided",
+            altitude_source="provided",
+        )
+        return environment.density_ratio()
 
 
 @dataclass
@@ -181,8 +187,27 @@ class AdvancedBallisticsEngine:
 
     # Konstanter
     GRAVITY = 32.174  # ft/s²
-    SPEED_OF_SOUND = 1116.0  # ft/s at sea level, 59°F
+    # Speed of sound at sea level, 59 °F (15 °C) — used as fallback only.
+    # For trajectory calculations use speed_of_sound_fps(temp_f) instead.
+    SPEED_OF_SOUND = 1116.0  # ft/s at 59 °F
     EARTH_ROTATION_RATE = 0.00007292  # rad/s
+
+    @staticmethod
+    def speed_of_sound_fps(temp_fahrenheit: float) -> float:
+        """
+        Temperature-corrected speed of sound at sea level.
+
+        Based on: v = 49.0 * sqrt(T_Rankine)
+        where T_Rankine = T_Fahrenheit + 459.67
+
+        Examples:
+          0 °F  → 1 052 fps   (error with fixed 1 116: −6 %)
+         59 °F  → 1 116 fps   (reference)
+        100 °F  → 1 159 fps   (error with fixed 1 116: +4 %)
+        """
+        t_rankine = max(temp_fahrenheit + 459.67, 1.0)
+        return 49.0 * math.sqrt(t_rankine)
+
     FEET_TO_METERS = 0.3048
     METERS_TO_FEET = 3.28084
     INCHES_TO_CM = 2.54
@@ -231,6 +256,8 @@ class AdvancedBallisticsEngine:
             conditions = AtmosphericConditions()
 
         density_ratio = conditions.get_density_ratio()
+        # Temperature-corrected speed of sound (replaces fixed 1116 fps constant)
+        self._speed_of_sound = self.speed_of_sound_fps(conditions.temperature_f)
         drag_func = self.g7_drag if bc_type == "G7" else self.g1_drag
 
         # Initial conditions
@@ -346,7 +373,8 @@ class AdvancedBallisticsEngine:
         self, vx: float, vy: float, v: float, bc: float, density_ratio: float, drag_func
     ) -> Tuple[float, float]:
         """Beregner akselerasjoner (dv/dt)"""
-        mach = v / self.SPEED_OF_SOUND
+        sos = getattr(self, "_speed_of_sound", self.SPEED_OF_SOUND)
+        mach = v / sos
         cd = drag_func.get_cd(mach)
 
         # Drag force coefficient
@@ -376,7 +404,7 @@ class AdvancedBallisticsEngine:
                 velocity_fps, bc, zero_distance_ft, angle, density_ratio, drag_func
             )
 
-            correction = drop / zero_distance_ft
+            correction = -drop / zero_distance_ft
             angle += correction
 
             if abs(drop) < 0.01:  # Converged (within 0.01 feet)
@@ -431,7 +459,8 @@ class AdvancedBallisticsEngine:
         wind_component = wind_fps * math.sin(math.radians(wind_angle_deg))
 
         # Simplified wind drift (can be improved with full integration)
-        mach = velocity_fps / self.SPEED_OF_SOUND
+        sos = getattr(self, "_speed_of_sound", self.SPEED_OF_SOUND)
+        mach = velocity_fps / sos
         cd = drag_func.get_cd(mach)
         drag_coef = (density_ratio * cd) / bc
 

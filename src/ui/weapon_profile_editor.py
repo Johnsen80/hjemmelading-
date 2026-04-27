@@ -1,7 +1,13 @@
 from pathlib import Path
 from typing import Any, Optional
 
-from PyQt6.QtWidgets import (
+from src.modules.weapon_profile import load_profiles, save_profiles
+from src.ui.barrel_editor import BarrelEditorDialog, build_caliber_combo
+from src.ui.calibration_test_dialog import CalibrationTestDialog
+from src.ui.toast import show_toast
+from src.utils.i18n import tr
+
+from ..qt_compat import (
     QApplication,
     QComboBox,
     QDialog,
@@ -19,10 +25,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.modules.weapon_profile import load_profiles, save_profiles
-from src.ui.barrel_editor import BarrelEditorDialog
-from src.ui.calibration_test_dialog import CalibrationTestDialog
-
 DEFAULT_DATA = Path("data") / "demo_weapons.json"
 
 
@@ -35,14 +37,12 @@ class WeaponProfileEditor(QDialog):
 
     def __init__(self, data_path: Optional[Path] = None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Weapon Profile Editor — Valkyrie Ballistics")
+        self.setWindowTitle(tr("weapon_profile_editor_title"))
         self.resize(640, 360)
-        # Apply central stylesheet and objectName for theming
         try:
-            from src.ui.reloading_theme import ReloadingTheme
+            from src.ui.theme import apply_modern_theme
 
-            self.setObjectName("weaponProfileEditor")
-            self.setStyleSheet(ReloadingTheme.get_stylesheet())
+            apply_modern_theme(self)
         except Exception:
             pass
 
@@ -52,6 +52,9 @@ class WeaponProfileEditor(QDialog):
         # convert to legacy list-of-dicts shape for UI code reuse
         self._data: list[dict[str, Any]] = [p.to_dict() for p in self._profiles]
 
+        # Sync any existing JSON profiles into the SQLite rifles table so load builder finds them
+        self._sync_profiles_to_db()
+
         self.main_layout = QVBoxLayout(self)
 
         self.selector_layout = QHBoxLayout()
@@ -59,7 +62,7 @@ class WeaponProfileEditor(QDialog):
         self.profile_select.currentIndexChanged.connect(self._on_select)
         self.selector_layout.addWidget(self.profile_select)
 
-        self.new_btn = QPushButton("New")
+        self.new_btn = QPushButton(tr("new"))
         self.new_btn.clicked.connect(self._on_new)
         self.selector_layout.addWidget(self.new_btn)
 
@@ -69,25 +72,25 @@ class WeaponProfileEditor(QDialog):
         self.barrel_selector_layout = QHBoxLayout()
         self.barrel_select = QComboBox()
         self.barrel_select.currentIndexChanged.connect(self._on_barrel_select)
-        self.barrel_selector_layout.addWidget(QLabel("Barrels:"))
+        self.barrel_selector_layout.addWidget(QLabel(tr("barrels_label")))
         self.barrel_selector_layout.addWidget(self.barrel_select)
 
-        self.add_barrel_btn = QPushButton("Add Barrel")
+        self.add_barrel_btn = QPushButton(tr("add_barrel"))
         self.add_barrel_btn.clicked.connect(self._on_new_barrel)
         self.barrel_selector_layout.addWidget(self.add_barrel_btn)
 
-        self.edit_barrel_btn = QPushButton("Edit Barrel")
+        self.edit_barrel_btn = QPushButton(tr("edit_barrel"))
         self.edit_barrel_btn.clicked.connect(self._on_edit_barrel)
         self.barrel_selector_layout.addWidget(self.edit_barrel_btn)
 
-        self.remove_barrel_btn = QPushButton("Remove Barrel")
+        self.remove_barrel_btn = QPushButton(tr("remove_barrel"))
         self.remove_barrel_btn.clicked.connect(self._on_remove_barrel)
         self.barrel_selector_layout.addWidget(self.remove_barrel_btn)
 
-        self.add_calib_btn = QPushButton("Add Calibration Test")
+        self.add_calib_btn = QPushButton(tr("add_calibration_test"))
         self.add_calib_btn.clicked.connect(self._on_add_calibration_test)
         self.barrel_selector_layout.addWidget(self.add_calib_btn)
-        self.view_calib_btn = QPushButton("View Tests")
+        self.view_calib_btn = QPushButton(tr("view_tests"))
         self.view_calib_btn.clicked.connect(self._on_view_calibration_tests)
         self.barrel_selector_layout.addWidget(self.view_calib_btn)
 
@@ -95,48 +98,73 @@ class WeaponProfileEditor(QDialog):
 
         form = QFormLayout()
         self.name_edit = QLineEdit()
-        self.caliber_edit = QLineEdit()
-        self.barrel_length_edit = QLineEdit()
-        self.twist_edit = QLineEdit()
-        self.muzzle_velocity_edit = QLineEdit()
+        self.caliber_edit = build_caliber_combo()
         self.notes_edit = QTextEdit()
+        self.notes_edit.setMaximumHeight(80)
         # Optics fields (simple single-active-optic UI)
         self.optic_name_edit = QLineEdit()
         self.optic_manufacturer_edit = QLineEdit()
         self.optic_zero_distance_edit = QLineEdit()
+        self.optic_zero_distance_edit.setPlaceholderText("m")
         self.optic_unit_combo = QComboBox()
-        self.optic_unit_combo.addItems(["mil", "moa"])
+        self.optic_unit_combo.addItems([tr("mil"), tr("moa")])
         self.optic_click_value_edit = QLineEdit()
+        self.optic_click_value_edit.setPlaceholderText("e.g. 0.1")
         self.optic_clicks_per_rev_edit = QLineEdit()
+        self.optic_clicks_per_rev_edit.setPlaceholderText("e.g. 10")
 
-        form.addRow("Name:", self.name_edit)
-        form.addRow("Caliber:", self.caliber_edit)
-        form.addRow("Barrel length (mm):", self.barrel_length_edit)
-        form.addRow("Twist:", self.twist_edit)
-        form.addRow("Muzzle velocity (m/s):", self.muzzle_velocity_edit)
-        form.addRow("Notes:", self.notes_edit)
+        # Click value presets
+        click_row = QHBoxLayout()
+        click_row.addWidget(self.optic_click_value_edit)
+        for label, val in [
+            ("¼ MOA", "0.25"),
+            ("⅛ MOA", "0.125"),
+            ("0.1 MIL", "0.1"),
+            ("1 MOA", "1.0"),
+        ]:
+            btn = QPushButton(label)
+            btn.setFixedWidth(70)
+            btn.clicked.connect(
+                lambda _checked, v=val: self.optic_click_value_edit.setText(v)
+            )
+            click_row.addWidget(btn)
+
+        # Clicks per revolution presets
+        cpr_row = QHBoxLayout()
+        cpr_row.addWidget(self.optic_clicks_per_rev_edit)
+        for val in ["10", "15", "20", "40", "100"]:
+            btn = QPushButton(val)
+            btn.setFixedWidth(45)
+            btn.clicked.connect(
+                lambda _checked, v=val: self.optic_clicks_per_rev_edit.setText(v)
+            )
+            cpr_row.addWidget(btn)
+
+        form.addRow(tr("name_label"), self.name_edit)
+        form.addRow(tr("caliber_label"), self.caliber_edit)
+        form.addRow(tr("notes_label"), self.notes_edit)
         # Optics section
-        form.addRow("Optic name:", self.optic_name_edit)
-        form.addRow("Manufacturer:", self.optic_manufacturer_edit)
-        form.addRow("Zero distance (m):", self.optic_zero_distance_edit)
-        form.addRow("Turret units:", self.optic_unit_combo)
-        form.addRow("Click value (unit):", self.optic_click_value_edit)
-        form.addRow("Clicks per rev:", self.optic_clicks_per_rev_edit)
+        form.addRow(tr("optic_name_label"), self.optic_name_edit)
+        form.addRow(tr("manufacturer_label"), self.optic_manufacturer_edit)
+        form.addRow(tr("zero_distance_label"), self.optic_zero_distance_edit)
+        form.addRow(tr("turret_units_label"), self.optic_unit_combo)
+        form.addRow(tr("click_value_label"), click_row)
+        form.addRow(tr("clicks_per_rev_label"), cpr_row)
         # Optics history / management
-        self.view_optics_history_btn = QPushButton("View Optics History")
+        self.view_optics_history_btn = QPushButton(tr("view_optics_history"))
         self.view_optics_history_btn.clicked.connect(self._on_view_optics_history)
         form.addRow(self.view_optics_history_btn)
 
         self.main_layout.addLayout(form)
 
         btn_row = QHBoxLayout()
-        self.save_btn = QPushButton("Save")
+        self.save_btn = QPushButton(tr("save"))
         self.save_btn.clicked.connect(self._on_save)
-        self.save_as_btn = QPushButton("Save As...")
+        self.save_as_btn = QPushButton(tr("save_as"))
         self.save_as_btn.clicked.connect(self._on_save_as)
-        self.delete_btn = QPushButton("Delete")
+        self.delete_btn = QPushButton(tr("delete"))
         self.delete_btn.clicked.connect(self._on_delete)
-        self.close_btn = QPushButton("Close")
+        self.close_btn = QPushButton(tr("close"))
         self.close_btn.clicked.connect(self.close)
 
         btn_row.addWidget(self.save_btn)
@@ -163,6 +191,74 @@ class WeaponProfileEditor(QDialog):
             for p in self._data
         ]
         save_profiles(target, profiles)
+        self._sync_profiles_to_db()
+
+    def _sync_profiles_to_db(self) -> None:
+        """Mirror profiles from the JSON file into the SQLite rifles table so the load builder can find them."""
+        try:
+            import json as _json
+            from datetime import datetime
+
+            from src.database.database import get_database
+
+            db = get_database()
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for p in self._data:
+                name = (p.get("name") or "").strip()
+                caliber = (p.get("caliber") or "").strip()
+                if not name:
+                    continue
+                # Extract active barrel data
+                barrels = p.get("barrels") or []
+                active_id = p.get("active_barrel_id")
+                barrel = next(
+                    (b for b in barrels if str(b.get("id")) == str(active_id)),
+                    barrels[0] if barrels else {},
+                )
+                barrel_length_mm = barrel.get("length_mm") or p.get("barrel_length_mm")
+                twist_rate = barrel.get("twist") or p.get("twist") or ""
+
+                row = {
+                    "name": name,
+                    "caliber": caliber,
+                    "weapon_type": p.get("weapon_type") or "",
+                    "preferred_units": p.get("preferred_units") or "",
+                    "barrel_length_mm": barrel_length_mm,
+                    "twist_rate": twist_rate,
+                    "notes": p.get("notes") or "",
+                    "last_updated": now,
+                }
+                existing = db.execute_query(
+                    "SELECT id FROM rifles WHERE name = ?", (name,)
+                )
+                if existing:
+                    rifle_id = existing[0]["id"]
+                    db.update("rifles", row, "id = ?", (rifle_id,))
+                else:
+                    row["created_date"] = now
+                    rifle_id = db.insert("rifles", row)
+
+                # Store the full JSON profile in rifle_profile_details
+                if rifle_id:
+                    profile_json = _json.dumps(p, ensure_ascii=False)
+                    det = db.execute_query(
+                        "SELECT id FROM rifle_profile_details WHERE rifle_id = ?",
+                        (rifle_id,),
+                    )
+                    if det:
+                        db.update(
+                            "rifle_profile_details",
+                            {"profile_json": profile_json},
+                            "rifle_id = ?",
+                            (rifle_id,),
+                        )
+                    else:
+                        db.insert(
+                            "rifle_profile_details",
+                            {"rifle_id": rifle_id, "profile_json": profile_json},
+                        )
+        except Exception:
+            pass
 
     def _refresh_selector(self):
         self.profile_select.blockSignals(True)
@@ -188,10 +284,7 @@ class WeaponProfileEditor(QDialog):
 
     def _populate_fields(self, profile: dict):
         self.name_edit.setText(profile.get("name", ""))
-        self.caliber_edit.setText(profile.get("caliber", ""))
-        self.barrel_length_edit.setText(str(profile.get("barrel_length_mm", "")))
-        self.twist_edit.setText(profile.get("twist", ""))
-        self.muzzle_velocity_edit.setText(str(profile.get("muzzle_velocity_mps", "")))
+        self.caliber_edit.setCurrentText(profile.get("caliber", ""))
         self.notes_edit.setPlainText(profile.get("notes", ""))
         # Populate optics (use first optic as active)
         optics = profile.get("optics", [])
@@ -204,8 +297,8 @@ class WeaponProfileEditor(QDialog):
             idx = self.optic_unit_combo.findText(unit)
             if idx >= 0:
                 self.optic_unit_combo.setCurrentIndex(idx)
-            self.optic_click_value_edit.setText(str(o.get("click_value", "")))
-            self.optic_clicks_per_rev_edit.setText(str(o.get("clicks_per_rev", "")))
+            self.optic_click_value_edit.setText(str(o.get("click_value") or ""))
+            self.optic_clicks_per_rev_edit.setText(str(o.get("clicks_per_rev") or ""))
         else:
             self.optic_name_edit.setText("")
             self.optic_manufacturer_edit.setText("")
@@ -222,10 +315,8 @@ class WeaponProfileEditor(QDialog):
     def _on_new(self):
         new_profile = {
             "id": f"new-{len(self._data)+1}",
-            "name": "New Weapon",
+            "name": tr("new_weapon"),
             "caliber": "",
-            "barrel_length_mm": None,
-            "twist": "",
             "muzzle_velocity_mps": None,
             "notes": "",
         }
@@ -240,12 +331,12 @@ class WeaponProfileEditor(QDialog):
     def _on_new_barrel(self):
         idx = self.profile_select.currentIndex()
         if not (0 <= idx < len(self._data)):
-            QMessageBox.information(self, "No profile", "Select a profile first.")
+            QMessageBox.information(self, tr("no_profile"), tr("select_profile_first"))
             return
         profile = self._data[idx]
         new_barrel = {
             "id": f"barrel-{len(profile.get('barrels', [])) + 1}",
-            "name": "New Barrel",
+            "name": tr("new_barrel"),
             "length_mm": None,
             "material": "",
             "mount_type": "",
@@ -258,12 +349,12 @@ class WeaponProfileEditor(QDialog):
     def _on_edit_barrel(self):
         idx = self.profile_select.currentIndex()
         if not (0 <= idx < len(self._data)):
-            QMessageBox.information(self, "No profile", "Select a profile first.")
+            QMessageBox.information(self, tr("no_profile"), tr("select_profile_first"))
             return
         profile = self._data[idx]
         bidx = self.barrel_select.currentIndex()
         if not (0 <= bidx < len(profile.get("barrels", []))):
-            QMessageBox.information(self, "No barrel", "Select a barrel first.")
+            QMessageBox.information(self, tr("no_barrel"), tr("select_barrel_first"))
             return
         barrel = profile["barrels"][bidx]
         dlg = BarrelEditorDialog(barrel, parent=self)
@@ -275,12 +366,12 @@ class WeaponProfileEditor(QDialog):
     def _on_add_calibration_test(self):
         idx = self.profile_select.currentIndex()
         if not (0 <= idx < len(self._data)):
-            QMessageBox.information(self, "No profile", "Select a profile first.")
+            QMessageBox.information(self, tr("no_profile"), tr("select_profile_first"))
             return
         profile = self._data[idx]
         bidx = self.barrel_select.currentIndex()
         if not (0 <= bidx < len(profile.get("barrels", []))):
-            QMessageBox.information(self, "No barrel", "Select a barrel first.")
+            QMessageBox.information(self, tr("no_barrel"), tr("select_barrel_first"))
             return
         barrel = profile["barrels"][bidx]
         dlg = CalibrationTestDialog(
@@ -299,17 +390,17 @@ class WeaponProfileEditor(QDialog):
                 "notes": data.get("notes", ""),
             }
             barrel["calibration_tests"].append(data_obj)
-            QMessageBox.information(self, "Saved", "Calibration test saved to profile.")
+            QMessageBox.information(self, tr("saved"), tr("calibration_test_saved"))
 
     def _on_view_calibration_tests(self):
         idx = self.profile_select.currentIndex()
         if not (0 <= idx < len(self._data)):
-            QMessageBox.information(self, "No profile", "Select a profile first.")
+            QMessageBox.information(self, tr("no_profile"), tr("select_profile_first"))
             return
         profile = self._data[idx]
         bidx = self.barrel_select.currentIndex()
         if not (0 <= bidx < len(profile.get("barrels", []))):
-            QMessageBox.information(self, "No barrel", "Select a barrel first.")
+            QMessageBox.information(self, tr("no_barrel"), tr("select_barrel_first"))
             return
         barrel = profile["barrels"][bidx]
         from src.ui.calibration_tests_viewer import CalibrationTestsViewer
@@ -326,7 +417,9 @@ class WeaponProfileEditor(QDialog):
         if not (0 <= bidx < len(profile.get("barrels", []))):
             return
         if (
-            QMessageBox.question(self, "Remove Barrel", "Remove selected barrel?")
+            QMessageBox.question(
+                self, tr("remove_barrel"), tr("remove_selected_barrel")
+            )
             == QMessageBox.StandardButton.Yes
         ):
             del profile["barrels"][bidx]
@@ -335,7 +428,7 @@ class WeaponProfileEditor(QDialog):
     def _on_view_optics_history(self):
         idx = self.profile_select.currentIndex()
         if not (0 <= idx < len(self._data)):
-            QMessageBox.information(self, "No profile", "Select a profile first.")
+            QMessageBox.information(self, tr("no_profile"), tr("select_profile_first"))
             return
         profile = self._data[idx]
         dlg = OpticsHistoryDialog(
@@ -347,24 +440,8 @@ class WeaponProfileEditor(QDialog):
         idx = self.profile_select.currentIndex()
         profile = self._data[idx] if 0 <= idx < len(self._data) else {}
         profile["name"] = self.name_edit.text().strip()
-        profile["caliber"] = self.caliber_edit.text().strip()
-        try:
-            profile["barrel_length_mm"] = (
-                int(self.barrel_length_edit.text())
-                if self.barrel_length_edit.text().strip()
-                else None
-            )
-        except ValueError:
-            profile["barrel_length_mm"] = None
-        profile["twist"] = self.twist_edit.text().strip()
-        try:
-            profile["muzzle_velocity_mps"] = (
-                float(self.muzzle_velocity_edit.text())
-                if self.muzzle_velocity_edit.text().strip()
-                else None
-            )
-        except ValueError:
-            profile["muzzle_velocity_mps"] = None
+        profile["caliber"] = self.caliber_edit.currentText().strip()
+        profile["muzzle_velocity_mps"] = None
         profile["notes"] = self.notes_edit.toPlainText().strip()
         # gather optics (store as single-entry list if provided)
         optic_name = self.optic_name_edit.text().strip()
@@ -412,23 +489,23 @@ class WeaponProfileEditor(QDialog):
 
     def _on_save(self):
         if not self._data:
-            QMessageBox.information(self, "Nothing to save", "No profiles to save.")
+            QMessageBox.information(
+                self, tr("nothing_to_save"), tr("no_profiles_to_save")
+            )
             return
         idx = self.profile_select.currentIndex()
         if 0 <= idx < len(self._data):
             self._data[idx] = self._gather_current()
             try:
                 self._save_data()
-                QMessageBox.information(
-                    self, "Saved", f"Profiles saved to {self.data_path}"
-                )
+                show_toast(self, f"Lagret: {self.data_path.name}", kind="success")
                 self._refresh_selector()
             except Exception as e:
-                QMessageBox.critical(self, "Error saving", str(e))
+                QMessageBox.critical(self, tr("error_saving"), str(e))
 
     def _on_save_as(self):
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save profiles as...", str(self.data_path), "JSON Files (*.json)"
+            self, tr("save_profiles_as"), str(self.data_path), "JSON Files (*.json)"
         )
         if path:
             try:
@@ -437,15 +514,15 @@ class WeaponProfileEditor(QDialog):
                 if 0 <= idx < len(self._data):
                     self._data[idx] = self._gather_current()
                 self._save_data(Path(path))
-                QMessageBox.information(self, "Saved", f"Profiles saved to {path}")
+                show_toast(self, f"Lagret til: {Path(path).name}", kind="success")
             except Exception as e:
-                QMessageBox.critical(self, "Error saving", str(e))
+                QMessageBox.critical(self, tr("error_saving"), str(e))
 
     def _on_delete(self):
         idx = self.profile_select.currentIndex()
         if 0 <= idx < len(self._data):
             if (
-                QMessageBox.question(self, "Delete", "Delete selected profile?")
+                QMessageBox.question(self, tr("delete"), tr("delete_selected_profile"))
                 == QMessageBox.StandardButton.Yes
             ):
                 del self._data[idx]
@@ -457,7 +534,7 @@ class OpticsHistoryDialog(QDialog):
 
     def __init__(self, profile: dict, persist_callback=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Optics History")
+        self.setWindowTitle(tr("optics_history_title"))
         self.resize(800, 400)
         self.profile = profile
         self._persist = persist_callback
@@ -469,13 +546,13 @@ class OpticsHistoryDialog(QDialog):
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(
             [
-                "Timestamp",
-                "Load Index",
-                "V Angle",
-                "V Clicks",
-                "H Angle",
-                "H Clicks",
-                "Meta",
+                tr("timestamp"),
+                tr("load_index"),
+                tr("v_angle"),
+                tr("v_clicks"),
+                tr("h_angle"),
+                tr("h_clicks"),
+                tr("meta"),
             ]
         )
         header = self.table.horizontalHeader()
@@ -484,9 +561,9 @@ class OpticsHistoryDialog(QDialog):
         layout.addWidget(self.table)
 
         btn_row = QHBoxLayout()
-        self.remove_btn = QPushButton("Remove Selected")
+        self.remove_btn = QPushButton(tr("remove_selected"))
         self.remove_btn.clicked.connect(self._on_remove_selected)
-        self.close_btn = QPushButton("Close")
+        self.close_btn = QPushButton(tr("close"))
         self.close_btn.clicked.connect(self.accept)
         btn_row.addStretch()
         btn_row.addWidget(self.remove_btn)
@@ -530,7 +607,9 @@ class OpticsHistoryDialog(QDialog):
     def _on_remove_selected(self) -> None:
         sel = self.table.selectedItems()
         if not sel:
-            QMessageBox.information(self, "No selection", "Select a row to remove.")
+            QMessageBox.information(
+                self, tr("no_selection"), tr("select_row_to_remove")
+            )
             return
         # selectedItems returns all cells; get unique rows
         rows = sorted({item.row() for item in sel}, reverse=True)
@@ -545,8 +624,8 @@ class OpticsHistoryDialog(QDialog):
         except Exception:
             QMessageBox.warning(
                 self,
-                "Persist failed",
-                "Failed to persist optics history after removal.",
+                tr("persist_failed"),
+                tr("failed_to_persist_optics_history"),
             )
         self.profile["optics_history"] = entries
         self._load_entries()

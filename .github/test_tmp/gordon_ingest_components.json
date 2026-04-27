@@ -1,0 +1,161 @@
+{
+  "meta": {
+    "schema_version": "component_database.v1"
+  },
+  "data": {
+    "bullets": [
+      {
+        "manufacturer": "Hornady",
+        "name": "FMJ",
+        "caliber": ".308",
+        "weight": 125.0,
+        "bc_g1": 0.0,
+        "bc_g7": 0.0,
+        "length": 0.944,
+        "diameter": 0.307,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 1
+      },
+      {
+        "manufacturer": "Norma",
+        "name": "EcoStrike",
+        "caliber": ".308",
+        "weight": 150.0,
+        "bc_g1": 0.42,
+        "bc_g7": 0.0,
+        "length": 1.28,
+        "diameter": 0.307,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 2
+      },
+      {
+        "manufacturer": "North Fork",
+        "name": "SS",
+        "caliber": ".308",
+        "weight": 150.0,
+        "bc_g1": 0.0,
+        "bc_g7": 0.0,
+        "length": 1.114,
+        "diameter": 0.307,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 3
+      },
+      {
+        "manufacturer": "Hornady",
+        "name": "BTHP Natl M #30501",
+        "caliber": "0.308",
+        "weight": 168.0,
+        "bc_g1": 0.45,
+        "bc_g7": 0.0,
+        "length": 1.226,
+        "diameter": 0.308,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 4
+      },
+      {
+        "manufacturer": "PPU",
+        "name": "PPB30MC150",
+        "caliber": "0.308",
+        "weight": 150.0,
+        "bc_g1": 0.4,
+        "bc_g7": 0.0,
+        "length": 1.126,
+        "diameter": 0.309,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 5
+      },
+      {
+        "manufacturer": "Hornady",
+        "name": "ELD-M #26175",
+        "caliber": "0.264",
+        "weight": 120.0,
+        "bc_g1": 0.458,
+        "bc_g7": 0.0,
+        "length": 1.202,
+        "diameter": 0.264,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 6
+      },
+      {
+        "manufacturer": "Hornady",
+        "name": "BTHP 26335",
+        "caliber": "0.264",
+        "weight": 140.0,
+        "bc_g1": 0.58,
+        "bc_g7": 0.0,
+        "length": 1.332,
+        "diameter": 0.264,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 7
+      },
+      {
+        "manufacturer": "Sierra",
+        "name": "HPBT MatchK 1725C",
+        "caliber": "0.264",
+        "weight": 120.0,
+        "bc_g1": 0.0,
+        "bc_g7": 0.0,
+        "length": 1.196,
+        "diameter": 0.264,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 8
+      },
+      {
+        "manufacturer": "Barnes",
+        "name": "MatchB 30381",
+        "caliber": "0.308",
+        "weight": 154.86,
+        "bc_g1": 0.467,
+        "bc_g7": 0.0,
+        "length": 1.254,
+        "diameter": 0.308,
+        "type": "",
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 9
+      }
+    ],
+    "powders": [
+      {
+        "manufacturer": "IMR",
+        "name": "4166",
+        "burn_rate": "0.602",
+        "density": 0.9,
+        "best_for": "",
+        "temp_stable": false,
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 1
+      },
+      {
+        "manufacturer": "Vihtavuori",
+        "name": "N540",
+        "burn_rate": "0.5816",
+        "density": 0.94,
+        "best_for": "",
+        "temp_stable": false,
+        "notes": "Gordon eksport importert til eget bibliotek.",
+        "source": "local_component_pack",
+        "id": 2
+      }
+    ],
+    "primers": [],
+    "brass": []
+  }
+}

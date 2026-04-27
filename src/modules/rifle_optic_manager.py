@@ -4,7 +4,6 @@ Håndterer administrasjon av rifles og optikk
 """
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -24,7 +23,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
+from ..database.database import get_database
+from ..utils.i18n import tr
 
 
 class RifleOpticManager(QWidget):
@@ -42,9 +42,13 @@ class RifleOpticManager(QWidget):
         self.setLayout(layout)
 
         # Tittel
-        title = QLabel("🎯 Rifles & Optikk")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title = QLabel(tr("rifle_optics_title"))
+        title.setProperty("variant", "cardTitle")
         layout.addWidget(title)
+
+        subtitle = QLabel(tr("rifle_optics_subtitle"))
+        subtitle.setProperty("variant", "cardSubtitle")
+        layout.addWidget(subtitle)
 
         # Hovedinnhold
         content_layout = QHBoxLayout()
@@ -65,21 +69,24 @@ class RifleOpticManager(QWidget):
         widget.setLayout(layout)
 
         # Header
-        header = QLabel("🔫 Rifles")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        header = QLabel(tr("rifle_optics_rifles"))
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
         # Knapper
         btn_layout = QHBoxLayout()
-        add_rifle_btn = QPushButton("➕ Ny Rifle")
+        add_rifle_btn = QPushButton(tr("rifle_optics_new_rifle"))
+        add_rifle_btn.setProperty("variant", "primary")
         add_rifle_btn.clicked.connect(self.add_rifle)
         btn_layout.addWidget(add_rifle_btn)
 
-        edit_rifle_btn = QPushButton("✏️ Rediger")
+        edit_rifle_btn = QPushButton(tr("rifle_optics_edit"))
+        edit_rifle_btn.setProperty("variant", "secondary")
         edit_rifle_btn.clicked.connect(self.edit_rifle)
         btn_layout.addWidget(edit_rifle_btn)
 
-        delete_rifle_btn = QPushButton("🗑️ Slett")
+        delete_rifle_btn = QPushButton(tr("rifle_optics_delete"))
+        delete_rifle_btn.setProperty("variant", "ghost")
         delete_rifle_btn.clicked.connect(self.delete_rifle)
         btn_layout.addWidget(delete_rifle_btn)
 
@@ -89,9 +96,14 @@ class RifleOpticManager(QWidget):
         self.rifles_table = QTableWidget()
         self.rifles_table.setColumnCount(4)
         self.rifles_table.setHorizontalHeaderLabels(
-            ["Navn", "Kaliber", "Løpslengde", "Produsent"]
+            [
+                tr("rifle_optics_col_name"),
+                tr("rifle_optics_col_caliber"),
+                tr("rifle_optics_col_barrel"),
+                tr("rifle_optics_col_manufacturer"),
+            ]
         )
-        self.rifles_table.horizontalHeader().setStretchLastSection(True)
+        self.rifles_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         self.rifles_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
@@ -106,21 +118,24 @@ class RifleOpticManager(QWidget):
         widget.setLayout(layout)
 
         # Header
-        header = QLabel("🔭 Optikk")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        header = QLabel(tr("rifle_optics_optics"))
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
         # Knapper
         btn_layout = QHBoxLayout()
-        add_optic_btn = QPushButton("➕ Ny Optikk")
+        add_optic_btn = QPushButton(tr("rifle_optics_new_optic"))
+        add_optic_btn.setProperty("variant", "primary")
         add_optic_btn.clicked.connect(self.add_optic)
         btn_layout.addWidget(add_optic_btn)
 
-        edit_optic_btn = QPushButton("✏️ Rediger")
+        edit_optic_btn = QPushButton(tr("rifle_optics_edit"))
+        edit_optic_btn.setProperty("variant", "secondary")
         edit_optic_btn.clicked.connect(self.edit_optic)
         btn_layout.addWidget(edit_optic_btn)
 
-        delete_optic_btn = QPushButton("🗑️ Slett")
+        delete_optic_btn = QPushButton(tr("rifle_optics_delete"))
+        delete_optic_btn.setProperty("variant", "ghost")
         delete_optic_btn.clicked.connect(self.delete_optic)
         btn_layout.addWidget(delete_optic_btn)
 
@@ -130,9 +145,15 @@ class RifleOpticManager(QWidget):
         self.optics_table = QTableWidget()
         self.optics_table.setColumnCount(5)
         self.optics_table.setHorizontalHeaderLabels(
-            ["Navn", "Klikk-verdi", "Enhet", "Zero (m)", "Rifle"]
+            [
+                tr("rifle_optics_col_name"),
+                tr("rifle_optics_col_click"),
+                tr("rifle_optics_col_unit"),
+                tr("rifle_optics_col_zero"),
+                tr("rifle_optics_col_rifle"),
+            ]
         )
-        self.optics_table.horizontalHeader().setStretchLastSection(True)
+        self.optics_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         self.optics_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
@@ -191,36 +212,52 @@ class RifleOpticManager(QWidget):
             data = dialog.get_data()
             self.db.insert("rifles", data)
             self.load_rifles()
-            QMessageBox.information(self, "Suksess", "Rifle lagt til!")
+            QMessageBox.information(
+                self, tr("msg_success"), tr("rifle_optics_rifle_added")
+            )
 
     def edit_rifle(self):
         """Redigerer valgt rifle"""
         selected = self.rifles_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en rifle først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("rifle_optics_select_rifle_first")
+            )
             return
 
         rifle_id = self.rifles_table.item(selected, 0).data(Qt.ItemDataRole.UserRole)
         rifle = self.db.get_by_id("rifles", rifle_id)
+        if not rifle:
+            QMessageBox.warning(
+                self,
+                tr("rifle_optics_rifle_missing_title"),
+                tr("rifle_optics_rifle_missing_message"),
+            )
+            self.load_rifles()
+            return
 
         dialog = RifleDialog(self, rifle)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             data = dialog.get_data()
             self.db.update("rifles", data, "id = ?", (rifle_id,))
             self.load_rifles()
-            QMessageBox.information(self, "Suksess", "Rifle oppdatert!")
+            QMessageBox.information(
+                self, tr("msg_success"), tr("rifle_optics_rifle_updated")
+            )
 
     def delete_rifle(self):
         """Sletter valgt rifle"""
         selected = self.rifles_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en rifle først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("rifle_optics_select_rifle_first")
+            )
             return
 
         reply = QMessageBox.question(
             self,
-            "Bekreft sletting",
-            "Er du sikker på at du vil slette denne riflen?",
+            tr("msg_confirm_delete"),
+            tr("rifle_optics_confirm_delete_rifle"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -230,7 +267,9 @@ class RifleOpticManager(QWidget):
             )
             self.db.delete("rifles", "id = ?", (rifle_id,))
             self.load_rifles()
-            QMessageBox.information(self, "Suksess", "Rifle slettet!")
+            QMessageBox.information(
+                self, tr("msg_success"), tr("rifle_optics_rifle_deleted")
+            )
 
     def add_optic(self):
         """Åpner dialog for å legge til optikk"""
@@ -240,37 +279,53 @@ class RifleOpticManager(QWidget):
             data = dialog.get_data()
             self.db.insert("optics", data)
             self.load_optics()
-            QMessageBox.information(self, "Suksess", "Optikk lagt til!")
+            QMessageBox.information(
+                self, tr("msg_success"), tr("rifle_optics_optic_added")
+            )
 
     def edit_optic(self):
         """Redigerer valgt optikk"""
         selected = self.optics_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en optikk først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("rifle_optics_select_optic_first")
+            )
             return
 
         optic_id = self.optics_table.item(selected, 0).data(Qt.ItemDataRole.UserRole)
         optic = self.db.get_by_id("optics", optic_id)
         rifles = self.db.get_all("rifles")
+        if not optic:
+            QMessageBox.warning(
+                self,
+                tr("rifle_optics_optic_missing_title"),
+                tr("rifle_optics_optic_missing_message"),
+            )
+            self.load_optics()
+            return
 
         dialog = OpticDialog(self, optic, rifles)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             data = dialog.get_data()
             self.db.update("optics", data, "id = ?", (optic_id,))
             self.load_optics()
-            QMessageBox.information(self, "Suksess", "Optikk oppdatert!")
+            QMessageBox.information(
+                self, tr("msg_success"), tr("rifle_optics_optic_updated")
+            )
 
     def delete_optic(self):
         """Sletter valgt optikk"""
         selected = self.optics_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en optikk først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("rifle_optics_select_optic_first")
+            )
             return
 
         reply = QMessageBox.question(
             self,
-            "Bekreft sletting",
-            "Er du sikker på at du vil slette denne optikken?",
+            tr("msg_confirm_delete"),
+            tr("rifle_optics_confirm_delete_optic"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -280,7 +335,9 @@ class RifleOpticManager(QWidget):
             )
             self.db.delete("optics", "id = ?", (optic_id,))
             self.load_optics()
-            QMessageBox.information(self, "Suksess", "Optikk slettet!")
+            QMessageBox.information(
+                self, tr("msg_success"), tr("rifle_optics_optic_deleted")
+            )
 
 
 class RifleDialog(QDialog):
@@ -295,96 +352,95 @@ class RifleDialog(QDialog):
 
     def init_ui(self):
         """Initialiserer dialog"""
-        self.setWindowTitle("Rifle" if not self.rifle else "Rediger Rifle")
+        self.setWindowTitle(
+            tr("rifle_optics_rifle_dialog_edit")
+            if self.rifle
+            else tr("rifle_optics_rifle_dialog_new")
+        )
         self.setMinimumWidth(500)
 
         layout = QFormLayout()
         self.setLayout(layout)
 
-        # AI Lookup section
+        # Spec lookup section
         ai_layout = QHBoxLayout()
-        ai_info = QLabel(
-            "🤖 AI kan hente spesifikasjoner (du kan redigere alt etterpå):"
-        )
+        ai_info = QLabel(tr("rifle_optics_ai_info"))
         ai_info.setWordWrap(True)
-        ai_info.setStyleSheet("color: #1976D2; font-style: italic;")
+        ai_info.setProperty("role", "muted")
         ai_layout.addWidget(ai_info)
 
-        self.ai_lookup_btn = QPushButton("🤖 AI Lookup")
-        self.ai_lookup_btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #2196F3;
-                color: white;
-                font-weight: bold;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #1976D2;
-            }
-        """
-        )
+        self.ai_lookup_btn = QPushButton(tr("rifle_optics_ai_lookup"))
+        self.ai_lookup_btn.setProperty("variant", "secondary")
         self.ai_lookup_btn.clicked.connect(self.run_ai_lookup)
         ai_layout.addWidget(self.ai_lookup_btn)
 
         layout.addRow(ai_layout)
 
         # Separator
-        separator = QLabel("<hr>")
+        separator = QLabel(" ")
         layout.addRow(separator)
 
         # Felter
         self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("F.eks: Tikka T3X Hunter .308")
-        layout.addRow("Navn:", self.name_input)
+        self.name_input.setPlaceholderText(tr("rifle_optics_name_placeholder"))
+        layout.addRow(tr("rifle_optics_name"), self.name_input)
 
         self.manufacturer = QLineEdit()
-        self.manufacturer.setPlaceholderText("F.eks: Tikka, Sako, Bergara")
-        layout.addRow("Produsent:", self.manufacturer)
+        self.manufacturer.setPlaceholderText(
+            tr("rifle_optics_manufacturer_placeholder")
+        )
+        layout.addRow(tr("rifle_optics_manufacturer"), self.manufacturer)
 
         self.caliber_input = QLineEdit()
-        self.caliber_input.setPlaceholderText("F.eks: .308 Win, 6.5 Creedmoor")
-        layout.addRow("Kaliber:", self.caliber_input)
+        self.caliber_input.setPlaceholderText(tr("rifle_optics_caliber_placeholder"))
+        layout.addRow(tr("rifle_optics_caliber"), self.caliber_input)
 
         # Unit selection for barrel length
         unit_layout = QHBoxLayout()
         self.radio_metric = QRadioButton("mm")
-        self.radio_imperial = QRadioButton("tommer")
+        self.radio_imperial = QRadioButton(tr("rifle_optics_inches"))
         self.radio_metric.setChecked(True)
         self.radio_metric.toggled.connect(self.on_unit_changed)
         unit_layout.addWidget(self.radio_metric)
         unit_layout.addWidget(self.radio_imperial)
         unit_layout.addStretch()
-        layout.addRow("📐 Måleenhet:", unit_layout)
+        layout.addRow(tr("rifle_optics_measure_unit"), unit_layout)
 
         self.barrel_length = QDoubleSpinBox()
         self.barrel_length.setRange(400, 800)  # Start with metric (mm)
         self.barrel_length.setValue(610)  # ~24 inches
         self.barrel_length.setSuffix(" mm")
         self.barrel_length.setDecimals(0)
-        layout.addRow("Løpslengde:", self.barrel_length)
+        layout.addRow(tr("rifle_optics_barrel_length"), self.barrel_length)
 
         self.twist_rate = QLineEdit()
-        self.twist_rate.setPlaceholderText("f.eks. 1:8 eller 1:11")
-        layout.addRow("Twist Rate:", self.twist_rate)
+        self.twist_rate.setPlaceholderText(tr("rifle_optics_twist_placeholder"))
+        layout.addRow(tr("rifle_optics_twist_rate"), self.twist_rate)
 
         self.action_type = QComboBox()
         self.action_type.addItems(
-            ["Bolt Action", "Semi-Auto", "Lever Action", "Single Shot", "Annet"]
+            [
+                tr("rifle_optics_bolt_action"),
+                tr("rifle_optics_semi_auto"),
+                tr("rifle_optics_lever_action"),
+                tr("rifle_optics_single_shot"),
+                tr("rifle_optics_other"),
+            ]
         )
-        layout.addRow("Action Type:", self.action_type)
+        layout.addRow(tr("rifle_optics_action_type"), self.action_type)
 
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(100)
-        self.notes.setPlaceholderText("Notater, lenker til produktside, osv...")
-        layout.addRow("Notater:", self.notes)
+        self.notes.setPlaceholderText(tr("rifle_optics_notes_placeholder"))
+        layout.addRow(tr("rifle_optics_notes"), self.notes)
 
         # Knapper
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("💾 Lagre")
+        save_btn = QPushButton(tr("rifle_optics_save"))
+        save_btn.setProperty("variant", "primary")
         save_btn.clicked.connect(self.accept)
-        cancel_btn = QPushButton("❌ Avbryt")
+        cancel_btn = QPushButton(tr("rifle_optics_cancel"))
+        cancel_btn.setProperty("variant", "ghost")
         cancel_btn.clicked.connect(self.reject)
 
         btn_layout.addWidget(save_btn)
@@ -414,23 +470,23 @@ class RifleDialog(QDialog):
                 self.barrel_length.setDecimals(1)
 
     def run_ai_lookup(self):
-        """Kjører AI-lookup og fyller ut feltene (kan redigeres etterpå)"""
+        """Kjører spesifikasjonsoppslag og fyller ut feltene (kan redigeres etterpå)."""
         rifle_name = self.name_input.text().strip()
 
         if not rifle_name:
             QMessageBox.warning(
                 self,
-                "Mangler navn",
-                "Skriv inn rifle-navn først (f.eks: 'Tikka T3X Hunter .308')",
+                tr("rifle_optics_missing_name_title"),
+                tr("rifle_optics_missing_name_message"),
             )
             return
 
         # Vis loading
         self.ai_lookup_btn.setEnabled(False)
-        self.ai_lookup_btn.setText("🔄 Søker...")
+        self.ai_lookup_btn.setText(tr("rifle_optics_searching"))
 
         try:
-            from src.utils.rifle_ai_lookup import get_rifle_lookup_service
+            from ..utils.rifle_ai_lookup import get_rifle_lookup_service
 
             ai_service = get_rifle_lookup_service()
             manufacturer = self.manufacturer.text().strip() or None
@@ -446,7 +502,7 @@ class RifleDialog(QDialog):
                 self.caliber_input.setText(result["caliber"])
 
             if result["barrel_length"]:
-                # AI returns in inches, convert if metric is selected
+                # Lookup returns inches; convert if metric is selected.
                 barrel_inches = result["barrel_length"]
                 if self.radio_metric.isChecked():
                     self.barrel_length.setValue(barrel_inches * 25.4)  # Convert to mm
@@ -461,8 +517,8 @@ class RifleDialog(QDialog):
                 if index >= 0:
                     self.action_type.setCurrentIndex(index)
 
-            # Legg til AI-info i notater
-            ai_note = f"\n\n🤖 AI Lookup ({result['confidence']} confidence)"
+            # Legg til oppslagsinfo i notater
+            ai_note = f"\n\nSpec Lookup ({result['confidence']} confidence)"
             if result["sources"]:
                 ai_note += f"\nKilder: {', '.join(result['sources'][:2])}"
 
@@ -473,30 +529,28 @@ class RifleDialog(QDialog):
             self.notes.setText(current_notes + ai_note)
 
             # Vis resultat
-            confidence_emoji = {"high": "✅", "medium": "⚠️", "low": "❓"}
-
-            emoji = confidence_emoji.get(result["confidence"], "❓")
-
             QMessageBox.information(
                 self,
-                "AI Lookup ferdig",
-                f"{emoji} AI har fylt ut feltene med {result['confidence']} confidence.\n\n"
-                f"✏️ Du kan nå redigere alle feltene før lagring!\n\n"
-                f"Funnet: {result['manufacturer'] or 'Ukjent'} | "
-                f"{result['caliber'] or 'Ingen kaliber'} | "
-                f"{result['barrel_length'] or 'Ukjent'} tommer",
+                tr("rifle_optics_ai_lookup_done_title"),
+                tr(
+                    "rifle_optics_ai_lookup_done_message",
+                    confidence=result["confidence"],
+                    manufacturer=result["manufacturer"] or tr("rifle_optics_unknown"),
+                    caliber=result["caliber"] or tr("rifle_optics_no_caliber"),
+                    barrel_length=result["barrel_length"] or tr("rifle_optics_unknown"),
+                ),
             )
 
         except Exception as e:
             QMessageBox.warning(
                 self,
-                "AI Lookup feilet",
-                f"Kunne ikke hente data:\n{str(e)}\n\n" f"Fyll ut feltene manuelt.",
+                tr("rifle_optics_ai_lookup_failed_title"),
+                tr("rifle_optics_ai_lookup_failed_message", error=str(e)),
             )
 
         finally:
             self.ai_lookup_btn.setEnabled(True)
-            self.ai_lookup_btn.setText("🤖 AI Lookup")
+            self.ai_lookup_btn.setText(tr("rifle_optics_ai_lookup"))
 
     def load_rifle_data(self):
         """Laster rifle-data inn i felter"""
@@ -541,7 +595,11 @@ class OpticDialog(QDialog):
 
     def init_ui(self):
         """Initialiserer dialog"""
-        self.setWindowTitle("Optikk" if not self.optic else "Rediger Optikk")
+        self.setWindowTitle(
+            tr("rifle_optics_optic_dialog_edit")
+            if self.optic
+            else tr("rifle_optics_optic_dialog_new")
+        )
         self.setMinimumWidth(400)
 
         layout = QFormLayout()
@@ -549,17 +607,19 @@ class OpticDialog(QDialog):
 
         # Felter
         self.name_input = QLineEdit()
-        layout.addRow("Navn:", self.name_input)
+        layout.addRow(tr("rifle_optics_name"), self.name_input)
 
         self.manufacturer = QLineEdit()
-        layout.addRow("Produsent:", self.manufacturer)
+        layout.addRow(tr("rifle_optics_manufacturer"), self.manufacturer)
 
         self.magnification = QLineEdit()
-        self.magnification.setPlaceholderText("f.eks. 6-24x50")
-        layout.addRow("Forstørrelse:", self.magnification)
+        self.magnification.setPlaceholderText(
+            tr("rifle_optics_magnification_placeholder")
+        )
+        layout.addRow(tr("rifle_optics_magnification"), self.magnification)
 
         self.reticle = QLineEdit()
-        layout.addRow("Reticle:", self.reticle)
+        layout.addRow(tr("rifle_optics_reticle"), self.reticle)
 
         # Klikk-verdier
         click_layout = QHBoxLayout()
@@ -573,30 +633,32 @@ class OpticDialog(QDialog):
         self.click_unit = QComboBox()
         self.click_unit.addItems(["MOA", "MRAD"])
         click_layout.addWidget(self.click_unit)
-        layout.addRow("Klikk-verdi:", click_layout)
+        layout.addRow(tr("rifle_optics_click_value"), click_layout)
 
         self.zero_distance = QSpinBox()
         self.zero_distance.setRange(25, 500)
         self.zero_distance.setValue(100)
         self.zero_distance.setSuffix(" m")
-        layout.addRow("Zero avstand:", self.zero_distance)
+        layout.addRow(tr("rifle_optics_zero_distance"), self.zero_distance)
 
         # Rifle dropdown
         self.rifle_combo = QComboBox()
-        self.rifle_combo.addItem("-- Ingen rifle --", None)
+        self.rifle_combo.addItem(tr("rifle_optics_no_rifle"), None)
         for rifle in self.rifles:
             self.rifle_combo.addItem(rifle["name"], rifle["id"])
-        layout.addRow("Montert på rifle:", self.rifle_combo)
+        layout.addRow(tr("rifle_optics_mounted_on"), self.rifle_combo)
 
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(100)
-        layout.addRow("Notater:", self.notes)
+        layout.addRow(tr("rifle_optics_notes"), self.notes)
 
         # Knapper
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("💾 Lagre")
+        save_btn = QPushButton(tr("rifle_optics_save"))
+        save_btn.setProperty("variant", "primary")
         save_btn.clicked.connect(self.accept)
-        cancel_btn = QPushButton("❌ Avbryt")
+        cancel_btn = QPushButton(tr("rifle_optics_cancel"))
+        cancel_btn.setProperty("variant", "ghost")
         cancel_btn.clicked.connect(self.reject)
 
         btn_layout.addWidget(save_btn)

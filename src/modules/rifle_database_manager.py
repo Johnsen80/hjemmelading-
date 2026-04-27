@@ -3,6 +3,7 @@ Komplett Rifle Database Manager
 Håndterer alle rifle data inkl. harmonikk, skuddteller, bullet jump, vedlikehold
 """
 
+import json
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -31,7 +32,52 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
+from ..database.database import get_database
+from ..utils.cartridge_standard_support import compare_chamber_to_cartridge_standard
+from ..utils.rifle_harmonics import build_harmonics_html
+
+
+def build_chamber_comparison_html(db, rifle: dict, profile_details: dict) -> str:
+    caliber = str(rifle.get("caliber") or "").strip()
+    if not caliber:
+        return "<h3>Standard vs Measured</h3><p>Caliber is missing for comparison.</p>"
+
+    measured = {
+        "freebore_mm": rifle.get("freebore_mm"),
+        "throat_angle_deg": rifle.get("throat_angle_deg"),
+        "throat_erosion_mm": rifle.get("throat_erosion_mm"),
+        "case_neck_diameter_mm": profile_details.get("chamber_neck_diameter_mm"),
+        "trim_length_mm": None,
+    }
+    comparison = compare_chamber_to_cartridge_standard(db, caliber, measured)
+    notes = comparison.get("notes") or []
+    status = comparison.get("status") or "missing_standard"
+    status_label = {
+        "ok": "OK",
+        "watch": "Watch",
+        "missing_standard": "Missing standard",
+    }.get(status, str(status))
+    notes_html = (
+        "".join(f"<li>{note}</li>" for note in notes)
+        or "<li>No comparison is available yet.</li>"
+    )
+    return f"""
+    <h3>Standard vs Measured</h3>
+    <p><b>Status:</b> {status_label}</p>
+    <ul>{notes_html}</ul>
+    """
+
+
+def describe_jump_measurement_barrel(measurement: dict) -> str:
+    barrel_name = str(measurement.get("barrel_name") or "").strip()
+    if barrel_name:
+        return barrel_name
+
+    barrel_id = str(measurement.get("barrel_id") or "").strip()
+    if barrel_id:
+        return f"Barrel {barrel_id}"
+
+    return "Legacy rifle-level"
 
 
 class RifleDatabaseManager(QWidget):
@@ -50,62 +96,48 @@ class RifleDatabaseManager(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🎯 Våpen Database")
-        header.setStyleSheet("font-size: 20px; font-weight: bold; color: #2c3e50;")
+        header = QLabel("Firearm Database")
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
         desc = QLabel(
-            "Komplett database over dine våpen med pipe-data, harmonikk, skuddteller, "
-            "bullet jump målinger og vedlikehold."
+            "Complete database of your firearms with barrel data, harmonics, round count, "
+            "bullet jump measurements, and maintenance."
         )
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #7f8c8d; margin-bottom: 15px;")
+        desc.setProperty("variant", "cardSubtitle")
         layout.addWidget(desc)
 
         # Action buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_add = QPushButton("➕ Nytt Våpen")
+        self.btn_add = QPushButton("New Firearm")
         self.btn_add.clicked.connect(self.add_rifle)
-        self.btn_add.setStyleSheet(
-            "background-color: #27ae60; color: white; padding: 8px; font-weight: bold;"
-        )
+        self.btn_add.setProperty("variant", "primary")
 
-        self.btn_edit = QPushButton("✏️ Rediger")
+        self.btn_edit = QPushButton("Edit")
         self.btn_edit.clicked.connect(self.edit_rifle)
-        self.btn_edit.setStyleSheet(
-            "background-color: #3498db; color: white; padding: 8px;"
-        )
+        self.btn_edit.setProperty("variant", "secondary")
 
-        self.btn_view_details = QPushButton("🔍 Detaljer")
+        self.btn_view_details = QPushButton("Details")
         self.btn_view_details.clicked.connect(self.view_rifle_details)
-        self.btn_view_details.setStyleSheet(
-            "background-color: #9b59b6; color: white; padding: 8px;"
-        )
+        self.btn_view_details.setProperty("variant", "ghost")
 
-        self.btn_add_rounds = QPushButton("🎯 Legg til Skudd")
+        self.btn_add_rounds = QPushButton("Add Shots")
         self.btn_add_rounds.clicked.connect(self.add_rounds_fired)
-        self.btn_add_rounds.setStyleSheet(
-            "background-color: #e67e22; color: white; padding: 8px;"
-        )
+        self.btn_add_rounds.setProperty("variant", "secondary")
 
-        self.btn_maintenance = QPushButton("🔧 Vedlikehold")
+        self.btn_maintenance = QPushButton("Maintenance")
         self.btn_maintenance.clicked.connect(self.log_maintenance)
-        self.btn_maintenance.setStyleSheet(
-            "background-color: #16a085; color: white; padding: 8px;"
-        )
+        self.btn_maintenance.setProperty("variant", "secondary")
 
-        self.btn_accuracy_test = QPushButton("📊 Accuracy Test")
+        self.btn_accuracy_test = QPushButton("Accuracy Test")
         self.btn_accuracy_test.clicked.connect(self.manage_accuracy_tests)
-        self.btn_accuracy_test.setStyleSheet(
-            "background-color: #8e44ad; color: white; padding: 8px; font-weight: bold;"
-        )
+        self.btn_accuracy_test.setProperty("variant", "secondary")
 
-        self.btn_delete = QPushButton("🗑️ Slett")
+        self.btn_delete = QPushButton("Delete")
         self.btn_delete.clicked.connect(self.delete_rifle)
-        self.btn_delete.setStyleSheet(
-            "background-color: #e74c3c; color: white; padding: 8px;"
-        )
+        self.btn_delete.setProperty("variant", "ghost")
 
         btn_layout.addWidget(self.btn_add)
         btn_layout.addWidget(self.btn_edit)
@@ -124,17 +156,17 @@ class RifleDatabaseManager(QWidget):
         self.table.setHorizontalHeaderLabels(
             [
                 "ID",
-                "Navn",
-                "Produsent",
-                "Modell",
-                "Kaliber",
-                "Pipe Lengde",
-                "Skudd Fyrt",
+                "Name",
+                "Manufacturer",
+                "Model",
+                "Caliber",
+                "Barrel Length",
+                "Shots Fired",
                 "Status",
-                "Siste Vedlikehold",
+                "Last Maintenance",
             ]
         )
-        self.table.horizontalHeader().setSectionResizeMode(
+        self.table.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
             QHeaderView.ResizeMode.Stretch
         )
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -145,7 +177,8 @@ class RifleDatabaseManager(QWidget):
 
         # Status bar
         self.status_label = QLabel("Klar.")
-        self.status_label.setStyleSheet("color: #7f8c8d; font-style: italic;")
+        self.status_label.setProperty("role", "muted")
+        self.status_label.setProperty("emphasis", "placeholder")
         layout.addWidget(self.status_label)
 
         self.setLayout(layout)
@@ -183,21 +216,23 @@ class RifleDatabaseManager(QWidget):
                 round_count >= 500 and round_count % 500 < 100
             ):  # Near 500 round intervals
                 round_item.setBackground(QColor(255, 200, 0, 100))  # Yellow warning
-                round_item.setToolTip("⚠️ Tid for hylse-måling!")
+                round_item.setToolTip("Time for case measurement!")
             elif round_count > accuracy_life * 0.8:  # 80% of barrel life
                 round_item.setBackground(QColor(255, 100, 100, 100))  # Red warning
-                round_item.setToolTip("⚠️ Pipe nærmer seg slutten av levetiden!")
+                round_item.setToolTip(
+                    "The barrel is nearing the end of its service life!"
+                )
 
             self.table.setItem(row, 6, round_item)
 
             # Status
             bore_condition = rifle.get("bore_condition", "unknown")
             status_colors = {
-                "excellent": ("#27ae60", "✓ Utmerket"),
-                "good": ("#3498db", "✓ God"),
-                "fair": ("#f39c12", "⚠ OK"),
-                "worn": ("#e74c3c", "⚠ Slitt"),
-                "unknown": ("#95a5a6", "? Ukjent"),
+                "excellent": ("#27ae60", "Excellent"),
+                "good": ("#3498db", "Good"),
+                "fair": ("#f39c12", "OK"),
+                "worn": ("#e74c3c", "Worn"),
+                "unknown": ("#95a5a6", "Unknown"),
             }
             color, text = status_colors.get(bore_condition, status_colors["unknown"])
             status_item = QTableWidgetItem(text)
@@ -210,7 +245,7 @@ class RifleDatabaseManager(QWidget):
                 row, 8, QTableWidgetItem(last_maint if last_maint else "-")
             )
 
-        self.status_label.setText(f"Lastet {len(rifles)} våpen.")
+        self.status_label.setText(f"Loaded {len(rifles)} firearms.")
 
     def add_rifle(self):
         """Add new rifle"""
@@ -222,7 +257,7 @@ class RifleDatabaseManager(QWidget):
         """Edit selected rifle"""
         selected = self.table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen Valgt", "Velg et våpen å redigere.")
+            QMessageBox.warning(self, "No Selection", "Select a firearm to edit.")
             return
 
         rifle_id = int(self.table.item(selected, 0).text())
@@ -244,11 +279,19 @@ class RifleDatabaseManager(QWidget):
         """Add rounds fired to rifle"""
         selected = self.table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen Valgt", "Velg et våpen.")
+            QMessageBox.warning(self, "No Selection", "Select a firearm.")
             return
 
         rifle_id = int(self.table.item(selected, 0).text())
         rifle = self.db.get_by_id("rifles", rifle_id)
+        if not rifle:
+            QMessageBox.warning(
+                self,
+                "Firearm Missing",
+                "The selected firearm no longer exists in the database.",
+            )
+            self.load_rifles()
+            return
 
         dialog = AddRoundsFiredDialog(self, rifle)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -258,11 +301,19 @@ class RifleDatabaseManager(QWidget):
         """Log maintenance for rifle"""
         selected = self.table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen Valgt", "Velg et våpen.")
+            QMessageBox.warning(self, "No Selection", "Select a firearm.")
             return
 
         rifle_id = int(self.table.item(selected, 0).text())
         rifle = self.db.get_by_id("rifles", rifle_id)
+        if not rifle:
+            QMessageBox.warning(
+                self,
+                "Firearm Missing",
+                "The selected firearm no longer exists in the database.",
+            )
+            self.load_rifles()
+            return
 
         dialog = MaintenanceLogDialog(self, rifle)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -272,23 +323,32 @@ class RifleDatabaseManager(QWidget):
         """Open accuracy test manager for selected rifle"""
         selected = self.table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen Valgt", "Velg et våpen.")
+            QMessageBox.warning(self, "No Selection", "Select a firearm.")
             return
 
         rifle_id = int(self.table.item(selected, 0).text())
         rifle = self.db.get_by_id("rifles", rifle_id)
+        if not rifle:
+            QMessageBox.warning(
+                self,
+                "Firearm Missing",
+                "The selected firearm no longer exists in the database.",
+            )
+            self.load_rifles()
+            return
 
-        from src.modules.rifle_accuracy_test_system import RifleAccuracyTestManager
+        from .rifle_accuracy_test_system import RifleAccuracyTestManager
 
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"📊 Accuracy Tests - {rifle.get('name', '')}")
+        dialog.setWindowTitle(f"Accuracy Tests - {rifle.get('name', '')}")
         dialog.setMinimumSize(1000, 600)
 
         layout = QVBoxLayout()
         test_manager = RifleAccuracyTestManager(dialog, rifle_id=rifle_id)
         layout.addWidget(test_manager)
 
-        btn_close = QPushButton("✓ Lukk")
+        btn_close = QPushButton("Close")
+        btn_close.setProperty("variant", "ghost")
         btn_close.clicked.connect(dialog.accept)
         layout.addWidget(btn_close)
 
@@ -299,14 +359,14 @@ class RifleDatabaseManager(QWidget):
         """Delete selected rifle"""
         selected = self.table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen Valgt", "Velg et våpen å slette.")
+            QMessageBox.warning(self, "No Selection", "Select a firearm to delete.")
             return
 
         rifle_name = self.table.item(selected, 1).text()
         reply = QMessageBox.question(
             self,
-            "Bekreft Sletting",
-            f"Er du sikker på at du vil slette '{rifle_name}'?\n\nDette vil også slette alle relaterte data.",
+            "Confirm Deletion",
+            f"Are you sure you want to delete '{rifle_name}'?\n\nThis will also delete all related data.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -314,7 +374,7 @@ class RifleDatabaseManager(QWidget):
             rifle_id = int(self.table.item(selected, 0).text())
             self.db.delete("rifles", "id = ?", (rifle_id,))
             self.load_rifles()
-            self.status_label.setText(f"Slettet '{rifle_name}'.")
+            self.status_label.setText(f"Deleted '{rifle_name}'.")
 
 
 class RifleEditorDialog(QDialog):
@@ -328,9 +388,7 @@ class RifleEditorDialog(QDialog):
         self.rifle_id = rifle_id
         self.rifle_data: Dict[str, Any] = {}
 
-        self.setWindowTitle(
-            "🎯 Rifle Editor" if rifle_id is None else "✏️ Rediger Rifle"
-        )
+        self.setWindowTitle("Rifle Editor" if rifle_id is None else "Edit Firearm")
         self.setMinimumSize(900, 700)
 
         self.init_ui()
@@ -344,27 +402,24 @@ class RifleEditorDialog(QDialog):
 
         # Tabs
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.create_basic_tab(), "📋 Grunnleggende")
-        self.tabs.addTab(self.create_barrel_tab(), "🔫 Pipe/Løp")
-        self.tabs.addTab(self.create_chamber_tab(), "⚙️ Kammer & Twist")
-        self.tabs.addTab(self.create_status_tab(), "📊 Status & Tilstand")
+        self.tabs.addTab(self.create_basic_tab(), "Basic")
+        self.tabs.addTab(self.create_barrel_tab(), "Barrel")
+        self.tabs.addTab(self.create_chamber_tab(), "Chamber & Twist")
+        self.tabs.addTab(self.create_precision_tab(), "Precision")
+        self.tabs.addTab(self.create_status_tab(), "Status & Condition")
 
         layout.addWidget(self.tabs)
 
         # Buttons
         btn_layout = QHBoxLayout()
 
-        self.btn_save = QPushButton("💾 Lagre")
+        self.btn_save = QPushButton("Save")
         self.btn_save.clicked.connect(self.save_rifle)
-        self.btn_save.setStyleSheet(
-            "background-color: #27ae60; color: white; padding: 10px; font-weight: bold;"
-        )
+        self.btn_save.setProperty("variant", "primary")
 
-        self.btn_cancel = QPushButton("❌ Avbryt")
+        self.btn_cancel = QPushButton("Cancel")
         self.btn_cancel.clicked.connect(self.reject)
-        self.btn_cancel.setStyleSheet(
-            "background-color: #95a5a6; color: white; padding: 10px;"
-        )
+        self.btn_cancel.setProperty("variant", "ghost")
 
         btn_layout.addStretch()
         btn_layout.addWidget(self.btn_save)
@@ -380,18 +435,16 @@ class RifleEditorDialog(QDialog):
         layout = QFormLayout()
 
         self.input_name = QLineEdit()
-        self.input_name.setPlaceholderText("F.eks. 'Min 6.5 Creedmoor'")
-        layout.addRow("📝 Navn:", self.input_name)
+        self.input_name.setPlaceholderText("e.g. 'My 6.5 Creedmoor'")
+        layout.addRow("Name:", self.input_name)
 
         self.input_manufacturer = QLineEdit()
-        self.input_manufacturer.setPlaceholderText(
-            "F.eks. 'Tikka', 'Remington', 'Sauer'"
-        )
-        layout.addRow("🏭 Produsent:", self.input_manufacturer)
+        self.input_manufacturer.setPlaceholderText("e.g. 'Tikka', 'Remington', 'Sauer'")
+        layout.addRow("Manufacturer:", self.input_manufacturer)
 
         self.input_model = QLineEdit()
-        self.input_model.setPlaceholderText("F.eks. 'T3x', '700', '100'")
-        layout.addRow("🔢 Modell:", self.input_model)
+        self.input_model.setPlaceholderText("e.g. 'T3x', '700', '100'")
+        layout.addRow("Model:", self.input_model)
 
         self.input_caliber = QComboBox()
         self.input_caliber.setEditable(True)
@@ -415,27 +468,27 @@ class RifleEditorDialog(QDialog):
             ".338 Lapua Mag",
         ]
         self.input_caliber.addItems(calibers)
-        layout.addRow("🎯 Kaliber:", self.input_caliber)
+        layout.addRow("Caliber:", self.input_caliber)
 
         self.input_action = QComboBox()
         self.input_action.addItems(
             ["bolt", "semi-auto", "lever", "single-shot", "pump"]
         )
-        layout.addRow("🔩 Action Type:", self.input_action)
+        layout.addRow("Action Type:", self.input_action)
 
         self.input_serial = QLineEdit()
-        self.input_serial.setPlaceholderText("Serienummer")
-        layout.addRow("🔢 Serienummer:", self.input_serial)
+        self.input_serial.setPlaceholderText("Serial number")
+        layout.addRow("Serial Number:", self.input_serial)
 
         self.input_purchase_date = QDateEdit()
         self.input_purchase_date.setDate(QDate.currentDate())
         self.input_purchase_date.setCalendarPopup(True)
-        layout.addRow("📅 Kjøpsdato:", self.input_purchase_date)
+        layout.addRow("Purchase Date:", self.input_purchase_date)
 
         self.input_notes = QTextEdit()
         self.input_notes.setMaximumHeight(100)
-        self.input_notes.setPlaceholderText("Notater...")
-        layout.addRow("📝 Notater:", self.input_notes)
+        self.input_notes.setPlaceholderText("Notes...")
+        layout.addRow("Notes:", self.input_notes)
 
         widget.setLayout(layout)
         return widget
@@ -446,19 +499,20 @@ class RifleEditorDialog(QDialog):
         layout = QVBoxLayout()
 
         # Barrel Profile Selection
-        profile_group = QGroupBox("🎯 Pipe Profil")
+        profile_group = QGroupBox("Barrel Profile")
+        profile_group.setProperty("variant", "panel")
         profile_layout = QFormLayout()
 
         self.input_barrel_profile = QComboBox()
         profiles = self.db.execute_query(
             "SELECT id, name, category, stiffness_rating FROM barrel_profiles ORDER BY name"
         )
-        self.input_barrel_profile.addItem("-- Velg Profil --", None)
+        self.input_barrel_profile.addItem("-- Select Profile --", None)
         for profile in profiles:
             display_text = f"{profile['name']} ({profile['category']}, {profile['stiffness_rating']})"
             self.input_barrel_profile.addItem(display_text, profile["id"])
         self.input_barrel_profile.currentIndexChanged.connect(self.on_profile_selected)
-        profile_layout.addRow("Profil:", self.input_barrel_profile)
+        profile_layout.addRow("Profile:", self.input_barrel_profile)
 
         self.input_barrel_contour = QComboBox()
         self.input_barrel_contour.setEditable(True)
@@ -473,13 +527,14 @@ class RifleEditorDialog(QDialog):
             "custom",
         ]
         self.input_barrel_contour.addItems(contours)
-        profile_layout.addRow("Kontur:", self.input_barrel_contour)
+        profile_layout.addRow("Contour:", self.input_barrel_contour)
 
         profile_group.setLayout(profile_layout)
         layout.addWidget(profile_group)
 
         # Dimensions
-        dim_group = QGroupBox("📏 Dimensjoner")
+        dim_group = QGroupBox("Dimensjoner")
+        dim_group.setProperty("variant", "panel")
         dim_layout = QFormLayout()
 
         self.input_barrel_length = QDoubleSpinBox()
@@ -487,7 +542,7 @@ class RifleEditorDialog(QDialog):
         self.input_barrel_length.setValue(24)
         self.input_barrel_length.setSuffix(' "')
         self.input_barrel_length.setDecimals(1)
-        dim_layout.addRow("Pipe Lengde:", self.input_barrel_length)
+        dim_layout.addRow("Barrel Length:", self.input_barrel_length)
 
         self.input_muzzle_diameter = QDoubleSpinBox()
         self.input_muzzle_diameter.setRange(0.5, 2.0)
@@ -507,7 +562,8 @@ class RifleEditorDialog(QDialog):
         layout.addWidget(dim_group)
 
         # Material & Finish
-        mat_group = QGroupBox("🔧 Material & Finish")
+        mat_group = QGroupBox("Material & Finish")
+        mat_group.setProperty("variant", "panel")
         mat_layout = QFormLayout()
 
         self.input_barrel_material = QComboBox()
@@ -525,9 +581,9 @@ class RifleEditorDialog(QDialog):
 
         self.input_barrel_manufacturer = QLineEdit()
         self.input_barrel_manufacturer.setPlaceholderText(
-            "F.eks. 'Bartlein', 'Krieger', 'Proof'"
+            "e.g. 'Bartlein', 'Krieger', 'Proof'"
         )
-        mat_layout.addRow("Pipe Produsent:", self.input_barrel_manufacturer)
+        mat_layout.addRow("Barrel Manufacturer:", self.input_barrel_manufacturer)
 
         mat_group.setLayout(mat_layout)
         layout.addWidget(mat_group)
@@ -542,7 +598,8 @@ class RifleEditorDialog(QDialog):
         layout = QVBoxLayout()
 
         # Twist Rate
-        twist_group = QGroupBox("🌀 Twist Rate & Rifling")
+        twist_group = QGroupBox("Twist Rate & Rifling")
+        twist_group.setProperty("variant", "panel")
         twist_layout = QFormLayout()
 
         self.input_twist_rate = QComboBox()
@@ -577,7 +634,8 @@ class RifleEditorDialog(QDialog):
         layout.addWidget(twist_group)
 
         # Chamber
-        chamber_group = QGroupBox("⚙️ Kammer Detaljer")
+        chamber_group = QGroupBox("Chamber Details")
+        chamber_group.setProperty("variant", "panel")
         chamber_layout = QFormLayout()
 
         self.input_chamber_spec = QComboBox()
@@ -603,10 +661,154 @@ class RifleEditorDialog(QDialog):
         self.input_max_coal.setValue(70)
         self.input_max_coal.setSuffix(" mm")
         self.input_max_coal.setDecimals(2)
-        chamber_layout.addRow("Max COAL (Magasin):", self.input_max_coal)
+        chamber_layout.addRow("Max COAL (Magazine):", self.input_max_coal)
 
         chamber_group.setLayout(chamber_layout)
         layout.addWidget(chamber_group)
+
+        layout.addStretch()
+        widget.setLayout(layout)
+        return widget
+
+    def create_precision_tab(self):
+        """Create precision profile tab"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        hint = QLabel(
+            "Advanced profile fields provide better precision and safety calculations."
+        )
+        hint.setProperty("role", "muted")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        limits_group = QGroupBox("Safety Limits")
+        limits_group.setProperty("variant", "panel")
+        limits_layout = QFormLayout()
+
+        self.input_pressure_limit = QDoubleSpinBox()
+        self.input_pressure_limit.setRange(0, 100000)
+        self.input_pressure_limit.setDecimals(0)
+        self.input_pressure_limit.setSuffix(" PSI")
+        limits_layout.addRow("Max pressure override:", self.input_pressure_limit)
+
+        self.input_magazine_length = QDoubleSpinBox()
+        self.input_magazine_length.setRange(40, 120)
+        self.input_magazine_length.setDecimals(2)
+        self.input_magazine_length.setSuffix(" mm")
+        limits_layout.addRow("Magazine length:", self.input_magazine_length)
+
+        self.input_scope_height = QDoubleSpinBox()
+        self.input_scope_height.setRange(0, 120)
+        self.input_scope_height.setDecimals(1)
+        self.input_scope_height.setSuffix(" mm")
+        limits_layout.addRow("Scope height:", self.input_scope_height)
+
+        self.input_zero_distance = QSpinBox()
+        self.input_zero_distance.setRange(25, 1000)
+        self.input_zero_distance.setSuffix(" m")
+        self.input_zero_distance.setValue(100)
+        limits_layout.addRow("Zero distance:", self.input_zero_distance)
+
+        limits_group.setLayout(limits_layout)
+        layout.addWidget(limits_group)
+
+        # ── Optics / Click presets ──────────────────────────────────────────────
+        optics_group = QGroupBox("Optikk-presets (klikk)")
+        optics_group.setProperty("variant", "panel")
+        optics_layout = QFormLayout()
+
+        # Click value row with presets
+        click_row = QHBoxLayout()
+        self.input_click_value = QDoubleSpinBox()
+        self.input_click_value.setRange(0.01, 5.0)
+        self.input_click_value.setDecimals(4)
+        self.input_click_value.setValue(0.25)
+        self.input_click_value.setSuffix(" MOA")
+        self.input_click_value.setToolTip("Verdi per klikk på høyde/side (MOA)")
+        click_row.addWidget(self.input_click_value, 1)
+        for label, val in [
+            ("¼ MOA", 0.25),
+            ("⅛ MOA", 0.125),
+            ("0.1 mil", 0.3438),
+            ("1 MOA", 1.0),
+        ]:
+            btn = QPushButton(label)
+            btn.setFixedHeight(24)
+            btn.setProperty("variant", "ghost")
+            btn.clicked.connect(lambda _, v=val: self.input_click_value.setValue(v))
+            click_row.addWidget(btn)
+        optics_layout.addRow("Klikk-verdi:", click_row)
+
+        # Clicks per revolution row with presets
+        cpr_row = QHBoxLayout()
+        self.input_clicks_per_revolution = QSpinBox()
+        self.input_clicks_per_revolution.setRange(1, 500)
+        self.input_clicks_per_revolution.setValue(40)
+        self.input_clicks_per_revolution.setToolTip(
+            "Antall klikk per omdreing på turret"
+        )
+        cpr_row.addWidget(self.input_clicks_per_revolution, 1)
+        for label, val in [
+            ("10", 10),
+            ("15", 15),
+            ("20", 20),
+            ("40", 40),
+            ("100", 100),
+        ]:
+            btn = QPushButton(label)
+            btn.setFixedHeight(24)
+            btn.setProperty("variant", "ghost")
+            btn.clicked.connect(
+                lambda _, v=val: self.input_clicks_per_revolution.setValue(v)
+            )
+            cpr_row.addWidget(btn)
+        optics_layout.addRow("Klikk/omdr.:", cpr_row)
+
+        optics_group.setLayout(optics_layout)
+        layout.addWidget(optics_group)
+
+        geometry_group = QGroupBox("Chamber Geometry")
+        geometry_group.setProperty("variant", "panel")
+        geometry_layout = QFormLayout()
+
+        self.input_land_diameter = QDoubleSpinBox()
+        self.input_land_diameter.setRange(0, 20)
+        self.input_land_diameter.setDecimals(3)
+        self.input_land_diameter.setSuffix(" mm")
+        geometry_layout.addRow("Land diameter:", self.input_land_diameter)
+
+        self.input_groove_diameter = QDoubleSpinBox()
+        self.input_groove_diameter.setRange(0, 20)
+        self.input_groove_diameter.setDecimals(3)
+        self.input_groove_diameter.setSuffix(" mm")
+        geometry_layout.addRow("Groove diameter:", self.input_groove_diameter)
+
+        self.input_chamber_neck_diameter = QDoubleSpinBox()
+        self.input_chamber_neck_diameter.setRange(0, 20)
+        self.input_chamber_neck_diameter.setDecimals(3)
+        self.input_chamber_neck_diameter.setSuffix(" mm")
+        geometry_layout.addRow("Chamber neck:", self.input_chamber_neck_diameter)
+
+        self.input_headspace_go = QDoubleSpinBox()
+        self.input_headspace_go.setRange(0, 100)
+        self.input_headspace_go.setDecimals(3)
+        self.input_headspace_go.setSuffix(" mm")
+        geometry_layout.addRow("Headspace GO:", self.input_headspace_go)
+
+        self.input_headspace_no_go = QDoubleSpinBox()
+        self.input_headspace_no_go.setRange(0, 100)
+        self.input_headspace_no_go.setDecimals(3)
+        self.input_headspace_no_go.setSuffix(" mm")
+        geometry_layout.addRow("Headspace NO-GO:", self.input_headspace_no_go)
+
+        geometry_group.setLayout(geometry_layout)
+        layout.addWidget(geometry_group)
+
+        self.input_profile_notes = QTextEdit()
+        self.input_profile_notes.setMaximumHeight(80)
+        self.input_profile_notes.setPlaceholderText("Profile notes...")
+        layout.addWidget(self.input_profile_notes)
 
         layout.addStretch()
         widget.setLayout(layout)
@@ -618,26 +820,28 @@ class RifleEditorDialog(QDialog):
         layout = QVBoxLayout()
 
         # Round Count
-        count_group = QGroupBox("🎯 Skuddteller")
+        count_group = QGroupBox("Round Count")
+        count_group.setProperty("variant", "panel")
         count_layout = QFormLayout()
 
         self.input_round_count = QSpinBox()
         self.input_round_count.setRange(0, 50000)
         self.input_round_count.setValue(0)
-        self.input_round_count.setSuffix(" skudd")
-        count_layout.addRow("Totalt Skudd Fyrt:", self.input_round_count)
+        self.input_round_count.setSuffix(" shots")
+        count_layout.addRow("Total Shots Fired:", self.input_round_count)
 
         self.input_accuracy_life = QSpinBox()
         self.input_accuracy_life.setRange(500, 10000)
         self.input_accuracy_life.setValue(2000)
-        self.input_accuracy_life.setSuffix(" skudd")
-        count_layout.addRow("Estimert Pipe-Liv:", self.input_accuracy_life)
+        self.input_accuracy_life.setSuffix(" shots")
+        count_layout.addRow("Estimated Barrel Life:", self.input_accuracy_life)
 
         count_group.setLayout(count_layout)
         layout.addWidget(count_group)
 
         # Condition
-        cond_group = QGroupBox("📊 Tilstand")
+        cond_group = QGroupBox("Tilstand")
+        cond_group.setProperty("variant", "panel")
         cond_layout = QFormLayout()
 
         self.input_bore_condition = QComboBox()
@@ -756,6 +960,115 @@ class RifleEditorDialog(QDialog):
             rifle.get("accuracy_baseline_moa", 1.0) or 1.0
         )
 
+        self.load_precision_profile()
+
+    def _read_precision_profile(self) -> Dict[str, Any]:
+        details: Dict[str, Any] = {}
+        if not self.rifle_id:
+            return details
+        try:
+            rows = self.db.execute_query(
+                "SELECT profile_json FROM rifle_profile_details WHERE rifle_id = ?",
+                (self.rifle_id,),
+            )
+            if rows and rows[0].get("profile_json"):
+                details = json.loads(rows[0]["profile_json"])
+        except Exception:
+            details = {}
+        return details
+
+    def load_precision_profile(self) -> None:
+        details = self._read_precision_profile()
+        try:
+            self.input_pressure_limit.setValue(
+                float(details.get("pressure_limit_psi") or 0)
+            )
+            self.input_magazine_length.setValue(
+                float(details.get("magazine_length_mm") or 0)
+            )
+            self.input_scope_height.setValue(float(details.get("scope_height_mm") or 0))
+            self.input_zero_distance.setValue(
+                int(details.get("zero_distance_m") or 100)
+            )
+            self.input_click_value.setValue(
+                float(details.get("click_value_moa") or 0.25)
+            )
+            self.input_clicks_per_revolution.setValue(
+                int(details.get("clicks_per_revolution") or 40)
+            )
+            self.input_land_diameter.setValue(
+                float(details.get("land_diameter_mm") or 0)
+            )
+            self.input_groove_diameter.setValue(
+                float(details.get("groove_diameter_mm") or 0)
+            )
+            self.input_chamber_neck_diameter.setValue(
+                float(details.get("chamber_neck_diameter_mm") or 0)
+            )
+            self.input_headspace_go.setValue(float(details.get("headspace_go_mm") or 0))
+            self.input_headspace_no_go.setValue(
+                float(details.get("headspace_no_go_mm") or 0)
+            )
+            self.input_profile_notes.setPlainText(details.get("notes") or "")
+        except Exception:
+            pass
+
+    def _save_precision_profile(self, rifle_id: int) -> None:
+        def _float_or_none(value: float) -> Optional[float]:
+            try:
+                fval = float(value)
+            except Exception:
+                return None
+            return None if abs(fval) < 1e-6 else fval
+
+        def _int_or_none(value: int) -> Optional[int]:
+            try:
+                ival = int(value)
+            except Exception:
+                return None
+            return None if ival == 0 else ival
+
+        profile = {
+            "pressure_limit_psi": _float_or_none(self.input_pressure_limit.value()),
+            "magazine_length_mm": _float_or_none(self.input_magazine_length.value()),
+            "scope_height_mm": _float_or_none(self.input_scope_height.value()),
+            "zero_distance_m": _int_or_none(self.input_zero_distance.value()),
+            "click_value_moa": _float_or_none(self.input_click_value.value()),
+            "clicks_per_revolution": _int_or_none(
+                self.input_clicks_per_revolution.value()
+            ),
+            "land_diameter_mm": _float_or_none(self.input_land_diameter.value()),
+            "groove_diameter_mm": _float_or_none(self.input_groove_diameter.value()),
+            "chamber_neck_diameter_mm": _float_or_none(
+                self.input_chamber_neck_diameter.value()
+            ),
+            "headspace_go_mm": _float_or_none(self.input_headspace_go.value()),
+            "headspace_no_go_mm": _float_or_none(self.input_headspace_no_go.value()),
+            "notes": (self.input_profile_notes.toPlainText() or "").strip() or None,
+        }
+
+        clean = {k: v for k, v in profile.items() if v is not None}
+        try:
+            payload = json.dumps(clean)
+        except Exception:
+            payload = "{}"
+
+        try:
+            cur = self.db.cursor
+            cur.execute(
+                """
+                INSERT INTO rifle_profile_details (rifle_id, profile_json, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(rifle_id) DO UPDATE SET
+                    profile_json = excluded.profile_json,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (rifle_id, payload),
+            )
+            self.db.conn.commit()
+        except Exception:
+            pass
+
     def save_rifle(self):
         """Save rifle to database"""
         data = {
@@ -796,29 +1109,32 @@ class RifleEditorDialog(QDialog):
 
         # Validation
         if not data["name"]:
-            QMessageBox.warning(self, "Mangler Navn", "Vennligst legg inn et navn.")
+            QMessageBox.warning(self, "Missing Name", "Please enter a name.")
             return
 
         if not data["caliber"]:
-            QMessageBox.warning(self, "Mangler Kaliber", "Vennligst velg kaliber.")
+            QMessageBox.warning(self, "Missing Caliber", "Please select a caliber.")
             return
 
-        try:
-            if self.rifle_id:
-                self.db.update("rifles", data, "id = ?", (self.rifle_id,))
-                QMessageBox.information(
-                    self, "Lagret", f"Rifle '{data['name']}' oppdatert!"
-                )
-            else:
-                data["created_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self.db.insert("rifles", data)
-                QMessageBox.information(
-                    self, "Lagret", f"Rifle '{data['name']}' lagret!"
-                )
-
+        if self.rifle_id:
+            self.db.update("rifles", data, "id = ?", (self.rifle_id,))
+            self._save_precision_profile(self.rifle_id)
+            QMessageBox.information(
+                self, "Lagret", f"Våpen '{data['name']}' oppdatert!"
+            )
             self.accept()
-        except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Kunne ikke lagre: {str(e)}")
+        else:
+            data["created_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            new_id = self.db.insert("rifles", data)
+            if new_id is None:
+                QMessageBox.critical(
+                    self, "Feil", "Kunne ikke lagre våpenet. Sjekk loggen for detaljer."
+                )
+                return
+            self._save_precision_profile(new_id)
+            self.rifle_id = new_id
+            QMessageBox.information(self, "Lagret", f"Våpen '{data['name']}' lagret!")
+            self.accept()
 
 
 class RifleDetailsDialog(QDialog):
@@ -831,7 +1147,7 @@ class RifleDetailsDialog(QDialog):
         self.db = get_database()
         self.rifle_id = rifle_id
 
-        self.setWindowTitle("🔍 Rifle Detaljer")
+        self.setWindowTitle("Firearm Details")
         self.setMinimumSize(800, 600)
 
         self.init_ui()
@@ -842,15 +1158,16 @@ class RifleDetailsDialog(QDialog):
         layout = QVBoxLayout()
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.create_info_tab(), "ℹ️ Info")
-        self.tabs.addTab(self.create_harmonics_tab(), "🌊 Harmonikk")
-        self.tabs.addTab(self.create_bullet_jump_tab(), "📏 Bullet Jump")
-        self.tabs.addTab(self.create_accuracy_tests_tab(), "📊 Accuracy Tests")
-        self.tabs.addTab(self.create_maintenance_tab(), "🔧 Vedlikehold")
+        self.tabs.addTab(self.create_info_tab(), "Info")
+        self.tabs.addTab(self.create_harmonics_tab(), "Harmonics")
+        self.tabs.addTab(self.create_bullet_jump_tab(), "Bullet Jump")
+        self.tabs.addTab(self.create_accuracy_tests_tab(), "Accuracy Tests")
+        self.tabs.addTab(self.create_maintenance_tab(), "Maintenance")
 
         layout.addWidget(self.tabs)
 
-        btn_close = QPushButton("✓ Lukk")
+        btn_close = QPushButton("Close")
+        btn_close.setProperty("variant", "ghost")
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close)
 
@@ -873,8 +1190,8 @@ class RifleDetailsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        label = QLabel("🌊 Harmonisk Analyse")
-        label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        label = QLabel("Harmonic Analysis")
+        label.setProperty("variant", "cardTitle")
         layout.addWidget(label)
 
         self.harmonics_display = QTextEdit()
@@ -889,14 +1206,22 @@ class RifleDetailsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        label = QLabel("📏 Bullet Jump Målinger")
-        label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        label = QLabel("Bullet Jump Measurements")
+        label.setProperty("variant", "cardTitle")
         layout.addWidget(label)
 
         self.bullet_jump_table = QTableWidget()
-        self.bullet_jump_table.setColumnCount(6)
+        self.bullet_jump_table.setColumnCount(7)
         self.bullet_jump_table.setHorizontalHeaderLabels(
-            ["Dato", "Kule", "Jam COAL", "Jam CBTO", "Metode", "Skudd ved Måling"]
+            [
+                "Date",
+                "Bullet",
+                "Barrel",
+                "Jam COAL",
+                "Jam CBTO",
+                "Method",
+                "Shots at Measurement",
+            ]
         )
         layout.addWidget(self.bullet_jump_table)
 
@@ -908,14 +1233,14 @@ class RifleDetailsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        label = QLabel("📊 Accuracy Tests")
-        label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        label = QLabel("Accuracy Tests")
+        label.setProperty("variant", "cardTitle")
         layout.addWidget(label)
 
         self.accuracy_table = QTableWidget()
         self.accuracy_table.setColumnCount(6)
         self.accuracy_table.setHorizontalHeaderLabels(
-            ["Dato", "Skudd ved Test", "Avg MOA", "ES fps", "SD fps", "Grupper"]
+            ["Date", "Shots in Test", "Avg MOA", "ES fps", "SD fps", "Groups"]
         )
         layout.addWidget(self.accuracy_table)
 
@@ -927,14 +1252,14 @@ class RifleDetailsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout()
 
-        label = QLabel("🔧 Vedlikeholdslogg")
-        label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        label = QLabel("Maintenance Log")
+        label.setProperty("variant", "cardTitle")
         layout.addWidget(label)
 
         self.maintenance_table = QTableWidget()
         self.maintenance_table.setColumnCount(5)
         self.maintenance_table.setHorizontalHeaderLabels(
-            ["Dato", "Type", "Skudd", "Bore Condition", "Notater"]
+            ["Date", "Type", "Shots", "Bore Condition", "Notes"]
         )
         layout.addWidget(self.maintenance_table)
 
@@ -947,22 +1272,60 @@ class RifleDetailsDialog(QDialog):
         if not rifle:
             return
 
+        profile_details = {}
+        try:
+            rows = self.db.execute_query(
+                "SELECT profile_json FROM rifle_profile_details WHERE rifle_id = ?",
+                (self.rifle_id,),
+            )
+            if rows and rows[0].get("profile_json"):
+                profile_details = json.loads(rows[0]["profile_json"])
+        except Exception:
+            profile_details = {}
+
+        def _fmt(value, suffix=""):
+            return f"{value}{suffix}" if value is not None else "-"
+
+        if profile_details:
+            precision_html = f"""
+            <h3>Precision Profile</h3>
+            <ul>
+                <li><b>Max pressure override:</b> {_fmt(profile_details.get('pressure_limit_psi'), ' PSI')}</li>
+                <li><b>Magazine length:</b> {_fmt(profile_details.get('magazine_length_mm'), ' mm')}</li>
+                <li><b>Scope height:</b> {_fmt(profile_details.get('scope_height_mm'), ' mm')}</li>
+                <li><b>Zero distance:</b> {_fmt(profile_details.get('zero_distance_m'), ' m')}</li>
+                <li><b>Land diameter:</b> {_fmt(profile_details.get('land_diameter_mm'), ' mm')}</li>
+                <li><b>Groove diameter:</b> {_fmt(profile_details.get('groove_diameter_mm'), ' mm')}</li>
+                <li><b>Chamber neck:</b> {_fmt(profile_details.get('chamber_neck_diameter_mm'), ' mm')}</li>
+                <li><b>Headspace GO:</b> {_fmt(profile_details.get('headspace_go_mm'), ' mm')}</li>
+                <li><b>Headspace NO-GO:</b> {_fmt(profile_details.get('headspace_no_go_mm'), ' mm')}</li>
+            </ul>
+            """
+        else:
+            precision_html = (
+                "<h3>Precision Profile</h3><p>No precision profile is registered.</p>"
+            )
+
+        chamber_comparison_html = build_chamber_comparison_html(
+            self.db, rifle, profile_details
+        )
+
         # Info tab
         info_html = f"""
-        <h2>🎯 {rifle.get('name', 'N/A')}</h2>
-        <h3>Grunnleggende Info</h3>
+        <h2>{rifle.get('name', 'N/A')}</h2>
+        <h3>Basic Info</h3>
         <ul>
-            <li><b>Produsent:</b> {rifle.get('manufacturer', '-')}</li>
-            <li><b>Modell:</b> {rifle.get('model', '-')}</li>
-            <li><b>Kaliber:</b> {rifle.get('caliber', '-')}</li>
+            <li><b>Manufacturer:</b> {rifle.get('manufacturer', '-')}</li>
+            <li><b>Model:</b> {rifle.get('model', '-')}</li>
+            <li><b>Caliber:</b> {rifle.get('caliber', '-')}</li>
             <li><b>Action:</b> {rifle.get('action_type', '-')}</li>
-            <li><b>Serienummer:</b> {rifle.get('serial_number', '-')}</li>
+            <li><b>Serial Number:</b> {rifle.get('serial_number', '-')}</li>
         </ul>
 
-        <h3>Pipe Detaljer</h3>
+        <h3>Barrel Details</h3>
         <ul>
-            <li><b>Lengde:</b> {rifle.get('barrel_length_inches', 0):.1f}" / {rifle.get('barrel_length_mm', 0):.1f} mm</li>
-            <li><b>Kontur:</b> {rifle.get('barrel_contour', '-')}</li>
+            <li><b>Length:</b> {rifle.get('barrel_length_inches', 0):.1f}" / {rifle.get('barrel_length_mm', 0):.1f} mm</li>
+            <li><b>Contour:</b> {rifle.get('barrel_contour', '-')}</li>
             <li><b>Material:</b> {rifle.get('barrel_material', '-')}</li>
             <li><b>Finish:</b> {rifle.get('barrel_finish', '-')}</li>
             <li><b>Twist Rate:</b> {rifle.get('twist_rate', '-')} ({rifle.get('twist_direction', 'right')})</li>
@@ -971,39 +1334,28 @@ class RifleDetailsDialog(QDialog):
 
         <h3>Status</h3>
         <ul>
-            <li><b>Skudd Fyrt:</b> {rifle.get('round_count', 0)} / {rifle.get('accuracy_life_estimate', 0)} estimert</li>
+            <li><b>Shots Fired:</b> {rifle.get('round_count', 0)} / {rifle.get('accuracy_life_estimate', 0)} estimated</li>
             <li><b>Bore Condition:</b> {rifle.get('bore_condition', '-')}</li>
             <li><b>Throat Erosion:</b> {rifle.get('throat_erosion_mm', 0):.2f} mm</li>
             <li><b>Baseline Accuracy:</b> {rifle.get('accuracy_baseline_moa', 0):.2f} MOA</li>
         </ul>
+        {precision_html}
+        {chamber_comparison_html}
         """
 
         self.info_display.setHtml(info_html)
 
         # Harmonics tab
-        barrel_length_mm = rifle.get("barrel_length_mm", 600)
-        muzzle_dia = rifle.get("muzzle_diameter_mm", 19.05)
-        breech_dia = rifle.get("breech_diameter_mm", 30.48)
-
-        # Simple harmonic calculation (simplified)
-        harmonics_html = f"""
-        <h3>Harmonisk Data</h3>
-        <p><b>Pipe Lengde:</b> {barrel_length_mm:.1f} mm</p>
-        <p><b>Muzzle Diameter:</b> {muzzle_dia:.2f} mm</p>
-        <p><b>Breech Diameter:</b> {breech_dia:.2f} mm</p>
-        <p><b>Stivhetsrating:</b> {'Tung' if breech_dia > 30 else 'Medium' if breech_dia > 25 else 'Lett'}</p>
-
-        <h4>📊 Harmonisk Analyse</h4>
-        <p>En tyngre pipe (større diameter) vil ha lavere harmonisk frekvens og være mer stabil.</p>
-        <p>Pipeharmonikk påvirker hvor kulen forlater pipen i vibrasjonssyklusen.</p>
-        <p><i>Detaljert harmonisk beregning kommer i neste versjon...</i></p>
-        """
+        harmonics_html = build_harmonics_html(rifle, profile_details)
 
         self.harmonics_display.setHtml(harmonics_html)
 
         # Bullet Jump tab
         jump_measurements = self.db.execute_query(
-            "SELECT * FROM rifle_bullet_jump_measurements WHERE rifle_id = ? ORDER BY measurement_date DESC",
+            """SELECT * FROM rifle_bullet_jump_measurements
+               WHERE rifle_id = ?
+               ORDER BY CASE WHEN barrel_id IS NULL OR barrel_id = '' THEN 1 ELSE 0 END,
+                        measurement_date DESC""",
             (self.rifle_id,),
         )
 
@@ -1019,19 +1371,24 @@ class RifleDetailsDialog(QDialog):
                 f"{bullet['name']}" if bullet else f"ID: {meas.get('bullet_id')}"
             )
             self.bullet_jump_table.setItem(row, 1, QTableWidgetItem(bullet_name))
+            self.bullet_jump_table.setItem(
+                row,
+                2,
+                QTableWidgetItem(describe_jump_measurement_barrel(meas)),
+            )
 
             self.bullet_jump_table.setItem(
-                row, 2, QTableWidgetItem(f"{meas.get('jam_coal_mm', 0):.2f} mm")
+                row, 3, QTableWidgetItem(f"{meas.get('jam_coal_mm', 0):.2f} mm")
             )
             self.bullet_jump_table.setItem(
-                row, 3, QTableWidgetItem(f"{meas.get('jam_cbto_mm', 0):.2f} mm")
+                row, 4, QTableWidgetItem(f"{meas.get('jam_cbto_mm', 0):.2f} mm")
             )
             self.bullet_jump_table.setItem(
-                row, 4, QTableWidgetItem(meas.get("measurement_method", "-"))
+                row, 5, QTableWidgetItem(meas.get("measurement_method", "-"))
             )
             self.bullet_jump_table.setItem(
                 row,
-                5,
+                6,
                 QTableWidgetItem(str(meas.get("rounds_fired_at_measurement", 0))),
             )
 
@@ -1110,7 +1467,7 @@ class AddRoundsFiredDialog(QDialog):
         self.db = get_database()
         self.rifle = rifle or {}
 
-        self.setWindowTitle(f"🎯 Legg til Skudd - {self.rifle.get('name', '')}")
+        self.setWindowTitle(f"Add Shots - {self.rifle.get('name', '')}")
         self.setMinimumWidth(400)
 
         self.init_ui()
@@ -1122,19 +1479,19 @@ class AddRoundsFiredDialog(QDialog):
         form = QFormLayout()
 
         current_count = self.rifle.get("round_count", 0) or 0
-        label = QLabel(f"Nåværende skuddteller: <b>{current_count}</b>")
+        label = QLabel(f"Current round count: <b>{current_count}</b>")
         layout.addWidget(label)
 
         self.input_rounds = QSpinBox()
         self.input_rounds.setRange(1, 1000)
         self.input_rounds.setValue(20)
-        self.input_rounds.setSuffix(" skudd")
-        form.addRow("Legg til skudd:", self.input_rounds)
+        self.input_rounds.setSuffix(" shots")
+        form.addRow("Add shots:", self.input_rounds)
 
         self.input_notes = QTextEdit()
         self.input_notes.setMaximumHeight(80)
-        self.input_notes.setPlaceholderText("Notater om økten...")
-        form.addRow("Notater:", self.input_notes)
+        self.input_notes.setPlaceholderText("Notes about the session...")
+        form.addRow("Notes:", self.input_notes)
 
         layout.addLayout(form)
 
@@ -1144,33 +1501,30 @@ class AddRoundsFiredDialog(QDialog):
 
         if new_count >= 500 and (new_count // 500) > (current_count // 500):
             warning = QLabel(
-                "⚠️ Du passerer 500 skudd! Husk å måle hylser for slitasje."
+                "You are passing 500 shots. Remember to measure cases for wear."
             )
-            warning.setStyleSheet(
-                "background-color: #fff3cd; padding: 10px; border-radius: 5px; color: #856404;"
-            )
+            warning.setProperty("variant", "callout")
             warning.setWordWrap(True)
             layout.addWidget(warning)
 
         if new_count > accuracy_life * 0.8:
             warning2 = QLabel(
-                f"⚠️ Pipen nærmer seg estimert levetid ({accuracy_life} skudd)!"
+                f"The barrel is nearing its estimated service life ({accuracy_life} shots)."
             )
-            warning2.setStyleSheet(
-                "background-color: #f8d7da; padding: 10px; border-radius: 5px; color: #721c24;"
-            )
+            warning2.setProperty("variant", "callout")
             warning2.setWordWrap(True)
             layout.addWidget(warning2)
 
         # Buttons
         btn_layout = QHBoxLayout()
 
-        btn_save = QPushButton("💾 Lagre")
+        btn_save = QPushButton("Save")
         btn_save.clicked.connect(self.save_rounds)
-        btn_save.setStyleSheet("background-color: #27ae60; color: white; padding: 8px;")
+        btn_save.setProperty("variant", "primary")
 
-        btn_cancel = QPushButton("❌ Avbryt")
+        btn_cancel = QPushButton("Cancel")
         btn_cancel.clicked.connect(self.reject)
+        btn_cancel.setProperty("variant", "ghost")
 
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
@@ -1202,7 +1556,7 @@ class AddRoundsFiredDialog(QDialog):
         self.db.insert("rifle_maintenance_log", log_data)
 
         QMessageBox.information(
-            self, "Lagret", f"Skuddteller oppdatert: {current_count} → {new_count}"
+            self, "Saved", f"Round count updated: {current_count} -> {new_count}"
         )
 
         self.accept()
@@ -1216,7 +1570,7 @@ class MaintenanceLogDialog(QDialog):
         self.db = get_database()
         self.rifle = rifle or {}
 
-        self.setWindowTitle(f"🔧 Vedlikehold - {self.rifle.get('name', '')}")
+        self.setWindowTitle(f"Maintenance - {self.rifle.get('name', '')}")
         self.setMinimumWidth(500)
 
         self.init_ui()
@@ -1230,7 +1584,7 @@ class MaintenanceLogDialog(QDialog):
         self.input_date = QDateEdit()
         self.input_date.setDate(QDate.currentDate())
         self.input_date.setCalendarPopup(True)
-        form.addRow("Dato:", self.input_date)
+        form.addRow("Date:", self.input_date)
 
         self.input_type = QComboBox()
         self.input_type.addItems(
@@ -1246,13 +1600,13 @@ class MaintenanceLogDialog(QDialog):
         form.addRow("Type:", self.input_type)
 
         self.input_bore_cleaned = QCheckBox()
-        form.addRow("Løp rengjort:", self.input_bore_cleaned)
+        form.addRow("Barrel cleaned:", self.input_bore_cleaned)
 
         self.input_carbon_removed = QCheckBox()
-        form.addRow("Carbon fjernet:", self.input_carbon_removed)
+        form.addRow("Carbon removed:", self.input_carbon_removed)
 
         self.input_copper_removed = QCheckBox()
-        form.addRow("Copper fjernet:", self.input_copper_removed)
+        form.addRow("Copper removed:", self.input_copper_removed)
 
         self.input_bore_condition = QComboBox()
         self.input_bore_condition.addItems(["excellent", "good", "fair", "worn"])
@@ -1270,19 +1624,20 @@ class MaintenanceLogDialog(QDialog):
 
         self.input_notes = QTextEdit()
         self.input_notes.setMaximumHeight(100)
-        form.addRow("Notater:", self.input_notes)
+        form.addRow("Notes:", self.input_notes)
 
         layout.addLayout(form)
 
         # Buttons
         btn_layout = QHBoxLayout()
 
-        btn_save = QPushButton("💾 Lagre")
+        btn_save = QPushButton("Save")
         btn_save.clicked.connect(self.save_maintenance)
-        btn_save.setStyleSheet("background-color: #27ae60; color: white; padding: 8px;")
+        btn_save.setProperty("variant", "primary")
 
-        btn_cancel = QPushButton("❌ Avbryt")
+        btn_cancel = QPushButton("Cancel")
         btn_cancel.clicked.connect(self.reject)
+        btn_cancel.setProperty("variant", "ghost")
 
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
@@ -1326,6 +1681,6 @@ class MaintenanceLogDialog(QDialog):
 
         self.db.update("rifles", update_data, "id = ?", (self.rifle["id"],))
 
-        QMessageBox.information(self, "Lagret", "Vedlikehold logget!")
+        QMessageBox.information(self, "Saved", "Maintenance logged!")
 
         self.accept()

@@ -6,6 +6,6 @@ if exist .venv\Scripts\activate.bat (
 ) else (
     echo Virtualenv activate script not found at .venv\Scripts\activate.bat
 )
-python HjemmeladingApp\main.py %*
+python main.py %*
 popd
 pause

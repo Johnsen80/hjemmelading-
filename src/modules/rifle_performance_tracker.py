@@ -1,16 +1,16 @@
 """
 Cold Bore Shot Logger & Barrel Condition Tracker
-Sporer første skudd fra kald rifle og løpets tilstand over tid
+Tracks the first shot from a cold rifle and barrel condition over time
 """
 
 from datetime import datetime
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -25,11 +25,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
+from ..database.database import get_database
 
 
 class RiflePerformanceTracker(QWidget):
-    """Widget for cold bore logging og barrel tracking"""
+    """Widget for cold-bore logging and barrel tracking."""
 
     def __init__(self):
         super().__init__()
@@ -37,17 +37,17 @@ class RiflePerformanceTracker(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        """Initialiserer brukergrensesnittet"""
+        """Initialize the user interface."""
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        # Tittel
-        title = QLabel("🎯 Rifle Performance Tracker")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        # Title
+        title = QLabel("Rifle Performance Tracker")
+        title.setProperty("variant", "cardTitle")
         layout.addWidget(title)
 
         subtitle = QLabel("Cold Bore Shot Logger & Barrel Condition Tracker")
-        subtitle.setStyleSheet("color: gray; font-size: 11pt;")
+        subtitle.setProperty("variant", "cardSubtitle")
         layout.addWidget(subtitle)
 
         # Tabs
@@ -55,71 +55,72 @@ class RiflePerformanceTracker(QWidget):
         layout.addWidget(tabs)
 
         # Tab 1: Cold Bore Logger
-        tabs.addTab(self.create_cold_bore_tab(), "❄️ Cold Bore")
+        tabs.addTab(self.create_cold_bore_tab(), "Cold Bore")
 
         # Tab 2: Barrel Tracker
-        tabs.addTab(self.create_barrel_tracker_tab(), "🔧 Barrel Tracker")
+        tabs.addTab(self.create_barrel_tracker_tab(), "Barrel Tracker")
 
         # Tab 3: Analysis
-        tabs.addTab(self.create_analysis_tab(), "📊 Analyse")
+        tabs.addTab(self.create_analysis_tab(), "Analysis")
 
     def create_cold_bore_tab(self):
-        """Oppretter cold bore logging tab"""
+        """Create the cold-bore logging tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
         # Info
         info = QLabel(
-            """
-        <b>❄️ Cold Bore Shot Logger:</b><br>
-        Første skudd fra kald rifle skyter ofte annerledes enn påfølgende skudd.<br>
-        Logg cold bore POI systematisk for å forstå din rifle's oppførsel.
-        """
+            "Cold Bore Shot Logger:\n"
+            "The first shot from a cold rifle often lands differently than follow-up shots.\n"
+            "Log cold-bore POI systematically to understand the rifle's behavior."
         )
         info.setWordWrap(True)
+        info.setProperty("role", "muted")
         layout.addWidget(info)
 
-        # Input seksjon
-        input_group = QGroupBox("📝 Ny Cold Bore Logging")
+        # Input section
+        input_group = QGroupBox("New Cold-Bore Entry")
+        input_group.setProperty("variant", "panel")
         input_layout = QFormLayout()
         input_group.setLayout(input_layout)
 
         # Rifle
         self.cb_rifle = QComboBox()
-        self.cb_rifle.addItem("Velg rifle...", None)
+        self.cb_rifle.addItem("Select firearm...", None)
         self.load_rifles(self.cb_rifle)
         input_layout.addRow("Rifle:", self.cb_rifle)
 
-        # Ammunisjon
+        # Ammunition
         self.cb_ammo = QComboBox()
-        self.cb_ammo.addItem("Velg ammunisjon...", None)
+        self.cb_ammo.addItem("Select ammunition...", None)
         self.load_ammo_profiles(self.cb_ammo)
-        input_layout.addRow("Ammunisjon:", self.cb_ammo)
+        input_layout.addRow("Ammunition:", self.cb_ammo)
 
-        # Distanse
+        # Distance
         self.cb_distance = QSpinBox()
         self.cb_distance.setRange(50, 1000)
         self.cb_distance.setValue(100)
         self.cb_distance.setSuffix(" m")
-        input_layout.addRow("Distanse:", self.cb_distance)
+        input_layout.addRow("Distance:", self.cb_distance)
 
-        # Temperatur
+        # Temperature
         self.cb_temp = QDoubleSpinBox()
         self.cb_temp.setRange(-30, 50)
         self.cb_temp.setValue(15)
         self.cb_temp.setSuffix(" °C")
-        input_layout.addRow("Temperatur:", self.cb_temp)
+        input_layout.addRow("Temperature:", self.cb_temp)
 
-        # Tid siden siste skudd
+        # Time since the last shot
         self.cb_time_since = QSpinBox()
         self.cb_time_since.setRange(1, 24)
         self.cb_time_since.setValue(12)
-        self.cb_time_since.setSuffix(" timer")
-        input_layout.addRow("Tid siden siste skudd:", self.cb_time_since)
+        self.cb_time_since.setSuffix(" hours")
+        input_layout.addRow("Time Since Last Shot:", self.cb_time_since)
 
         # POI shift (Point of Impact)
-        poi_group = QGroupBox("🎯 Cold Bore POI Shift")
+        poi_group = QGroupBox("Cold Bore POI Shift")
+        poi_group.setProperty("variant", "panel")
         poi_layout = QFormLayout()
         poi_group.setLayout(poi_layout)
 
@@ -128,14 +129,14 @@ class RiflePerformanceTracker(QWidget):
         self.cb_poi_h.setValue(0)
         self.cb_poi_h.setSuffix(" cm")
         self.cb_poi_h.setDecimals(1)
-        poi_layout.addRow("Horisontal shift (+ = høyre):", self.cb_poi_h)
+        poi_layout.addRow("Horizontal shift (+ = right):", self.cb_poi_h)
 
         self.cb_poi_v = QDoubleSpinBox()
         self.cb_poi_v.setRange(-50, 50)
         self.cb_poi_v.setValue(0)
         self.cb_poi_v.setSuffix(" cm")
         self.cb_poi_v.setDecimals(1)
-        poi_layout.addRow("Vertikal shift (+ = opp):", self.cb_poi_v)
+        poi_layout.addRow("Vertical shift (+ = up):", self.cb_poi_v)
 
         # Quick buttons
         quick_layout = QHBoxLayout()
@@ -143,11 +144,12 @@ class RiflePerformanceTracker(QWidget):
 
         for label, h, v in [
             ("On Zero", 0, 0),
-            ("1 cm høyre", 1, 0),
-            ("2 cm opp", 0, 2),
-            ("1↗", 1, 1),
+            ("1 cm right", 1, 0),
+            ("2 cm up", 0, 2),
+            ("1 cm diag", 1, 1),
         ]:
             btn = QPushButton(label)
+            btn.setProperty("variant", "ghost")
             btn.clicked.connect(
                 lambda checked, x=h, y=v: (
                     self.cb_poi_h.setValue(x),
@@ -161,70 +163,69 @@ class RiflePerformanceTracker(QWidget):
 
         input_layout.addRow(poi_group)
 
-        # Notater
+        # Notes
         self.cb_notes = QTextEdit()
         self.cb_notes.setMaximumHeight(80)
         self.cb_notes.setPlaceholderText(
-            "F.eks: Oljert løp, kaldt vær, riflen stått ute over natten..."
+            "e.g. Oiled barrel, cold weather, the rifle was left outside overnight..."
         )
-        input_layout.addRow("Notater:", self.cb_notes)
+        input_layout.addRow("Notes:", self.cb_notes)
 
         layout.addWidget(input_group)
 
-        # Lagre-knapp
-        save_cb_btn = QPushButton("💾 Lagre Cold Bore Shot")
-        save_cb_btn.setMinimumHeight(50)
-        save_cb_btn.setStyleSheet(
-            "font-size: 14pt; font-weight: bold; background-color: #2196F3; color: white;"
-        )
+        # Save button
+        save_cb_btn = QPushButton("Save Cold Bore Shot")
+        save_cb_btn.setProperty("variant", "primary")
+        save_cb_btn.setProperty("size", "lg")
         save_cb_btn.clicked.connect(self.save_cold_bore)
         layout.addWidget(save_cb_btn)
 
-        # Historikk
-        history_label = QLabel("<b>📜 Cold Bore Historikk:</b>")
+        # History
+        history_label = QLabel("Cold-Bore History")
+        history_label.setProperty("variant", "cardTitle")
         layout.addWidget(history_label)
 
         self.cb_history_table = QTableWidget()
         self.cb_history_table.setColumnCount(8)
         self.cb_history_table.setHorizontalHeaderLabels(
             [
-                "Dato",
+                "Date",
                 "Rifle",
                 "Ammo",
-                "Distanse",
+                "Distance",
                 "Temp",
                 "POI H (cm)",
                 "POI V (cm)",
-                "Notater",
+                "Notes",
             ]
         )
         layout.addWidget(self.cb_history_table)
 
-        # Refresh-knapp
-        refresh_cb_btn = QPushButton("🔄 Oppdater historikk")
+        # Refresh button
+        refresh_cb_btn = QPushButton("Refresh History")
+        refresh_cb_btn.setProperty("variant", "ghost")
         refresh_cb_btn.clicked.connect(self.load_cold_bore_history)
         layout.addWidget(refresh_cb_btn)
 
-        # Last initial data
+        # Load initial data
         self.load_cold_bore_history()
 
         return widget
 
     def create_barrel_tracker_tab(self):
-        """Oppretter barrel tracker tab"""
+        """Create the barrel tracker tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
         # Info
         info = QLabel(
-            """
-        <b>🔧 Barrel Condition Tracker:</b><br>
-        Spor hvor mange skudd som er skutt gjennom løpet og hvordan presisjonen endrer seg.<br>
-        Identifiser når det er tid for rengjøring eller nytt løp.
-        """
+            "Barrel Condition Tracker:\n"
+            "Track how many shots have gone through the barrel and how precision changes over time.\n"
+            "Identify when it is time for cleaning or a new barrel."
         )
         info.setWordWrap(True)
+        info.setProperty("role", "muted")
         layout.addWidget(info)
 
         # Rifle selector
@@ -232,7 +233,7 @@ class RiflePerformanceTracker(QWidget):
         rifle_layout.addWidget(QLabel("Rifle:"))
 
         self.bt_rifle = QComboBox()
-        self.bt_rifle.addItem("Velg rifle...", None)
+        self.bt_rifle.addItem("Select firearm...", None)
         self.load_rifles(self.bt_rifle)
         self.bt_rifle.currentIndexChanged.connect(self.load_barrel_status)
         rifle_layout.addWidget(self.bt_rifle, 1)
@@ -242,45 +243,48 @@ class RiflePerformanceTracker(QWidget):
         # Status cards
         status_layout = QHBoxLayout()
 
-        self.bt_total_rounds = self.create_info_card("Totalt antall skudd", "0")
+        self.bt_total_rounds = self.create_info_card("Total Shots", "0")
         status_layout.addWidget(self.bt_total_rounds)
 
-        self.bt_last_cleaning = self.create_info_card("Siden siste rengjøring", "0")
+        self.bt_last_cleaning = self.create_info_card("Since Last Cleaning", "0")
         status_layout.addWidget(self.bt_last_cleaning)
 
-        self.bt_avg_group = self.create_info_card("Snitt gruppestørrelse", "N/A")
+        self.bt_avg_group = self.create_info_card("Average Group Size", "N/A")
         status_layout.addWidget(self.bt_avg_group)
 
-        self.bt_condition = self.create_info_card("Løpstilstand", "Ukjent")
+        self.bt_condition = self.create_info_card("Barrel Condition", "Unknown")
         status_layout.addWidget(self.bt_condition)
 
         layout.addLayout(status_layout)
 
         # Add rounds
-        add_group = QGroupBox("➕ Legg til skudd")
+        add_group = QGroupBox("Add Shots")
+        add_group.setProperty("variant", "panel")
         add_layout = QFormLayout()
         add_group.setLayout(add_layout)
 
         self.bt_add_rounds = QSpinBox()
         self.bt_add_rounds.setRange(1, 500)
         self.bt_add_rounds.setValue(20)
-        self.bt_add_rounds.setSuffix(" skudd")
-        add_layout.addRow("Antall:", self.bt_add_rounds)
+        self.bt_add_rounds.setSuffix(" shots")
+        add_layout.addRow("Count:", self.bt_add_rounds)
 
         self.bt_group_size = QDoubleSpinBox()
         self.bt_group_size.setRange(0, 10)
         self.bt_group_size.setValue(0.5)
         self.bt_group_size.setSuffix(" MOA")
         self.bt_group_size.setDecimals(2)
-        add_layout.addRow("Gruppestørrelse (valgfritt):", self.bt_group_size)
+        add_layout.addRow("Group size (optional):", self.bt_group_size)
 
         add_btn_layout = QHBoxLayout()
 
-        add_rounds_btn = QPushButton("➕ Legg til skudd")
+        add_rounds_btn = QPushButton("Add shots")
+        add_rounds_btn.setProperty("variant", "primary")
         add_rounds_btn.clicked.connect(self.add_barrel_rounds)
         add_btn_layout.addWidget(add_rounds_btn)
 
-        cleaning_btn = QPushButton("🧼 Rengjøring utført")
+        cleaning_btn = QPushButton("Cleaning completed")
+        cleaning_btn.setProperty("variant", "secondary")
         cleaning_btn.clicked.connect(self.mark_barrel_cleaning)
         add_btn_layout.addWidget(cleaning_btn)
 
@@ -289,10 +293,10 @@ class RiflePerformanceTracker(QWidget):
         layout.addWidget(add_group)
 
         # Graf placeholder
-        self.bt_chart_label = QLabel(
-            "<i>Velg en rifle for å se presisjon vs skudd-antall</i>"
-        )
+        self.bt_chart_label = QLabel("Select a firearm to view precision vs shot count")
         self.bt_chart_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.bt_chart_label.setProperty("role", "muted")
+        self.bt_chart_label.setProperty("emphasis", "placeholder")
         layout.addWidget(self.bt_chart_label)
 
         # Matplotlib canvas (opprettes når data er tilgjengelig)
@@ -306,13 +310,15 @@ class RiflePerformanceTracker(QWidget):
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
+        title = QLabel("Rifle Performance Analysis")
+        title.setProperty("variant", "cardTitle")
+        layout.addWidget(title)
+
         info = QLabel(
-            """
-        <h3>📊 Rifle Performance Analysis</h3>
-        <p>Sammenlign cold bore shift og løpstilstand for å optimalisere vedlikehold.</p>
-        """
+            "Compare cold-bore shift and barrel condition to optimize maintenance."
         )
         info.setWordWrap(True)
+        info.setProperty("variant", "cardSubtitle")
         layout.addWidget(info)
 
         # Rifle selector
@@ -320,11 +326,12 @@ class RiflePerformanceTracker(QWidget):
         rifle_layout.addWidget(QLabel("Rifle:"))
 
         self.an_rifle = QComboBox()
-        self.an_rifle.addItem("Velg rifle...", None)
+        self.an_rifle.addItem("Select firearm...", None)
         self.load_rifles(self.an_rifle)
         rifle_layout.addWidget(self.an_rifle, 1)
 
-        analyze_btn = QPushButton("📊 Kjør analyse")
+        analyze_btn = QPushButton("Run Analysis")
+        analyze_btn.setProperty("variant", "primary")
         analyze_btn.clicked.connect(self.run_analysis)
         rifle_layout.addWidget(analyze_btn)
 
@@ -339,33 +346,22 @@ class RiflePerformanceTracker(QWidget):
 
     def create_info_card(self, title, value):
         """Oppretter info-kort"""
-        card = QGroupBox()
+        card = QFrame()
+        card.setProperty("variant", "statCard")
         card.setMinimumHeight(100)
-        card.setStyleSheet(
-            """
-            QGroupBox {
-                background-color: #e8f5e9;
-                border: 2px solid #4CAF50;
-                border-radius: 8px;
-                padding: 10px;
-            }
-        """
-        )
 
         layout = QVBoxLayout()
         card.setLayout(layout)
 
         value_label = QLabel(value)
-        value_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+        value_label.setProperty("variant", "statValue")
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        value_label.setStyleSheet("color: #2E7D32;")
         value_label.setObjectName("value")
         layout.addWidget(value_label)
 
         title_label = QLabel(title)
-        title_label.setFont(QFont("Arial", 10))
+        title_label.setProperty("variant", "statTitle")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("color: #424242;")
         layout.addWidget(title_label)
 
         return card
@@ -396,7 +392,9 @@ class RiflePerformanceTracker(QWidget):
         ammo_id = self.cb_ammo.currentData()
 
         if not rifle_id or not ammo_id:
-            QMessageBox.warning(self, "Mangler data", "Velg rifle og ammunisjon!")
+            QMessageBox.warning(
+                self, "Missing Data", "Select a firearm and ammunition!"
+            )
             return
 
         try:
@@ -422,8 +420,8 @@ class RiflePerformanceTracker(QWidget):
 
             QMessageBox.information(
                 self,
-                "Lagret!",
-                f"Cold bore shot lagret!\n\nPOI shift: {self.cb_poi_h.value():.1f}cm H, {self.cb_poi_v.value():.1f}cm V",
+                "Saved!",
+                f"Cold-bore shot saved!\n\nPOI shift: {self.cb_poi_h.value():.1f} cm H, {self.cb_poi_v.value():.1f} cm V",
             )
 
             # Reset
@@ -431,11 +429,11 @@ class RiflePerformanceTracker(QWidget):
             self.cb_poi_v.setValue(0)
             self.cb_notes.clear()
 
-            # Refresh historikk
+            # Refresh history
             self.load_cold_bore_history()
 
         except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Kunne ikke lagre: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Could not save: {str(e)}")
 
     def load_cold_bore_history(self):
         """Laster cold bore historikk"""
@@ -531,32 +529,17 @@ class RiflePerformanceTracker(QWidget):
 
             # Determine condition
             if total_rounds < 200:
-                condition = "NY ✨"
-                color = "#4CAF50"
+                condition = "New"
             elif total_rounds < 1000:
-                condition = "GOD ✅"
-                color = "#8BC34A"
+                condition = "Good"
             elif total_rounds < 2500:
-                condition = "OK ⚠️"
-                color = "#FF9800"
+                condition = "OK"
             elif total_rounds < 5000:
-                condition = "SLITT 🔧"
-                color = "#FF5722"
+                condition = "Worn"
             else:
-                condition = "KRITISK ❌"
-                color = "#F44336"
+                condition = "Critical"
 
             self.bt_condition.findChild(QLabel, "value").setText(condition)
-            self.bt_condition.setStyleSheet(
-                f"""
-                QGroupBox {{
-                    background-color: {color}20;
-                    border: 2px solid {color};
-                    border-radius: 8px;
-                    padding: 10px;
-                }}
-            """
-            )
 
         except Exception as e:
             print(f"Error loading barrel status: {e}")
@@ -566,7 +549,7 @@ class RiflePerformanceTracker(QWidget):
         rifle_id = self.bt_rifle.currentData()
 
         if not rifle_id:
-            QMessageBox.warning(self, "Ingen rifle", "Velg en rifle først!")
+            QMessageBox.warning(self, "No Firearm", "Select a firearm first!")
             return
 
         rounds = self.bt_add_rounds.value()
@@ -590,21 +573,21 @@ class RiflePerformanceTracker(QWidget):
             )
 
             QMessageBox.information(
-                self, "Lagret!", f"{rounds} skudd lagt til barrel log!"
+                self, "Saved!", f"{rounds} shots added to the barrel log!"
             )
 
             # Refresh status
             self.load_barrel_status()
 
         except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Kunne ikke lagre: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Could not save: {str(e)}")
 
     def mark_barrel_cleaning(self):
         """Markerer barrel cleaning"""
         rifle_id = self.bt_rifle.currentData()
 
         if not rifle_id:
-            QMessageBox.warning(self, "Ingen rifle", "Velg en rifle først!")
+            QMessageBox.warning(self, "No Firearm", "Select a firearm first!")
             return
 
         try:
@@ -619,22 +602,22 @@ class RiflePerformanceTracker(QWidget):
 
             QMessageBox.information(
                 self,
-                "Lagret!",
-                "Barrel rengjøring registrert!\n\nRound counter siden siste rengjøring resatt.",
+                "Saved!",
+                "Barrel cleaning registered!\n\nRound counter since the last cleaning has been reset.",
             )
 
             # Refresh status
             self.load_barrel_status()
 
         except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Kunne ikke lagre: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Could not save: {str(e)}")
 
     def run_analysis(self):
         """Kjører analyse"""
         rifle_id = self.an_rifle.currentData()
 
         if not rifle_id:
-            QMessageBox.warning(self, "Ingen rifle", "Velg en rifle først!")
+            QMessageBox.warning(self, "No Firearm", "Select a firearm first!")
             return
 
         try:
@@ -662,25 +645,25 @@ class RiflePerformanceTracker(QWidget):
             if cb_data and cb_data[0][3] > 0:
                 avg_h, avg_v, avg_temp, count = cb_data[0]
                 cb_text = f"""
-<h3>❄️ Cold Bore Analysis:</h3>
-<p><b>{count} cold bore shots logget</b></p>
+<h3>Cold Bore Analysis</h3>
+<p><b>{count} cold-bore shots logged</b></p>
 <ul>
-<li>Gjennomsnittlig POI shift: <b>{avg_h:.1f}cm høyre, {avg_v:.1f}cm opp</b></li>
-<li>Gjennomsnittlig temperatur: <b>{avg_temp:.1f}°C</b></li>
+<li>Average POI shift: <b>{avg_h:.1f} cm right, {avg_v:.1f} cm up</b></li>
+<li>Average temperature: <b>{avg_temp:.1f}°C</b></li>
 </ul>
 
-<p><b>Anbefaling:</b></p>
+<p><b>Recommendation:</b></p>
 """
                 if abs(avg_h) < 1 and abs(avg_v) < 1:
-                    cb_text += "<p style='color: green;'>✅ Meget god cold bore performance! Minimal shift.</p>"
+                    cb_text += "<p>Meget god cold bore performance. Minimal shift.</p>"
                 elif abs(avg_h) < 2 and abs(avg_v) < 2:
-                    cb_text += "<p style='color: orange;'>⚠️ Moderat cold bore shift. Hold {:.1f}cm mot venstre og {:.1f}cm ned for første skudd.</p>".format(
+                    cb_text += "<p>Moderate cold-bore shift. Hold {:.1f} cm left and {:.1f} cm low for the first shot.</p>".format(
                         -avg_h, -avg_v
                     )
                 else:
-                    cb_text += "<p style='color: red;'>❌ Betydelig cold bore shift! Vurder å skyte et varme-skudd før jakt.</p>"
+                    cb_text += "<p>Significant cold-bore shift. Consider firing a fouler before hunting.</p>"
             else:
-                cb_text = "<p><i>Ingen cold bore data for denne riflen</i></p>"
+                cb_text = "<p><i>No cold-bore data for this firearm</i></p>"
 
             # Barrel condition analysis
             barrel_data = self.db.execute_query(
@@ -696,32 +679,36 @@ class RiflePerformanceTracker(QWidget):
                 total_rounds, avg_group = barrel_data[0]
 
                 barrel_text = f"""
-<h3>🔧 Barrel Condition:</h3>
-<p><b>Totalt antall skudd: {total_rounds}</b></p>
+<h3>Barrel Condition</h3>
+<p><b>Total shots: {total_rounds}</b></p>
 """
                 if avg_group:
-                    barrel_text += f"<p>Gjennomsnittlig gruppestørrelse: <b>{avg_group:.2f} MOA</b></p>"
+                    barrel_text += (
+                        f"<p>Average group size: <b>{avg_group:.2f} MOA</b></p>"
+                    )
 
                 barrel_text += "<p><b>Status:</b></p>"
 
                 if total_rounds < 200:
-                    barrel_text += "<p style='color: green;'>✅ Løpet er fortsatt nytt. Hold regelmessig rengjøring.</p>"
+                    barrel_text += (
+                        "<p>The barrel is still new. Keep up regular cleaning.</p>"
+                    )
                 elif total_rounds < 1000:
-                    barrel_text += "<p style='color: green;'>✅ Løpet er i god stand. Rengjør hver 100-200 skudd.</p>"
+                    barrel_text += "<p>The barrel is in good condition. Clean every 100-200 shots.</p>"
                 elif total_rounds < 2500:
-                    barrel_text += "<p style='color: orange;'>⚠️ Løpet begynner å slites. Overvåk presisjon nøye.</p>"
+                    barrel_text += "<p>The barrel is starting to wear. Monitor precision closely.</p>"
                 elif total_rounds < 5000:
-                    barrel_text += "<p style='color: red;'>❌ Løpet er betydelig slitt. Vurder nytt løp snart.</p>"
+                    barrel_text += "<p>The barrel is significantly worn. Consider a new barrel soon.</p>"
                 else:
-                    barrel_text += "<p style='color: red;'>❌ Løpet er forbi sin levetid. Nytt løp anbefales sterkt!</p>"
+                    barrel_text += "<p>The barrel is past its service life. A new barrel is strongly recommended.</p>"
             else:
-                barrel_text = "<p><i>Ingen barrel log data for denne riflen</i></p>"
+                barrel_text = "<p><i>No barrel-log data for this firearm</i></p>"
 
             # Combine results
             result_html = f"""
-<h2>📊 Rifle Performance Report</h2>
-<h3>🔫 {rifle_name} ({caliber})</h3>
-<p><i>Generert: {datetime.now().strftime('%Y-%m-%d %H:%M')}</i></p>
+<h2>Rifle Performance Report</h2>
+<h3>{rifle_name} ({caliber})</h3>
+<p><i>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}</i></p>
 <hr>
 
 {cb_text}
@@ -732,16 +719,16 @@ class RiflePerformanceTracker(QWidget):
 
 <hr>
 
-<h3>💡 Generelle anbefalinger:</h3>
+<h3>General Recommendations</h3>
 <ul>
-<li>Logg cold bore shots før hver jakt-sesong</li>
-<li>Rengjør løp hver 100-200 skudd for beste presisjon</li>
-<li>Spor gruppestørrelse for å identifisere presisjon-forverring tidlig</li>
-<li>Vurder nytt løp ved >3000-5000 skudd (avhengig av kaliber)</li>
+<li>Log cold-bore shots before each hunting season</li>
+<li>Clean the barrel every 100-200 shots for best precision</li>
+<li>Track group size to identify precision degradation early</li>
+<li>Consider a new barrel at >3000-5000 shots, depending on caliber</li>
 </ul>
             """
 
             self.an_result.setHtml(result_html)
 
         except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Analyse feilet: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Analysis failed: {str(e)}")

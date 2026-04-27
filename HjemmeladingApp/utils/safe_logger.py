@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import traceback
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -20,11 +21,18 @@ def _get_log_dir(app_name: str = "Hjemmelading") -> Path:
     """
     try:
         # Prefer the project's logging_config if available
-        from src.logging_config import get_log_dir as _gld
+        from src.logging_config import get_logger
 
-        p = Path(_gld(app_name))
-        p.mkdir(parents=True, exist_ok=True)
-        return p
+        handler = get_logger(app_name).handlers[0]
+        base_dir = getattr(handler, "baseDirectory", None)
+        if not base_dir:
+            base_filename = getattr(handler, "baseFilename", None)
+            if base_filename:
+                base_dir = str(Path(base_filename).parent)
+        if base_dir:
+            p = Path(base_dir)
+            p.mkdir(parents=True, exist_ok=True)
+            return p
     except Exception:
         pass
 
@@ -58,9 +66,7 @@ def append_exception(
     try:
         p = get_debug_log_path(app_name)
         with p.open("a", encoding="utf-8") as fh:
-            from datetime import datetime
-
-            fh.write(f"\n--- {msg} @ {datetime.utcnow().isoformat()}Z ---\n")
+            fh.write(f"\n--- {msg} @ {datetime.now().isoformat()}Z ---\n")
             if exc is not None:
                 fh.write(
                     "".join(
@@ -84,9 +90,7 @@ def append_message(msg: str, app_name: str = "Hjemmelading") -> None:
     try:
         p = get_debug_log_path(app_name)
         with p.open("a", encoding="utf-8") as fh:
-            from datetime import datetime
-
-            fh.write(f"\n--- {datetime.utcnow().isoformat()}Z ---\n")
+            fh.write(f"\n--- {datetime.now().isoformat()}Z ---\n")
             fh.write(msg + "\n")
     except Exception:
         try:

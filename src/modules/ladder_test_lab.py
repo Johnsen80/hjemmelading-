@@ -1,11 +1,11 @@
-"""
-Ladder Test Lab
-Planlegging og analyse av ladder tests
+"""Ladder Test Lab.
+
+Planning and analysis for systematic ladder tests.
 """
 
 from datetime import datetime
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -27,18 +27,26 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
-from src.modules.interactive_features import (
+from ..database.database import get_database
+from ..tools.load_session_runtime_service import (
+    get_active_load_session_id_from_settings,
+)
+from ..utils.optional_deps import Figure as Figure
+from ..utils.optional_deps import FigureCanvas as FigureCanvas
+from .interactive_features import (
     InteractivePowderChargeSlider,
     InteractiveVelocityGraph,
 )
-from src.modules.live_visualization import LiveStatisticsDisplay
-from src.utils.optional_deps import Figure as Figure
-from src.utils.optional_deps import FigureCanvas as FigureCanvas
+from .live_visualization import LiveStatisticsDisplay
+
+
+def _get_active_load_session_id() -> int | None:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    return get_active_load_session_id_from_settings(settings)
 
 
 class LadderTestLab(QWidget):
-    """Widget for Ladder Test planlegging og analyse"""
+    """Widget for ladder test planning and analysis."""
 
     def __init__(self):
         super().__init__()
@@ -47,31 +55,31 @@ class LadderTestLab(QWidget):
         self.load_tests()
 
     def init_ui(self):
-        """Initialiserer brukergrensesnittet"""
+        """Initialize the user interface"""
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        # Tittel
-        title = QLabel("🧪 Ladder Test Lab")
+        # Title
+        title = QLabel("Ladder Test Lab")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         layout.addWidget(title)
 
-        desc = QLabel("Planlegg og analyser systematiske ladder tests")
+        desc = QLabel("Plan and analyze systematic ladder tests")
         layout.addWidget(desc)
 
-        # Knapper
+        # Buttons
         btn_layout = QHBoxLayout()
-        new_test_btn = QPushButton("➕ Ny Ladder Test")
+        new_test_btn = QPushButton("New Ladder Test")
         new_test_btn.setMinimumHeight(40)
         new_test_btn.clicked.connect(self.new_ladder_test)
         btn_layout.addWidget(new_test_btn)
 
-        view_btn = QPushButton("📊 Vis/Analyser")
+        view_btn = QPushButton("View/Analyze")
         view_btn.setMinimumHeight(40)
         view_btn.clicked.connect(self.view_test)
         btn_layout.addWidget(view_btn)
 
-        delete_btn = QPushButton("🗑️ Slett")
+        delete_btn = QPushButton("Delete")
         delete_btn.setMinimumHeight(40)
         delete_btn.clicked.connect(self.delete_test)
         btn_layout.addWidget(delete_btn)
@@ -79,27 +87,27 @@ class LadderTestLab(QWidget):
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
 
-        # Tabell
+        # Table
         self.tests_table = QTableWidget()
         self.tests_table.setColumnCount(7)
         self.tests_table.setHorizontalHeaderLabels(
             [
-                "Navn",
-                "Dato",
+                "Name",
+                "Date",
                 "Rifle",
-                "Kaliber",
-                "Ladning (gr)",
-                "Avstand",
-                "Resultater",
+                "Caliber",
+                "Charge (gr)",
+                "Distance",
+                "Results",
             ]
         )
-        self.tests_table.horizontalHeader().setStretchLastSection(True)
+        self.tests_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         self.tests_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tests_table.doubleClicked.connect(self.view_test)
         layout.addWidget(self.tests_table)
 
     def load_tests(self):
-        """Laster ladder tests fra database"""
+        """Load ladder tests from the database"""
         tests = self.db.get_all("ladder_tests", "date DESC")
         self.tests_table.setRowCount(len(tests))
 
@@ -107,7 +115,7 @@ class LadderTestLab(QWidget):
             self.tests_table.setItem(i, 0, QTableWidgetItem(test["name"]))
             self.tests_table.setItem(i, 1, QTableWidgetItem(test["date"]))
 
-            # Rifle navn
+            # Rifle name
             rifle_name = "-"
             if test["rifle_id"]:
                 rifle = self.db.get_by_id("rifles", test["rifle_id"])
@@ -123,18 +131,18 @@ class LadderTestLab(QWidget):
             dist = f"{test['distance_meters']}m" if test["distance_meters"] else "-"
             self.tests_table.setItem(i, 5, QTableWidgetItem(dist))
 
-            # Tell resultater
+            # Count results
             results = self.db.execute_query(
                 "SELECT COUNT(*) as count FROM test_results WHERE ladder_test_id = ?",
                 (test["id"],),
             )
             result_count = results[0]["count"] if results else 0
-            self.tests_table.setItem(i, 6, QTableWidgetItem(f"{result_count} steg"))
+            self.tests_table.setItem(i, 6, QTableWidgetItem(f"{result_count} steps"))
 
             self.tests_table.item(i, 0).setData(Qt.ItemDataRole.UserRole, test["id"])
 
     def new_ladder_test(self):
-        """Oppretter ny ladder test"""
+        """Create a new ladder test"""
         rifles = self.db.get_all("rifles")
         powders = self.db.get_all("powder")
         bullets = self.db.get_all("bullets")
@@ -154,39 +162,56 @@ class LadderTestLab(QWidget):
             test_id = self.db.insert("ladder_tests", data)
             self.load_tests()
 
-            # Åpne resultat-input dialog
+            # Open the results input dialog.
             QMessageBox.information(
                 self,
-                "Test opprettet",
-                "Ladder test opprettet! Nå kan du legge inn resultater.",
+                "Test created",
+                "Ladder test created. You can enter results now.",
             )
             self.open_results_dialog(test_id)
 
     def view_test(self):
-        """Viser og analyserer valgt test"""
+        """Show and analyze the selected test"""
         selected = self.tests_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en test først!")
+            QMessageBox.warning(self, "No selection", "Select a test first.")
             return
 
         test_id = self.tests_table.item(selected, 0).data(Qt.ItemDataRole.UserRole)
         self.open_analysis_window(test_id)
 
     def open_results_dialog(self, test_id):
-        """Åpner dialog for å legge inn testresultater"""
+        """Open the dialog for entering test results"""
         test = self.db.get_by_id("ladder_tests", test_id)
+        if not test:
+            QMessageBox.warning(
+                self,
+                "Test missing",
+                "The selected ladder test no longer exists in the database.",
+            )
+            self.load_tests()
+            return
         dialog = TestResultsDialog(self, test)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             results = dialog.get_results()
             for result in results:
                 result["ladder_test_id"] = test_id
+                result["load_session_id"] = test.get("load_session_id")
                 self.db.insert("test_results", result)
             self.load_tests()
-            QMessageBox.information(self, "Suksess", "Resultater lagret!")
+            QMessageBox.information(self, "Success", "Results saved.")
 
     def open_analysis_window(self, test_id):
-        """Åpner analyse-vindu for test"""
+        """Open the analysis window for a test"""
         test = self.db.get_by_id("ladder_tests", test_id)
+        if not test:
+            QMessageBox.warning(
+                self,
+                "Test missing",
+                "The selected ladder test no longer exists in the database.",
+            )
+            self.load_tests()
+            return
         results = self.db.execute_query(
             "SELECT * FROM test_results WHERE ladder_test_id = ? ORDER BY charge_weight",
             (test_id,),
@@ -196,16 +221,16 @@ class LadderTestLab(QWidget):
         dialog.exec()
 
     def delete_test(self):
-        """Sletter valgt test"""
+        """Delete the selected test"""
         selected = self.tests_table.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Ingen valgt", "Velg en test først!")
+            QMessageBox.warning(self, "No selection", "Select a test first.")
             return
 
         reply = QMessageBox.question(
             self,
-            "Bekreft sletting",
-            "Er du sikker på at du vil slette denne testen og alle resultater?",
+            "Confirm delete",
+            "Are you sure you want to delete this test and all results?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -216,11 +241,11 @@ class LadderTestLab(QWidget):
             # Slett test
             self.db.delete("ladder_tests", "id = ?", (test_id,))
             self.load_tests()
-            QMessageBox.information(self, "Suksess", "Test slettet!")
+            QMessageBox.information(self, "Success", "Test deleted.")
 
 
 class LadderTestDialog(QDialog):
-    """Dialog for å opprette ladder test"""
+    """Dialog for creating a ladder test."""
 
     def __init__(
         self,
@@ -240,28 +265,28 @@ class LadderTestDialog(QDialog):
         self.init_ui()
 
     def init_ui(self):
-        """Initialiserer dialog"""
-        self.setWindowTitle("Ny Ladder Test")
+        """Initialize the dialog"""
+        self.setWindowTitle("New Ladder Test")
         self.setMinimumWidth(500)
 
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        # Grunninfo
-        basic_group = QGroupBox("Test-informasjon")
+        # Basic information
+        basic_group = QGroupBox("Test information")
         basic_layout = QFormLayout()
         basic_group.setLayout(basic_layout)
 
         self.name = QLineEdit()
-        self.name.setPlaceholderText("F.eks. .308 Varget Ladder")
-        basic_layout.addRow("Testnavn:", self.name)
+        self.name.setPlaceholderText("e.g. .308 Varget Ladder")
+        basic_layout.addRow("Test name:", self.name)
 
         self.date = QLineEdit()
         self.date.setText(datetime.now().strftime("%Y-%m-%d"))
-        basic_layout.addRow("Dato:", self.date)
+        basic_layout.addRow("Date:", self.date)
 
         self.rifle_combo = QComboBox()
-        self.rifle_combo.addItem("-- Ingen rifle --", None)
+        self.rifle_combo.addItem("-- No rifle --", None)
         for rifle in self.rifles:
             self.rifle_combo.addItem(
                 f"{rifle['name']} ({rifle['caliber']})", rifle["id"]
@@ -269,45 +294,45 @@ class LadderTestDialog(QDialog):
         basic_layout.addRow("Rifle:", self.rifle_combo)
 
         self.caliber = QLineEdit()
-        basic_layout.addRow("Kaliber:", self.caliber)
+        basic_layout.addRow("Caliber:", self.caliber)
 
         layout.addWidget(basic_group)
 
-        # Komponenter
-        comp_group = QGroupBox("Komponenter")
+        # Components
+        comp_group = QGroupBox("Components")
         comp_layout = QFormLayout()
         comp_group.setLayout(comp_layout)
 
         self.bullet_combo = QComboBox()
-        self.bullet_combo.addItem("-- Velg kule --", None)
+        self.bullet_combo.addItem("-- Select bullet --", None)
         for bullet in self.bullets:
             self.bullet_combo.addItem(
                 f"{bullet['name']} - {bullet['weight_grains']}gr", bullet["id"]
             )
-        comp_layout.addRow("Kule:", self.bullet_combo)
+        comp_layout.addRow("Bullet:", self.bullet_combo)
 
         self.powder_combo = QComboBox()
-        self.powder_combo.addItem("-- Velg krutt --", None)
+        self.powder_combo.addItem("-- Select powder --", None)
         for powder in self.powders:
             self.powder_combo.addItem(powder["name"], powder["id"])
-        comp_layout.addRow("Krutt:", self.powder_combo)
+        comp_layout.addRow("Powder:", self.powder_combo)
 
         self.primer_combo = QComboBox()
-        self.primer_combo.addItem("-- Velg tennhette --", None)
+        self.primer_combo.addItem("-- Select primer --", None)
         for primer in self.primers:
             self.primer_combo.addItem(primer["name"], primer["id"])
-        comp_layout.addRow("Tennhette:", self.primer_combo)
+        comp_layout.addRow("Primer:", self.primer_combo)
 
         self.case_combo = QComboBox()
-        self.case_combo.addItem("-- Velg hylse --", None)
+        self.case_combo.addItem("-- Select case --", None)
         for case in self.cases:
             self.case_combo.addItem(f"{case['name']} - {case['caliber']}", case["id"])
-        comp_layout.addRow("Hylse:", self.case_combo)
+        comp_layout.addRow("Case:", self.case_combo)
 
         layout.addWidget(comp_group)
 
-        # Ladder test parametere
-        ladder_group = QGroupBox("Ladder Test Parametere")
+        # Ladder test parameters
+        ladder_group = QGroupBox("Ladder test parameters")
         ladder_layout = QFormLayout()
         ladder_group.setLayout(ladder_layout)
 
@@ -317,7 +342,7 @@ class LadderTestDialog(QDialog):
         self.start_charge.setSingleStep(0.1)
         self.start_charge.setSuffix(" gr")
         self.start_charge.setValue(40.0)
-        ladder_layout.addRow("Start ladning:", self.start_charge)
+        ladder_layout.addRow("Start charge:", self.start_charge)
 
         self.end_charge = QDoubleSpinBox()
         self.end_charge.setRange(5, 100)
@@ -325,7 +350,7 @@ class LadderTestDialog(QDialog):
         self.end_charge.setSingleStep(0.1)
         self.end_charge.setSuffix(" gr")
         self.end_charge.setValue(44.0)
-        ladder_layout.addRow("Slutt ladning:", self.end_charge)
+        ladder_layout.addRow("End charge:", self.end_charge)
 
         self.step_size = QDoubleSpinBox()
         self.step_size.setRange(0.1, 5.0)
@@ -333,20 +358,20 @@ class LadderTestDialog(QDialog):
         self.step_size.setSingleStep(0.1)
         self.step_size.setSuffix(" gr")
         self.step_size.setValue(0.3)
-        ladder_layout.addRow("Steg størrelse:", self.step_size)
+        ladder_layout.addRow("Step size:", self.step_size)
 
-        # Beregn antall steg
+        # Calculate the number of steps
         steps_label = QLabel()
         self.start_charge.valueChanged.connect(lambda: self.update_steps(steps_label))
         self.end_charge.valueChanged.connect(lambda: self.update_steps(steps_label))
         self.step_size.valueChanged.connect(lambda: self.update_steps(steps_label))
         self.update_steps(steps_label)
-        ladder_layout.addRow("Antall steg:", steps_label)
+        ladder_layout.addRow("Step count:", steps_label)
 
         layout.addWidget(ladder_group)
 
-        # Test-parametere
-        test_group = QGroupBox("Test-parametere")
+        # Test parameters
+        test_group = QGroupBox("Test parameters")
         test_layout = QFormLayout()
         test_group.setLayout(test_layout)
 
@@ -354,34 +379,34 @@ class LadderTestDialog(QDialog):
         self.distance.setRange(25, 1000)
         self.distance.setValue(100)
         self.distance.setSuffix(" m")
-        test_layout.addRow("Avstand:", self.distance)
+        test_layout.addRow("Distance:", self.distance)
 
         self.temperature = QDoubleSpinBox()
         self.temperature.setRange(-30, 50)
         self.temperature.setValue(15)
         self.temperature.setSuffix(" °C")
-        test_layout.addRow("Temperatur:", self.temperature)
+        test_layout.addRow("Temperature:", self.temperature)
 
         self.humidity = QSpinBox()
         self.humidity.setRange(0, 100)
         self.humidity.setValue(50)
         self.humidity.setSuffix(" %")
-        test_layout.addRow("Luftfuktighet:", self.humidity)
+        test_layout.addRow("Humidity:", self.humidity)
 
         layout.addWidget(test_group)
 
-        # Notater
+        # Notes
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(80)
-        self.notes.setPlaceholderText("Notater om testen...")
-        layout.addWidget(QLabel("Notater:"))
+        self.notes.setPlaceholderText("Notes about the test...")
+        layout.addWidget(QLabel("Notes:"))
         layout.addWidget(self.notes)
 
-        # Knapper
+        # Buttons
         btn_layout = QHBoxLayout()
-        create_btn = QPushButton("✅ Opprett Test")
+        create_btn = QPushButton("Create Test")
         create_btn.clicked.connect(self.accept)
-        cancel_btn = QPushButton("❌ Avbryt")
+        cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.reject)
 
         btn_layout.addWidget(create_btn)
@@ -389,21 +414,22 @@ class LadderTestDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def update_steps(self, label):
-        """Oppdaterer antall steg"""
+        """Update the number of steps"""
         start = self.start_charge.value()
         end = self.end_charge.value()
         step = self.step_size.value()
 
         if step > 0 and end > start:
             steps = int((end - start) / step) + 1
-            label.setText(f"<b>{steps} steg</b>")
+            label.setText(f"<b>{steps} steps</b>")
         else:
-            label.setText("<b>0 steg</b>")
+            label.setText("<b>0 steps</b>")
 
     def get_data(self):
-        """Returnerer test-data"""
+        """Return the test data"""
         return {
             "name": self.name.text(),
+            "load_session_id": _get_active_load_session_id(),
             "date": self.date.text(),
             "rifle_id": self.rifle_combo.currentData(),
             "caliber": self.caliber.text(),
@@ -422,7 +448,7 @@ class LadderTestDialog(QDialog):
 
 
 class TestResultsDialog(QDialog):
-    """Dialog for å legge inn testresultater"""
+    """Dialog for entering test results."""
 
     def __init__(self, parent=None, test=None):
         super().__init__(parent)
@@ -430,8 +456,8 @@ class TestResultsDialog(QDialog):
         self.init_ui()
 
     def init_ui(self):
-        """Initialiserer dialog"""
-        self.setWindowTitle(f"Resultater: {self.test['name']}")
+        """Initialize the dialog"""
+        self.setWindowTitle(f"Results: {self.test['name']}")
         self.setMinimumSize(800, 600)
 
         layout = QVBoxLayout()
@@ -441,29 +467,29 @@ class TestResultsDialog(QDialog):
         info = QLabel(
             f"""
         <b>Test:</b> {self.test['name']}<br>
-        <b>Ladning:</b> {self.test['start_charge']} - {self.test['end_charge']} gr
-        (steg: {self.test['step_size']} gr)
+        <b>Charge window:</b> {self.test['start_charge']} - {self.test['end_charge']} gr
+        (step: {self.test['step_size']} gr)
         """
         )
         layout.addWidget(info)
 
-        # Tabell
+        # Table
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(8)
         self.results_table.setHorizontalHeaderLabels(
             [
-                "Ladning (gr)",
+                "Charge (gr)",
                 "V1 (fps)",
                 "V2 (fps)",
                 "V3 (fps)",
                 "ES",
                 "SD",
-                "Gruppe (mm)",
-                "Notater",
+                "Group (mm)",
+                "Notes",
             ]
         )
 
-        # Generer rader basert på ladder parametere
+        # Generate rows based on ladder parameters
         start = self.test["start_charge"]
         end = self.test["end_charge"]
         step = self.test["step_size"]
@@ -477,13 +503,13 @@ class TestResultsDialog(QDialog):
         self.results_table.setRowCount(len(charges))
 
         for i, charge in enumerate(charges):
-            # Ladning (read-only)
+            # Charge (read-only)
             charge_item = QTableWidgetItem(f"{charge}")
             charge_item.setFlags(charge_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             charge_item.setBackground(QColor(240, 240, 240))
             self.results_table.setItem(i, 0, charge_item)
 
-            # Resten er editerbare
+            # The rest are editable
             for j in range(1, 8):
                 self.results_table.setItem(i, j, QTableWidgetItem(""))
 
@@ -492,18 +518,18 @@ class TestResultsDialog(QDialog):
         # Tips
         tips = QLabel(
             """
-        <b>Tips:</b> Fyll inn hastigheter (V1-V3). ES og SD beregnes automatisk når du klikker Lagre.<br>
-        Gruppe = gruppestørrelse i mm. La felter være tomme hvis du ikke har data.
+        <b>Tip:</b> Enter velocities (V1-V3). ES and SD are calculated automatically when you click Save.<br>
+        Group = group size in mm. Leave fields empty if you do not have data.
         """
         )
         tips.setWordWrap(True)
         layout.addWidget(tips)
 
-        # Knapper
+        # Buttons
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("💾 Lagre Resultater")
+        save_btn = QPushButton("Save Results")
         save_btn.clicked.connect(self.accept)
-        cancel_btn = QPushButton("❌ Avbryt")
+        cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.reject)
 
         btn_layout.addWidget(save_btn)
@@ -511,18 +537,18 @@ class TestResultsDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def get_results(self):
-        """Henter resultater fra tabell"""
+        """Fetch results from the table"""
         results = []
 
         for i in range(self.results_table.rowCount()):
             charge = float(self.results_table.item(i, 0).text())
 
-            # Les hastigheter
+            # Read velocities
             v1 = self.get_cell_value(i, 1)
             v2 = self.get_cell_value(i, 2)
             v3 = self.get_cell_value(i, 3)
 
-            # Beregn ES og SD
+            # Calculate ES and SD
             velocities = [v for v in [v1, v2, v3] if v is not None]
             es = None
             sd = None
@@ -533,7 +559,7 @@ class TestResultsDialog(QDialog):
 
             if len(velocities) >= 2:
                 es = max(velocities) - min(velocities)
-                # Beregn SD
+                # Calculate SD
                 mean = sum(velocities) / len(velocities)
                 variance = sum((x - mean) ** 2 for x in velocities) / len(velocities)
                 sd = variance**0.5
@@ -562,7 +588,7 @@ class TestResultsDialog(QDialog):
         return results
 
     def get_cell_value(self, row, col):
-        """Henter numerisk verdi fra celle"""
+        """Fetch a numeric value from a cell"""
         item = self.results_table.item(row, col)
         if item and item.text():
             try:
@@ -573,7 +599,7 @@ class TestResultsDialog(QDialog):
 
 
 class AnalysisWindow(QDialog):
-    """Analyse-vindu for ladder test"""
+    """Analysis window for a ladder test"""
 
     def __init__(self, parent=None, test=None, results=None):
         super().__init__(parent)
@@ -582,8 +608,8 @@ class AnalysisWindow(QDialog):
         self.init_ui()
 
     def init_ui(self):
-        """Initialiserer analyse-vindu"""
-        self.setWindowTitle(f"Analyse: {self.test['name']}")
+        """Initialize the analysis window"""
+        self.setWindowTitle(f"Analysis: {self.test['name']}")
         self.setMinimumSize(1000, 700)
 
         layout = QVBoxLayout()
@@ -593,9 +619,9 @@ class AnalysisWindow(QDialog):
         info = QLabel(
             f"""
         <h3>{self.test['name']}</h3>
-        <b>Dato:</b> {self.test['date']} |
-        <b>Avstand:</b> {self.test['distance_meters']}m |
-        <b>Ladning:</b> {self.test['start_charge']}-{self.test['end_charge']} gr
+        <b>Date:</b> {self.test['date']} |
+        <b>Distance:</b> {self.test['distance_meters']}m |
+        <b>Charge Range:</b> {self.test['start_charge']}-{self.test['end_charge']} gr
         """
         )
         layout.addWidget(info)
@@ -605,31 +631,31 @@ class AnalysisWindow(QDialog):
         layout.addWidget(tabs)
 
         # Tab 0: Live Testing (NEW!)
-        tabs.addTab(self.create_live_testing_tab(), "🔴 Live Testing")
+        tabs.addTab(self.create_live_testing_tab(), "Live Testing")
 
-        # Tab 1: Datatabell
-        tabs.addTab(self.create_data_tab(), "📊 Data")
+        # Tab 1: Data table
+        tabs.addTab(self.create_data_tab(), "Data")
 
-        # Tab 2: Grafer
-        tabs.addTab(self.create_graphs_tab(), "📈 Grafer")
+        # Tab 2: Graphs
+        tabs.addTab(self.create_graphs_tab(), "Graphs")
 
-        # Tab 3: Anbefaling
-        tabs.addTab(self.create_recommendation_tab(), "🎯 Anbefaling")
+        # Tab 3: Recommendation
+        tabs.addTab(self.create_recommendation_tab(), "Recommendation")
 
-        # Lukk-knapp
-        close_btn = QPushButton("Lukk")
+        # Close button
+        close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.accept)
         layout.addWidget(close_btn)
 
     def create_live_testing_tab(self):
-        """🔴 LIVE TESTING TAB - Real-time data entry with live graphs"""
+        """LIVE TESTING TAB - Real-time data entry with live graphs"""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
         # Info banner
         info_banner = QLabel(
-            "🔴 <b>LIVE TESTING MODE</b> - Enter data as you shoot, see graphs update in real-time!"
+            "<b>LIVE TESTING MODE</b> - Enter data as you shoot, see graphs update in real-time!"
         )
         info_banner.setStyleSheet(
             """
@@ -647,7 +673,7 @@ class AnalysisWindow(QDialog):
         content_layout = QHBoxLayout()
 
         # LEFT PANEL: Data Entry
-        left_panel = QGroupBox("📝 Data Entry")
+        left_panel = QGroupBox("Data Entry")
         left_layout = QVBoxLayout()
         left_panel.setLayout(left_layout)
         left_panel.setMaximumWidth(400)
@@ -679,7 +705,7 @@ class AnalysisWindow(QDialog):
         left_layout.addLayout(vel_layout)
 
         # Add shot button
-        self.btn_add_shot = QPushButton("➕ Add Shot")
+        self.btn_add_shot = QPushButton("Add Shot")
         self.btn_add_shot.setStyleSheet(
             """
             QPushButton {
@@ -711,11 +737,11 @@ class AnalysisWindow(QDialog):
         self.live_shot_log.setHorizontalHeaderLabels(
             ["#", "Charge (gr)", "Velocity (fps)"]
         )
-        self.live_shot_log.horizontalHeader().setStretchLastSection(True)
+        self.live_shot_log.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         left_layout.addWidget(self.live_shot_log)
 
         # Clear button
-        clear_btn = QPushButton("🗑️ Clear Data")
+        clear_btn = QPushButton("Clear Data")
         clear_btn.clicked.connect(self.clear_live_data)
         left_layout.addWidget(clear_btn)
 
@@ -723,7 +749,7 @@ class AnalysisWindow(QDialog):
         content_layout.addWidget(left_panel)
 
         # RIGHT PANEL: Live Graphs
-        right_panel = QGroupBox("📊 Live Visualization")
+        right_panel = QGroupBox("Live Visualization")
         right_layout = QVBoxLayout()
         right_panel.setLayout(right_layout)
 
@@ -748,12 +774,12 @@ class AnalysisWindow(QDialog):
         4. Watch graph update in real-time!<br>
         <br>
         <b>Interactive Features:</b><br>
-        🖱️ <b>Hover</b> over data points for details<br>
-        👆 <b>Click</b> data points to see full shot info<br>
-        🎚️ <b>Slider</b> to estimate velocity at any charge<br>
-        ⭐ Automatic node detection (pressure sweet spots)<br>
-        📈 Live trend line<br>
-        📊 Real-time SD/ES calculation
+        <b>Hover</b> over data points for details<br>
+        <b>Click</b> data points to see full shot info<br>
+        <b>Slider</b> to estimate velocity at any charge<br>
+        Automatic node detection (pressure sweet spots)<br>
+        Live trend line<br>
+        Real-time SD/ES calculation
         """
         )
         instructions.setStyleSheet(
@@ -941,7 +967,7 @@ class AnalysisWindow(QDialog):
                 pass
 
     def create_data_tab(self):
-        """Oppretter data-tab"""
+        """Create the data tab"""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
@@ -949,7 +975,7 @@ class AnalysisWindow(QDialog):
         table = QTableWidget()
         table.setColumnCount(7)
         table.setHorizontalHeaderLabels(
-            ["Ladning", "Snitt V", "ES", "SD", "Gruppe (mm)", "Gruppe (MOA)", "Notater"]
+            ["Charge", "Avg V", "ES", "SD", "Group (mm)", "Group (MOA)", "Notes"]
         )
 
         table.setRowCount(len(self.results))
@@ -971,7 +997,7 @@ class AnalysisWindow(QDialog):
             )
             table.setItem(i, 4, QTableWidgetItem(group_mm))
 
-            # Beregn MOA
+            # Calculate MOA
             if result["group_size_mm"] and self.test["distance_meters"]:
                 moa = (
                     (result["group_size_mm"] / 10)
@@ -985,13 +1011,13 @@ class AnalysisWindow(QDialog):
             notes = result["notes"] if result["notes"] else ""
             table.setItem(i, 6, QTableWidgetItem(notes))
 
-        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         layout.addWidget(table)
 
         return widget
 
     def create_graphs_tab(self):
-        """Oppretter graf-tab"""
+        """Create the graphs tab"""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
@@ -1000,7 +1026,7 @@ class AnalysisWindow(QDialog):
         fig = Figure(figsize=(10, 8))
         canvas = FigureCanvas(fig)
 
-        # Hent data
+        # Fetch data
         _charges = [r["charge_weight"] for r in self.results]
         velocities = [r["velocity_avg"] for r in self.results if r["velocity_avg"]]
         es_values = [r["velocity_es"] for r in self.results if r["velocity_es"]]
@@ -1012,40 +1038,40 @@ class AnalysisWindow(QDialog):
         charges_sd = [r["charge_weight"] for r in self.results if r["velocity_sd"]]
         charges_g = [r["charge_weight"] for r in self.results if r["group_size_mm"]]
 
-        # Plot 1: Hastighet
+        # Plot 1: Velocity
         ax1 = fig.add_subplot(2, 2, 1)
         if velocities:
             ax1.plot(charges_v, velocities, "bo-", linewidth=2, markersize=8)
-            ax1.set_xlabel("Ladning (gr)")
-            ax1.set_ylabel("Hastighet (fps)")
-            ax1.set_title("Hastighet vs Ladning")
+            ax1.set_xlabel("Charge (gr)")
+            ax1.set_ylabel("Velocity (fps)")
+            ax1.set_title("Velocity vs Charge")
             ax1.grid(True, alpha=0.3)
 
         # Plot 2: ES
         ax2 = fig.add_subplot(2, 2, 2)
         if es_values:
             ax2.plot(charges_es, es_values, "ro-", linewidth=2, markersize=8)
-            ax2.set_xlabel("Ladning (gr)")
+            ax2.set_xlabel("Charge (gr)")
             ax2.set_ylabel("ES (fps)")
-            ax2.set_title("Extreme Spread vs Ladning")
+            ax2.set_title("Extreme Spread vs Charge")
             ax2.grid(True, alpha=0.3)
 
         # Plot 3: SD
         ax3 = fig.add_subplot(2, 2, 3)
         if sd_values:
             ax3.plot(charges_sd, sd_values, "go-", linewidth=2, markersize=8)
-            ax3.set_xlabel("Ladning (gr)")
+            ax3.set_xlabel("Charge (gr)")
             ax3.set_ylabel("SD (fps)")
-            ax3.set_title("Standard Deviation vs Ladning")
+            ax3.set_title("Standard Deviation vs Charge")
             ax3.grid(True, alpha=0.3)
 
-        # Plot 4: Gruppestørrelse
+        # Plot 4: Group size
         ax4 = fig.add_subplot(2, 2, 4)
         if groups:
             ax4.plot(charges_g, groups, "mo-", linewidth=2, markersize=8)
-            ax4.set_xlabel("Ladning (gr)")
-            ax4.set_ylabel("Gruppestørrelse (mm)")
-            ax4.set_title("Gruppestørrelse vs Ladning")
+            ax4.set_xlabel("Charge (gr)")
+            ax4.set_ylabel("Group Size (mm)")
+            ax4.set_title("Group Size vs Charge")
             ax4.grid(True, alpha=0.3)
 
         fig.tight_layout()
@@ -1055,12 +1081,12 @@ class AnalysisWindow(QDialog):
         return widget
 
     def create_recommendation_tab(self):
-        """Oppretter anbefalings-tab"""
+        """Create the recommendation tab"""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
-        # Finn beste ladning basert på SD og gruppestørrelse
+        # Find the best charge based on SD and group size
         best_sd = None
         best_group = None
 
@@ -1081,16 +1107,16 @@ class AnalysisWindow(QDialog):
                     best_group = self.results.index(result)
 
         recommendation = QLabel()
-        rec_text = "<h3>🎯 Anbefalinger:</h3>"
+        rec_text = "<h3>Recommendations:</h3>"
 
         if best_sd is not None:
             r = self.results[best_sd]
             rec_text += f"""
-            <p><b>Beste konsistens (laveste SD):</b><br>
-            Ladning: <b>{r['charge_weight']} gr</b><br>
+            <p><b>Best consistency (lowest SD):</b><br>
+            Charge: <b>{r['charge_weight']} gr</b><br>
             SD: {r['velocity_sd']:.1f} fps<br>
             ES: {r['velocity_es']:.0f} fps<br>
-            Snitt hastighet: {r['velocity_avg']:.0f} fps</p>
+            Average velocity: {r['velocity_avg']:.0f} fps</p>
             """
 
         if best_group is not None:
@@ -1101,20 +1127,20 @@ class AnalysisWindow(QDialog):
                 else 0
             )
             rec_text += f"""
-            <p><b>Beste presisjon (minste gruppe):</b><br>
-            Ladning: <b>{r['charge_weight']} gr</b><br>
-            Gruppestørrelse: {r['group_size_mm']:.1f} mm ({moa:.2f} MOA)<br>
+            <p><b>Best precision (smallest group):</b><br>
+            Charge: <b>{r['charge_weight']} gr</b><br>
+            Group size: {r['group_size_mm']:.1f} mm ({moa:.2f} MOA)<br>
             SD: {r['velocity_sd']:.1f if r['velocity_sd'] else '-'} fps</p>
             """
 
         rec_text += """
         <hr>
-        <p><b>Neste skritt:</b></p>
+        <p><b>Next steps:</b></p>
         <ul>
-            <li>Test ladningen med flere skudd (5-10 stk)</li>
-            <li>Verifiser på lengre hold</li>
-            <li>Sjekk for trykkegn</li>
-            <li>Test i ulike værforhold</li>
+            <li>Test the charge with more shots (5-10 rounds)</li>
+            <li>Verify it at longer distances</li>
+            <li>Check for pressure signs</li>
+            <li>Test in different weather conditions</li>
         </ul>
         """
 

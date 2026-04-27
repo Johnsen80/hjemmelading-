@@ -42,6 +42,19 @@ CREATE TABLE IF NOT EXISTS measurement_values (
 
 CREATE INDEX IF NOT EXISTS idx_measurement_session ON measurement_values(session_id);
 
+CREATE TABLE IF NOT EXISTS brass_batches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_id INTEGER,
+    batch_name TEXT,
+    lot_number TEXT,
+    times_fired_avg INTEGER DEFAULT 0,
+    case_capacity_h2o_gr REAL,
+    neck_tension_inches REAL,
+    notes TEXT,
+    created_date TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(case_id) REFERENCES cases(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS prep_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     brass_batch_id INTEGER,
@@ -52,7 +65,8 @@ CREATE TABLE IF NOT EXISTS prep_sessions (
     neck_tension_notes TEXT,
     measured_after INTEGER DEFAULT 0,
     notes TEXT,
-    created_date TEXT DEFAULT (datetime('now'))
+    created_date TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(brass_batch_id) REFERENCES brass_batches(id) ON DELETE SET NULL
 );
 
 COMMIT;

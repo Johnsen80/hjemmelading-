@@ -1,0 +1,15 @@
+{
+  "generated_from": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\data\\reloading.db",
+  "exports": {
+    "primers": {
+      "rows": 24,
+      "tidy": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\primers_catalog_tidy.csv",
+      "master": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\primers_catalog_master.csv"
+    },
+    "cases": {
+      "rows": 3,
+      "tidy": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\cases_catalog_tidy.csv",
+      "master": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\.github\\data\\exports\\cases_catalog_master.csv"
+    }
+  }
+}

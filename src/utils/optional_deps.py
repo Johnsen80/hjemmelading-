@@ -1,3 +1,4 @@
+# isort: skip_file
 """
 Optional dependency shims used to make import-time safe in headless/CI environments.
 Provides safe fallbacks for matplotlib and OpenCV so modules can import without

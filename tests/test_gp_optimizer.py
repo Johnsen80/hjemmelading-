@@ -1,6 +1,9 @@
+import pytest
+
 from src.utils.gp_optimizer import suggest_next_charge
 
 
+@pytest.mark.core
 def test_suggest_next_charge_heuristic():
     # simple observed ladder: velocities increase with charge up to 42.5
     charges = [41.5, 42.0, 42.5]

@@ -36,6 +36,8 @@ def get_default_config() -> Config:
         "rgb": {"r": 60, "g": 120, "b": 200},
         "button_style": "filled",
         "background": {"type": "default", "path": None, "mode": "fill"},
+        "ui_mode": "beginner",
+        "ui_density": "comfortable",
         "units": {"global": "metric", "modules": {}},
         "profiles": {"default": {}},
     }
@@ -71,7 +73,10 @@ def save_config(cfg: Config) -> None:
 
 
 def migrate_config(cfg: Config) -> Config:
-    # Placeholder for versioned migrations. For now, return cfg unchanged.
+    defaults = get_default_config()
+    for key, value in defaults.items():
+        if key not in cfg:
+            cfg[key] = value
     return cfg
 
 

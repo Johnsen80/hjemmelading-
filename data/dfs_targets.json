@@ -1,0 +1,17 @@
+{
+  "100m": {
+    "target_size_mm": 420,
+    "rings_mm": [42, 36, 30, 24, 18, 12, 6, 3],
+    "description": "Update with official values from Skytterboka. Example: 8 rings, 10-ring center." 
+  },
+  "200m": {
+    "target_size_mm": 1000,
+    "rings_mm": [1000, 900, 800, 700, 600, 500, 400, 300, 200, 100],
+    "description": "Update with official values from Skytterboka. Example: 10 rings, 10-ring center." 
+  },
+  "300m": {
+    "target_size_mm": 1500,
+    "rings_mm": [1500, 1350, 1200, 1050, 900, 750, 600, 450, 300, 150],
+    "description": "Update with official values from Skytterboka. Example: 10 rings, 10-ring center." 
+  }
+}

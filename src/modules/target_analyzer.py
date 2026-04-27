@@ -1,14 +1,15 @@
 """
-Target Analyzer - Automatisk gruppemåling med computer vision
-Bruker OpenCV til å måle gruppestørrelse fra bilder av skiver
+Target Analyzer - automatic group measurement with computer vision
+Uses OpenCV to measure group size from target images
 """
 
 import os
 
 import numpy as np
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtGui import QFont, QImage, QPixmap
 from PyQt6.QtWidgets import (
+    QDialog,
     QDoubleSpinBox,
     QFileDialog,
     QGroupBox,
@@ -24,12 +25,141 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
-from src.utils.optional_deps import HAS_CV2, cv2
+from HjemmeladingApp.utils import units
+
+from ..database.database import get_database
+from ..tools.load_session_runtime_service import (
+    build_active_workflow_context_from_settings,
+    refresh_load_session_measurement_summary,
+)
+from ..utils.i18n import tr
+from ..utils.optional_deps import HAS_CV2, cv2
+from .batch_workspace import recompute_batch_analysis_from_db
+
+
+def _get_active_workflow_context() -> dict[str, object]:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    try:
+        database = get_database()
+    except Exception:
+        database = None
+    return build_active_workflow_context_from_settings(settings, database)
+
+
+def _get_active_analysis_focus() -> dict[str, str]:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    focus = str(settings.value("workflow_context/analysis_focus", "") or "").strip()
+    reason = str(
+        settings.value("workflow_context/analysis_focus_reason", "") or ""
+    ).strip()
+    if not focus and not reason:
+        return {}
+    return {"focus": focus, "reason": reason}
+
+
+def _get_global_unit_system() -> str:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    return str(settings.value("units/global", "metric") or "metric").strip().lower()
+
+
+def _format_group_size_mm(value_mm: float) -> str:
+    if _get_global_unit_system() == "imperial":
+        return f"{units.mm_to_inches(value_mm):.2f} in ({value_mm:.1f} mm)"
+    return f"{value_mm:.1f} mm"
+
+
+def _format_distance_m(distance_m: float) -> str:
+    if _get_global_unit_system() == "imperial":
+        return f"{units.meters_to_yards(distance_m):.0f} yd ({distance_m:.0f} m)"
+    return f"{distance_m:.0f} meter"
+
+
+def _format_offset_mm(value_mm: float) -> str:
+    if _get_global_unit_system() == "imperial":
+        return f"{units.mm_to_inches(value_mm):.2f} in ({value_mm:.1f} mm)"
+    return f"{value_mm:.1f} mm"
+
+
+def _shot_axis_unit_label() -> str:
+    return "in" if _get_global_unit_system() == "imperial" else "mm"
+
+
+def build_target_analysis_summary(
+    results: dict, workflow_context: dict[str, object] | None = None
+) -> str:
+    summary = (
+        f"Target Analyzer | {tr('target_summary_prefix')}: "
+        f"{results['max_spread_mm']:.1f} mm ({results['moa']:.2f} MOA), "
+        + tr("target_summary_shots", count=results["shot_count"])
+    )
+    context = workflow_context or {}
+    if context.get("workflow_id"):
+        workflow_name = (
+            context.get("workflow_name") or f"Workflow {context['workflow_id']}"
+        )
+        summary += f" [workflow:{context['workflow_id']}] " f"{workflow_name}"
+    return summary
+
+
+def build_target_quality_summary(results: dict) -> dict[str, str]:
+    shot_count = int(results.get("shot_count", 0) or 0)
+    group_mm = float(results.get("max_spread_mm", 0.0) or 0.0)
+    moa = float(results.get("moa", 0.0) or 0.0)
+
+    if shot_count < 3:
+        return {
+            "level": "needs_more_data",
+            "title": tr("target_quality_needs_more_title"),
+            "message": tr("target_quality_needs_more_message"),
+        }
+    if moa <= 0.75:
+        return {
+            "level": "ready",
+            "title": tr("target_quality_ready_title"),
+            "message": tr("target_quality_ready_message"),
+        }
+    if moa >= 1.5 or group_mm >= 45:
+        return {
+            "level": "watch",
+            "title": tr("target_quality_watch_title"),
+            "message": tr("target_quality_watch_message"),
+        }
+    return {
+        "level": "usable",
+        "title": tr("target_quality_usable_title"),
+        "message": tr("target_quality_usable_message"),
+    }
+
+
+def build_target_evidence_basis(results: dict) -> dict[str, str]:
+    shot_count = int(results.get("shot_count", 0) or 0)
+    measured_parts = [
+        tr("target_evidence_measured_shots", count=shot_count),
+        tr("target_evidence_measured_group"),
+    ]
+    modeled_parts = [
+        tr("target_evidence_modeled"),
+    ]
+    recommended_parts = [
+        tr("target_evidence_recommended_quality"),
+    ]
+    if shot_count < 3:
+        recommended_parts.append(tr("target_evidence_recommended_more"))
+    else:
+        recommended_parts.append(tr("target_evidence_recommended_compare"))
+
+    return {
+        "title": tr("target_evidence_title"),
+        "message": (
+            f"{tr('evidence_measured')}: {', '.join(measured_parts)}. "
+            f"{tr('evidence_modeled')}: {', '.join(modeled_parts)}. "
+            f"{tr('evidence_recommended')}: {', '.join(recommended_parts)}."
+        ),
+    }
 
 
 class TargetAnalyzer(QWidget):
-    """Widget for automatisk målanalyse"""
+    """Widget for automatic target analysis."""
 
     def __init__(self):
         super().__init__()
@@ -39,20 +169,31 @@ class TargetAnalyzer(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        """Initialiserer brukergrensesnittet"""
+        """Initialize the user interface."""
         layout = QVBoxLayout()
         self.setLayout(layout)
 
         # Tittel
-        title = QLabel("📷 Target Analyzer - Automatisk Gruppemåling")
+        title = QLabel(tr("target_analyzer_title"))
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         layout.addWidget(title)
 
-        subtitle = QLabel(
-            "Last opp bilde av skive → AI måler automatisk gruppestørrelse, ES og MOA"
-        )
+        subtitle = QLabel(tr("target_analyzer_subtitle"))
         subtitle.setStyleSheet("color: gray; font-size: 11pt;")
         layout.addWidget(subtitle)
+
+        analysis_focus = _get_active_analysis_focus()
+        if analysis_focus.get("focus") == "pressure_review":
+            focus_text = analysis_focus.get("reason") or (
+                tr("target_pressure_review_reason")
+            )
+            self.focus_label = QLabel(f"{tr('target_pressure_review')}: {focus_text}")
+            self.focus_label.setWordWrap(True)
+            self.focus_label.setStyleSheet(
+                "background-color: #fff3cd; color: #856404; border: 1px solid #ffe69c; "
+                "border-radius: 6px; padding: 8px; font-size: 10.5pt;"
+            )
+            layout.addWidget(self.focus_label)
 
         # Hovedlayout med bilde og resultater side-ved-side
         main_layout = QHBoxLayout()
@@ -72,7 +213,7 @@ class TargetAnalyzer(QWidget):
 
     def create_image_section(self):
         """Oppretter bildeseksjon"""
-        group = QGroupBox("📸 Skivebilde")
+        group = QGroupBox(tr("target_image_group"))
         group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         layout = QVBoxLayout()
         group.setLayout(layout)
@@ -90,11 +231,11 @@ class TargetAnalyzer(QWidget):
             }
         """
         )
-        self.image_label.setText("Klikk 'Last opp bilde' for å starte")
+        self.image_label.setText(tr("target_upload_prompt"))
         layout.addWidget(self.image_label)
 
         # Last opp knapp
-        upload_btn = QPushButton("📁 Last opp bilde av skive")
+        upload_btn = QPushButton(tr("target_upload_button"))
         upload_btn.setMinimumHeight(40)
         upload_btn.clicked.connect(self.upload_image)
         layout.addWidget(upload_btn)
@@ -103,7 +244,7 @@ class TargetAnalyzer(QWidget):
 
     def create_results_section(self):
         """Oppretter resultatseksjon"""
-        group = QGroupBox("📊 Analyseresultater")
+        group = QGroupBox(tr("target_results_group"))
         group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         layout = QVBoxLayout()
         group.setLayout(layout)
@@ -113,17 +254,20 @@ class TargetAnalyzer(QWidget):
         self.results_text.setReadOnly(True)
         self.results_text.setMinimumHeight(300)
         self.results_text.setStyleSheet("font-size: 11pt;")
-        self.results_text.setText("Last opp et bilde for å se resultater...")
+        self.results_text.setText(tr("target_results_intro"))
         layout.addWidget(self.results_text)
 
         # Skuddtabell
-        group_shots = QGroupBox("Detekterte skudd")
+        group_shots = QGroupBox(tr("target_detected_shots"))
         shots_layout = QVBoxLayout()
         group_shots.setLayout(shots_layout)
 
         self.shots_table = QTableWidget()
         self.shots_table.setColumnCount(3)
-        self.shots_table.setHorizontalHeaderLabels(["Skudd #", "X (mm)", "Y (mm)"])
+        axis_unit = _shot_axis_unit_label()
+        self.shots_table.setHorizontalHeaderLabels(
+            ["Shot #", f"X ({axis_unit})", f"Y ({axis_unit})"]
+        )
         self.shots_table.setMaximumHeight(200)
         shots_layout.addWidget(self.shots_table)
 
@@ -136,18 +280,18 @@ class TargetAnalyzer(QWidget):
         layout = QHBoxLayout()
 
         # Parametre for analyse
-        params_group = QGroupBox("Analyseparametre")
+        params_group = QGroupBox(tr("target_analysis_parameters"))
         params_layout = QHBoxLayout()
         params_group.setLayout(params_layout)
 
-        params_layout.addWidget(QLabel("Avstand (m):"))
+        params_layout.addWidget(QLabel(tr("target_distance")))
         self.distance = QSpinBox()
         self.distance.setRange(10, 1000)
         self.distance.setValue(100)
         self.distance.setSuffix(" m")
         params_layout.addWidget(self.distance)
 
-        params_layout.addWidget(QLabel("Skive størrelse (cm):"))
+        params_layout.addWidget(QLabel(tr("target_target_size")))
         self.target_size = QDoubleSpinBox()
         self.target_size.setRange(10, 100)
         self.target_size.setValue(20.0)
@@ -155,7 +299,7 @@ class TargetAnalyzer(QWidget):
         self.target_size.setDecimals(1)
         params_layout.addWidget(self.target_size)
 
-        params_layout.addWidget(QLabel("Sensitivitet:"))
+        params_layout.addWidget(QLabel(tr("target_sensitivity")))
         self.sensitivity = QSpinBox()
         self.sensitivity.setRange(1, 10)
         self.sensitivity.setValue(5)
@@ -164,12 +308,12 @@ class TargetAnalyzer(QWidget):
         layout.addWidget(params_group)
 
         # Handlingsknapper
-        analyze_btn = QPushButton("🔍 Analyser bilde")
+        analyze_btn = QPushButton(tr("target_analyze_image"))
         analyze_btn.setMinimumHeight(40)
         analyze_btn.clicked.connect(self.analyze_image)
         layout.addWidget(analyze_btn)
 
-        save_btn = QPushButton("💾 Lagre resultater")
+        save_btn = QPushButton(tr("target_save_results"))
         save_btn.setMinimumHeight(40)
         save_btn.clicked.connect(self.save_results)
         layout.addWidget(save_btn)
@@ -182,17 +326,17 @@ class TargetAnalyzer(QWidget):
         """Last opp bilde"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Velg skivebilde",
+            tr("target_upload_button"),
             "",
-            "Bilder (*.png *.jpg *.jpeg *.bmp);;Alle filer (*.*)",
+            tr("target_image_filter"),
         )
 
         if file_path:
             if not HAS_CV2 or cv2 is None:
                 QMessageBox.critical(
                     self,
-                    "Manglende avhengighet",
-                    "OpenCV (cv2) er ikke installert. Bildeanalyse er deaktivert.",
+                    tr("target_missing_dependency_title"),
+                    tr("target_missing_dependency_load"),
                 )
                 return
 
@@ -203,10 +347,14 @@ class TargetAnalyzer(QWidget):
                 # Vis bilde
                 self.display_image(self.current_image)
                 self.results_text.setText(
-                    f"✅ Bilde lastet: {os.path.basename(file_path)}\n\nKlikk 'Analyser bilde' for å starte..."
+                    tr("target_image_loaded", filename=os.path.basename(file_path))
                 )
             else:
-                QMessageBox.critical(self, "Feil", "Kunne ikke laste bildet!")
+                QMessageBox.critical(
+                    self,
+                    tr("target_load_failed_title"),
+                    tr("target_load_failed_message"),
+                )
 
     def display_image(self, image, shots=None):
         """Viser bilde i GUI"""
@@ -261,7 +409,9 @@ class TargetAnalyzer(QWidget):
     def analyze_image(self):
         """Analyserer bildet for å finne skudd"""
         if self.current_image is None:
-            QMessageBox.warning(self, "Ingen bilde", "Last opp et bilde først!")
+            QMessageBox.warning(
+                self, tr("target_no_image_title"), tr("target_no_image_message")
+            )
             return
 
         try:
@@ -269,8 +419,8 @@ class TargetAnalyzer(QWidget):
             if not HAS_CV2 or cv2 is None:
                 QMessageBox.critical(
                     self,
-                    "Manglende avhengighet",
-                    "OpenCV (cv2) er ikke installert. Analyse ikke mulig.",
+                    tr("target_missing_dependency_title"),
+                    tr("target_missing_dependency_analyze"),
                 )
                 return
 
@@ -279,8 +429,8 @@ class TargetAnalyzer(QWidget):
             if len(shots) == 0:
                 QMessageBox.warning(
                     self,
-                    "Ingen skudd funnet",
-                    "Kunne ikke detektere skudd. Prøv å justere sensitivitet eller last opp et tydeligere bilde.",
+                    tr("target_no_shots_title"),
+                    tr("target_no_shots_message"),
                 )
                 return
 
@@ -300,7 +450,9 @@ class TargetAnalyzer(QWidget):
 
         except Exception as e:
             QMessageBox.critical(
-                self, "Feil ved analyse", f"En feil oppstod:\n{str(e)}"
+                self,
+                tr("target_analysis_error_title"),
+                tr("target_analysis_error_message", error=str(e)),
             )
 
     def detect_shots(self, image, sensitivity):
@@ -423,30 +575,38 @@ class TargetAnalyzer(QWidget):
     def display_results(self, results):
         """Viser resultater i tekstfeltet"""
         if results is None:
-            self.results_text.setText("❌ Kunne ikke beregne statistikk")
+            self.results_text.setText(tr("target_stats_failed"))
             return
 
+        quality = build_target_quality_summary(results)
+        evidence_basis = build_target_evidence_basis(results)
+
         text = f"""
-<h3>✅ Analyse ferdig!</h3>
+<h3>{tr("target_analysis_done")}</h3>
 
-<p><b>Antall skudd detektert:</b> {results['shot_count']}</p>
+<p><b>{quality['title']}</b><br>
+{quality['message']}</p>
 
-<p><b>Gruppestørrelse (Extreme Spread):</b><br>
-• {results['max_spread_mm']:.1f} mm<br>
+<p><b>{evidence_basis['title']}</b><br>
+{evidence_basis['message']}</p>
+
+<p><b>{tr("target_shot_count_label")}</b> {results['shot_count']}</p>
+
+<p><b>{tr("target_group_size_label")}</b><br>
+• {_format_group_size_mm(results['max_spread_mm'])}<br>
 • {results['max_spread_mm']/10:.2f} cm<br>
 • {results['moa']:.2f} MOA<br>
 • {results['mrad']:.3f} MRAD</p>
 
-<p><b>Gjennomsnittlig radius:</b><br>
-• {results['avg_radius_mm']:.1f} mm fra centrum</p>
+<p><b>{tr("target_avg_radius_label")}</b><br>
+• {_format_group_size_mm(results['avg_radius_mm'])} {tr("target_avg_radius_suffix")}</p>
 
-<p><b>Avstand:</b> {results['distance_m']} meter</p>
+<p><b>{tr("target_distance_label")}</b> {_format_distance_m(results['distance_m'])}</p>
 
 <hr>
 
 <p style="color: #555; font-size: 10pt;">
-<b>Tips:</b> Gruppestørrelsen måles center-to-center mellom de to ytterste skuddene.
-Dette er standard i precision shooting.
+<b>{tr("target_tip_label")}</b> {tr("target_tip_body").replace(chr(10), "<br>")}
 </p>
         """
 
@@ -455,6 +615,10 @@ Dette er standard i precision shooting.
     def update_shots_table(self, shots):
         """Oppdaterer skuddtabellen"""
         self.shots_table.setRowCount(len(shots))
+        axis_unit = _shot_axis_unit_label()
+        self.shots_table.setHorizontalHeaderLabels(
+            [tr("target_shot_col"), f"X ({axis_unit})", f"Y ({axis_unit})"]
+        )
 
         # Beregn pixels per mm
         image_height = self.current_image.shape[0]
@@ -470,13 +634,15 @@ Dette er standard i precision shooting.
             y_mm = (center_y - y) / pixels_per_mm  # Y invertert
 
             self.shots_table.setItem(i, 0, QTableWidgetItem(str(i + 1)))
-            self.shots_table.setItem(i, 1, QTableWidgetItem(f"{x_mm:.1f}"))
-            self.shots_table.setItem(i, 2, QTableWidgetItem(f"{y_mm:.1f}"))
+            self.shots_table.setItem(i, 1, QTableWidgetItem(_format_offset_mm(x_mm)))
+            self.shots_table.setItem(i, 2, QTableWidgetItem(_format_offset_mm(y_mm)))
 
     def save_results(self):
         """Lagrer resultater til database"""
         if len(self.detected_shots) == 0:
-            QMessageBox.warning(self, "Ingen data", "Analyser et bilde først!")
+            QMessageBox.warning(
+                self, tr("target_no_data_title"), tr("target_no_data_message")
+            )
             return
 
         # Beregn statistikk på nytt
@@ -485,27 +651,80 @@ Dette er standard i precision shooting.
         if results is None:
             return
 
-        # TODO: Integrer med eksisterende shooting sessions
-        # For nå, vis bare bekreftelse
-
-        msg = f"""
-Vil du lagre disse resultatene?
-
-Gruppe: {results['max_spread_mm']:.1f} mm ({results['moa']:.2f} MOA)
-Skudd: {results['shot_count']}
-Avstand: {results['distance_m']} m
-
-(Integrering med shooting sessions kommer i neste versjon)
-        """
+        msg = tr(
+            "target_save_confirm_body",
+            group_mm=results["max_spread_mm"],
+            moa=results["moa"],
+            shot_count=results["shot_count"],
+            distance_m=results["distance_m"],
+        )
 
         reply = QMessageBox.question(
             self,
-            "Lagre resultater",
+            tr("target_save_confirm_title"),
             msg,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.StandardButton.Yes:
-            QMessageBox.information(
-                self, "Lagret", "Resultater lagret! (Feature under utvikling)"
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        from .session_logger import ShootingSessionDialog
+
+        rifles = self.db.get_all("rifles")
+        ammo_profiles = self.db.get_all("ammo_profiles")
+        dialog = ShootingSessionDialog(self, rifles=rifles, ammo_profiles=ammo_profiles)
+
+        dialog.rounds_fired.setValue(results["shot_count"])
+        dialog.distance.setValue(int(round(results["distance_m"])))
+        dialog.best_group.setValue(results["max_spread_mm"])
+        dialog.avg_group.setValue(results["max_spread_mm"])
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        data = dialog.get_data()
+        workflow_context = _get_active_workflow_context()
+        if data.get("load_session_id") in (None, ""):
+            data["load_session_id"] = workflow_context.get("load_session_id")
+        summary = build_target_analysis_summary(results, workflow_context)
+        notes = (data.get("notes") or "").strip()
+        data["notes"] = f"{notes}\n{summary}".strip()
+
+        self.db.insert("shooting_sessions", data)
+        rifle_id = data.get("rifle_id") or workflow_context.get("rifle_id")
+        try:
+            rifle_id_int = int(rifle_id) if rifle_id not in (None, "") else None
+        except Exception:
+            rifle_id_int = None
+        if rifle_id_int:
+            self.db.record_barrel_target_observation(
+                rifle_id_int,
+                workflow_context.get("barrel_id"),
+                workflow_context.get("barrel_name"),
+                {
+                    "date": data.get("date"),
+                    "distance_meters": data.get("distance_meters"),
+                    "best_group_mm": data.get("best_group_mm"),
+                },
+                barrel_configuration_id=workflow_context.get("barrel_configuration_id"),
+                barrel_configuration_name=workflow_context.get(
+                    "barrel_configuration_name"
+                ),
             )
+        batch_id = QSettings("ReloadingWorkshop", "ReloadingManager").value(
+            "batch_context/batch_id"
+        )
+        if batch_id not in (None, ""):
+            try:
+                recompute_batch_analysis_from_db(self.db, batch_id)
+            except Exception:
+                pass
+        refresh_load_session_measurement_summary(
+            self.db,
+            data.get("load_session_id") or workflow_context.get("load_session_id"),
+            source="target_analyzer.save_results",
+        )
+        QMessageBox.information(
+            self, tr("target_saved_title"), tr("target_saved_message")
+        )

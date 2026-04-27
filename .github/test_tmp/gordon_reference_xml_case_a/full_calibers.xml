@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GordonsReloadingTool>
+  <caliberfile>
+    <var name="CaliberName" value=".308 Winchester" />
+    <var name="standard" value="C.I.P." />
+    <var name="Pmax" value="4150" />
+    <var name="Dz" value="7.82" />
+    <var name="caselen" value="51.18" />
+  </caliberfile>
+</GordonsReloadingTool>

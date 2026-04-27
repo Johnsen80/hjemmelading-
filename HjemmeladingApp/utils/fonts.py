@@ -5,6 +5,8 @@ import os
 import sys
 from pathlib import Path
 
+from HjemmeladingApp.utils.qt_compat import QFontDatabase
+
 log = logging.getLogger(__name__)
 
 
@@ -29,9 +31,7 @@ def resolve_bundled_fonts_dir() -> Path | None:
     try:
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
-            candidates.append(
-                Path(meipass) / "HjemmeladingApp" / "resources" / "fonts"
-            )
+            candidates.append(Path(meipass) / "HjemmeladingApp" / "resources" / "fonts")
             candidates.append(Path(meipass) / "resources" / "fonts")
     except Exception as e:
         log.debug("Could not resolve PyInstaller font dir: %s", e)
@@ -90,13 +90,6 @@ def register_bundled_fonts() -> int:
         return 0
 
     added = 0
-    # Lazy imports so this module can be imported in non-Qt environments
-    try:
-        from PyQt6.QtGui import QFontDatabase
-    except Exception as e:
-        log.debug("PyQt6.QtGui.QFontDatabase import failed: %s", e)
-        QFontDatabase = None  # type: ignore
-
     try:
         import matplotlib.font_manager as mf
     except Exception as e:

@@ -1,0 +1,98 @@
+{
+  "install_root": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY",
+  "file_count": 865,
+  "top_extensions": [
+    {
+      "extension": ".txt",
+      "count": 428
+    },
+    {
+      "extension": ".png",
+      "count": 345
+    },
+    {
+      "extension": ".dll",
+      "count": 36
+    },
+    {
+      "extension": ".mo",
+      "count": 16
+    },
+    {
+      "extension": ".load",
+      "count": 8
+    },
+    {
+      "extension": ".pdf",
+      "count": 7
+    },
+    {
+      "extension": ".jpg",
+      "count": 6
+    },
+    {
+      "extension": ".cfg",
+      "count": 4
+    },
+    {
+      "extension": ".exe",
+      "count": 4
+    },
+    {
+      "extension": ".cfg~",
+      "count": 3
+    },
+    {
+      "extension": ".grtrace",
+      "count": 3
+    },
+    {
+      "extension": ".xml",
+      "count": 2
+    },
+    {
+      "extension": ".svg",
+      "count": 2
+    },
+    {
+      "extension": ".db",
+      "count": 1
+    }
+  ],
+  "manual_pdfs": [
+    {
+      "name": "grt-manual-2021-09-29-de.pdf",
+      "size_bytes": 13517944
+    },
+    {
+      "name": "grt-manual-2021-09-29-en.pdf",
+      "size_bytes": 13664013
+    },
+    {
+      "name": "grt-manual-2021-09-29-fr.pdf",
+      "size_bytes": 13699368
+    },
+    {
+      "name": "grt-manual-2021-09-29-ru.pdf",
+      "size_bytes": 13694134
+    },
+    {
+      "name": "grt-manual-2021-09-29-uk.pdf",
+      "size_bytes": 11730838
+    }
+  ],
+  "sample_grtloads": [
+    "doku\\en\\faq\\files\\30-06_168_hhpbt_imr4166_3.330_oal_2x2_1.load",
+    "doku\\en\\faq\\files\\30-06_m2_ball_imr4166_3.330_oal_2x2_1.load",
+    "doku\\en\\faq\\files\\6.5_cm_120_heldm_imr4166_2.80_oal_2x2_1.load",
+    "doku\\en\\faq\\files\\6.5_cm_140_hhpbt_imr4166_2.825_oal_2x2_1.load",
+    "doku\\en\\faq\\files\\powder-measure-template.load",
+    "loads\\POWDER-MEASURE-TEMPLATE Barens match.load",
+    "loads\\POWDER-MEASURE-TEMPLATE.load",
+    "plugins\\GRTLab\\media\\MEASURE-TEMPLATE.load"
+  ],
+  "xml_like_files": [
+    "plugins\\GRTLab\\com.grt.plugin.xml",
+    "plugins\\GRTrace\\com.grt.plugin.xml"
+  ]
+}

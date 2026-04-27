@@ -1,4 +1,5 @@
-﻿# NOTE: removed top-level mypy file-ignore to allow targeted checks
+# NOTE: removed top-level mypy file-ignore to allow targeted checks
+# pyright: reportMissingImports=false, reportAttributeAccessIssue=false, reportCallIssue=false, reportArgumentType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownVariableType=false
 
 import importlib
 import importlib.util
@@ -8,34 +9,50 @@ import sys
 import traceback
 from pathlib import Path
 
-from PyQt6.QtCore import QCoreApplication, Qt, QTimer
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QCoreApplication, Qt
+from PySide6.QtWidgets import (
     QApplication,
     QLabel,
     QMainWindow,
     QMenu,
-    QMenuBar,
     QMessageBox,
-    QVBoxLayout,
     QWidget,
 )
+
+# --- i18n system ---
+try:
+    from src.utils.i18n import Translations
+except ImportError:
+    from ..src.utils.i18n import Translations
+_translations = Translations()
 
 
 class RealTimeStats:
     def __init__(self, parent_layout):
+        # Widget creation must happen after QApplication is instantiated
+        self.label = None
+        self.stats_label = None
+        self.timer = None
+        self._initialized = False
+        self.init_widgets(parent_layout)
+
+    def init_widgets(self, parent_layout):
+        from PySide6.QtCore import QTimer
+        from PySide6.QtWidgets import QLabel
+
         self.label = QLabel("Real-time Statistics")
         self.stats_label = QLabel("Loading...")
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_stats)
         self.timer.start(1000)  # Update every second
-
         parent_layout.addWidget(self.label)
         parent_layout.addWidget(self.stats_label)
+        self._initialized = True
 
     def update_stats(self):
         # Example: Replace with actual statistics logic
-        self.stats_label.setText("Mean Velocity: 850 m/s\nSD: 5 m/s")
+        if self.stats_label is not None:
+            self.stats_label.setText("Mean Velocity: 850 m/s\nSD: 5 m/s")
 
 
 _SAFE_UI = os.environ.get("VALKYRIE_SAFE_UI", "").lower() in ("1", "true")
@@ -66,8 +83,16 @@ def _safe_append_exception(msg: str, exc: Exception | None = None) -> None:
         from .utils.safe_logger import append_exception as _append_exception
 
         _append_exception(msg, exc)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger("HjemmeladingApp").error(
+            f"Suppressed exception in _safe_append_exception: {msg} | {e}"
+        )
+        try:
+            import sys
+
+            sys.stderr.write(f"Suppressed exception: {msg} | {e}\n")
+        except Exception:
+            pass
 
 
 def _should_cleanup_stray_widgets() -> bool:
@@ -85,13 +110,31 @@ def _should_cleanup_stray_widgets() -> bool:
 
 # Disable aggressive startup shims in normal GUI sessions unless explicitly enabled.
 if not _should_cleanup_stray_widgets():
+    if _ENABLE_STARTUP_SHIMS:
+        logging.getLogger("HjemmeladingApp").info(
+            "Startup shims disabled (normal GUI session)"
+        )
     _ENABLE_STARTUP_SHIMS = False
 
 # --- Early startup shims: prevent accidental top-level widgets and suppress
 # modal dialogs created during import-time UI construction.
 try:
     if not _ENABLE_STARTUP_SHIMS:
-        raise RuntimeError("startup shims disabled")
+        logging.getLogger("HjemmeladingApp").warning(
+            "Startup shims are disabled. Defensive widget guards are OFF."
+        )
+        try:
+            from PySide6.QtWidgets import QApplication, QMessageBox
+
+            if QApplication.instance() is not None:
+                QMessageBox.critical(
+                    None,
+                    "Oppstart",
+                    "Startup shims er deaktivert. Defensive widget guards er OFF.",
+                )
+        except Exception:
+            pass
+        raise SystemExit(0)
 
     def _find_main_window():
         try:
@@ -106,6 +149,9 @@ try:
                     break
             return main_window
         except Exception:
+            logging.getLogger("HjemmeladingApp").debug(
+                "Suppressed exception in _find_main_window"
+            )
             return None
 
     # Wrap QWidget-like __init__ to reparent to the main window when no
@@ -137,12 +183,14 @@ try:
 
             _cls.__init__ = _make_shim(_orig_init)  # type: ignore[method-assign]
         except Exception:
-            pass
+            logging.getLogger("HjemmeladingApp").debug(
+                "Suppressed exception in QWidget reparenting for class"
+            )
 
     # QPushButton often creates widgets without explicit parent; wrap its
     # constructor similarly.
     try:
-        from PyQt6.QtWidgets import QPushButton as _QPushButton
+        from PySide6.QtWidgets import QPushButton as _QPushButton
 
         _orig_pb_init = _QPushButton.__init__
 
@@ -166,26 +214,32 @@ try:
     except Exception as e:
         try:
             tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+            logging.getLogger("HjemmeladingApp").error(f"Startup failed (main): {tb}")
             try:
                 _safe_append_exception("Startup failed (main): " + tb, e)
-            except Exception:
-                pass
-        except Exception:
-            pass
+            except Exception as log_exc:
+                logging.getLogger("HjemmeladingApp").error(
+                    f"Suppressed exception in _safe_append_exception: {log_exc}"
+                )
+        except Exception as exc2:
+            logging.getLogger("HjemmeladingApp").error(
+                f"Suppressed exception in startup error handler: {exc2}"
+            )
         raise
     # Suppress modal QMessageBox.question during headless or early startup
     _HEADLESS = os.environ.get("HEADLESS", "").lower() in ("1", "true")
     try:
-        from PyQt6.QtGui import QGuiApplication
+        from PySide6.QtGui import QGuiApplication
 
         try:
             if QGuiApplication.platformName().lower() in ("offscreen", "minimal"):
                 _HEADLESS = True
         except Exception:
-            pass
+            logging.getLogger("HjemmeladingApp").debug(
+                "Suppressed exception in QGuiApplication platform check"
+            )
     except Exception:
         pass
-
     if _HEADLESS:
         try:
             _orig_question = getattr(QMessageBox, "question", None)
@@ -207,8 +261,18 @@ try:
                 if callable(self.exec):
                     return self.exec()
                 else:
-                    logging.getLogger("HjemmeladingApp").error("QMessageBox.exec is not callable")
-                    raise RuntimeError("QMessageBox.exec is not callable")
+                    logging.getLogger("HjemmeladingApp").error(
+                        "QMessageBox.exec is not callable"
+                    )
+                    try:
+                        from PySide6.QtWidgets import QMessageBox
+
+                        QMessageBox.critical(
+                            None, "Feil", "QMessageBox.exec er ikke kallbar."
+                        )
+                    except Exception:
+                        pass
+                    raise SystemExit(1)
 
             # Avoid direct assignment to QMessageBox attributes
             try:
@@ -219,7 +283,9 @@ try:
                         return _orig(*args, **kwargs)
 
             except Exception as e:
-                logging.getLogger("HjemmeladingApp").error("Error handling QMessageBox.question: %s", e)
+                logging.getLogger("HjemmeladingApp").error(
+                    "Error handling QMessageBox.question: %s", e
+                )
 
             try:
                 _orig_qmsg_exec = getattr(QMessageBox, "exec", None)
@@ -229,7 +295,9 @@ try:
                         return _orig(*args, **kwargs)
 
             except Exception as e:
-                logging.getLogger("HjemmeladingApp").error("Error handling QMessageBox.exec: %s", e)
+                logging.getLogger("HjemmeladingApp").error(
+                    "Error handling QMessageBox.exec: %s", e
+                )
 
             for _name in ("information", "warning", "critical"):
                 try:
@@ -237,7 +305,9 @@ try:
                 except Exception:
                     pass
         except Exception:
-            pass
+            logging.getLogger("HjemmeladingApp").debug(
+                "Suppressed exception in headless check"
+            )
 except Exception:
     pass
 
@@ -258,12 +328,16 @@ def get_log_dir() -> str:
     utilities may not be available.
     """
     try:
-        local_appdata = os.environ.get("LOCALAPPDATA") or os.path.join(str(Path.home()), "AppData", "Local")
+        local_appdata = os.environ.get("LOCALAPPDATA") or os.path.join(
+            str(Path.home()), "AppData", "Local"
+        )
         log_dir = os.path.join(local_appdata, "Hjemmelading", "logs")
         try:
             os.makedirs(log_dir, exist_ok=True)
         except Exception:
-            pass
+            logging.getLogger("HjemmeladingApp").debug(
+                "Suppressed exception in QMessageBox.question override"
+            )
         return log_dir
     except Exception:
         return os.getcwd()
@@ -282,20 +356,9 @@ except Exception:
 
 # AppMainWindow will be resolved after the local MainWindow class is defined.
 
-# Import safe logger (provide lightweight fallbacks)
-try:
-    from .utils.safe_logger import append_exception, append_message
-except Exception as _suppressed_exc:
 
-    def append_exception(
-        msg: str = "",
-        exc: BaseException | None = None,
-        app_name: str = "HjemmeladingApp",
-    ) -> None:
-        return None
-
-    def append_message(msg: str, app_name: str = "HjemmeladingApp") -> None:
-        return None
+# Import safe logger (fail fast if missing)
+from .utils.safe_logger import append_exception, append_message
 
 
 def _global_excepthook(exc_type, exc_value, exc_tb):
@@ -304,12 +367,16 @@ def _global_excepthook(exc_type, exc_value, exc_tb):
         try:
             append_exception("Uncaught exception (HjemmeladingApp): " + tb, exc_value)
         except Exception as _suppressed_exc:
-            pass
+            logging.getLogger("HjemmeladingApp").debug(
+                "Suppressed exception in QMessageBox exec override"
+            )
         try:
             with open("hjemmeladingapp_error.log", "w", encoding="utf-8") as f:
                 f.write(tb)
         except Exception as _suppressed_exc:
-            pass
+            logging.getLogger("HjemmeladingApp").debug(
+                "Suppressed exception in QMessageBox info/warn/critical override"
+            )
     except Exception as _suppressed_exc:
         pass
 
@@ -321,71 +388,118 @@ except Exception as _suppressed_exc:
 
 
 class _FallbackMainWindow(QMainWindow):
+    default_language_map = {
+        "English": "en",
+        "Norsk": "no",
+        "Engelsk": "en",
+        "Tysk": "de",  # Placeholder for future
+    }
+
     def __init__(self):
         super().__init__()
+        # Init oversettelser
+        global _translations
+        if _translations is None:
+            try:
+                from src.utils.i18n import Translations
+            except ImportError:
+                from ..src.utils.i18n import Translations
+            _translations = Translations()
+        self._translations = _translations
         self.setWindowTitle("HjemmeladingApp - Moderne og fleksibel")
         self.setMinimumSize(1000, 700)
+        self.init_ui()
+
+    def tr(self, key):
+        try:
+            return self._translations.get(key)
+        except Exception:
+            return key
+
+    def init_ui(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QLabel, QMenu, QMenuBar, QVBoxLayout, QWidget
 
         menubar = QMenuBar(self)
         self.setMenuBar(menubar)
 
         # Profil-meny
-        profile_menu = QMenu("Profil", self)
+        profile_menu = QMenu(self.tr("menu_profile"), self)
         menubar.addMenu(profile_menu)
-        profile_action = QAction("Rediger profil og innstillinger", self)
+        profile_action = QAction(self.tr("menu_edit_profile"), self)
         profile_action.triggered.connect(self.open_profile_editor)
         profile_menu.addAction(profile_action)
 
         # Innstillinger-meny
-        settings_menu = QMenu("Innstillinger", self)
+        settings_menu = QMenu(self.tr("menu_settings"), self)
         menubar.addMenu(settings_menu)
         # Legg til rask tilgang for å åpne innstillinger
-        settings_action = QAction("Åpne innstillinger", self)
+        settings_action = QAction(self.tr("menu_open_settings"), self)
         settings_action.triggered.connect(self.open_settings_dialog)
         settings_menu.addAction(settings_action)
 
         # Språk-meny
-        language_menu = QMenu("Språk", self)
+        language_menu = QMenu(self.tr("menu_language"), self)
         settings_menu.addMenu(language_menu)
-        for lang in ["Norsk", "Engelsk", "Tysk"]:
+        for lang in ["English", "Norsk", "Tysk"]:
             lang_action = QAction(lang, self)
-            # capture default arg to avoid late-binding
-            lang_action.triggered.connect(lambda checked, lang_choice=lang: self.set_language(lang_choice))
+            lang_action.triggered.connect(
+                lambda checked, lang_choice=lang: self.set_language(lang_choice)
+            )
             language_menu.addAction(lang_action)
 
         # Simple central area with welcome message
         central = QWidget()
         layout = QVBoxLayout()
-        label = QLabel(
-            "Velkommen! Dette er et moderne, fleksibelt program.\n" "Her kan du tilpasse utseende, tema og bakgrunn."
-        )
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
+        self._welcome_label = QLabel(self.tr("welcome_message"))
+        self._welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._welcome_label)
         central.setLayout(layout)
         self.setCentralWidget(central)
+
+    def set_language(self, lang):
+        # Map UI label to language code
+        lang_code = self.default_language_map.get(lang, "en")
+        self._translations.set_language(lang_code)
+        QMessageBox.information(
+            self,
+            self.tr("language_selection_title"),
+            self.tr("language_set_to").format(lang=lang),
+        )
+        self.refresh_ui_texts()
+
+    def refresh_ui_texts(self):
+        # Refresh all UI texts after language change
+        menubar = self.menuBar()
+        if menubar:
+            # Profil-meny
+            profile_menu = menubar.actions()[0].menu()
+            profile_menu.setTitle(self.tr("menu_profile"))
+            profile_menu.actions()[0].setText(self.tr("menu_edit_profile"))
+            # Innstillinger-meny
+            settings_menu = menubar.actions()[1].menu()
+            settings_menu.setTitle(self.tr("menu_settings"))
+            settings_menu.actions()[0].setText(self.tr("menu_open_settings"))
+            # Språk-meny
+            language_menu = settings_menu.actions()[1].menu()
+            language_menu.setTitle(self.tr("menu_language"))
+        # Welcome label
+        if hasattr(self, "_welcome_label"):
+            self._welcome_label.setText(self.tr("welcome_message"))
 
     def open_profile_editor(self):
         try:
             from .ui.profile_editor import ProfileEditor
 
+            self.profile_editor = ProfileEditor(self)
+            self.profile_editor.show()
+        except Exception as e:
             try:
-                self.profile_editor = ProfileEditor(self)
-                self.profile_editor.show()
-            except Exception as e:
-                try:
-                    append_exception("ProfileEditor creation failed: " + str(e), e)
-                except Exception as _suppressed_exc:
-                    pass
-                QMessageBox.warning(
-                    self,
-                    "Feil",
-                    "Kunne ikke åpne profilredigerer (feil ved opprettelse).",
-                )
-        except Exception as _suppressed_exc:
-            QMessageBox.warning(self, "Feil", "Kunne ikke åpne profilredigerer (mangler modul).")
-
-    def set_language(self, lang):
-        QMessageBox.information(self, "Språkvalg", f"Språk satt til: {lang}")
+                append_exception("ProfileEditor creation failed: " + str(e), e)
+            except Exception:
+                pass
+            QMessageBox.warning(self, "Feil", "Kunne ikke åpne profilredigerer.")
 
     def open_settings_dialog(self):
         try:
@@ -402,7 +516,9 @@ class _FallbackMainWindow(QMainWindow):
                     append_exception("SettingsDialog creation failed: " + str(e), e)
                 except Exception as _suppressed_exc:
                     pass
-                QMessageBox.warning(self, "Feil", f"Kunne ikke opprette innstillingsdialog: {e}")
+                QMessageBox.warning(
+                    self, "Feil", f"Kunne ikke opprette innstillingsdialog: {e}"
+                )
                 return
 
             try:
@@ -416,7 +532,9 @@ class _FallbackMainWindow(QMainWindow):
                 try:
                     import traceback as _tb
 
-                    append_exception("SettingsDialog.exec/show failed: " + _tb.format_exc(), e)
+                    append_exception(
+                        "SettingsDialog.exec/show failed: " + _tb.format_exc(), e
+                    )
                 except Exception as _suppressed_exc:
                     pass
                 try:
@@ -429,7 +547,8 @@ class _FallbackMainWindow(QMainWindow):
                 import traceback as _tb
 
                 append_exception(
-                    f"\n--- {datetime.datetime.utcnow().isoformat()}Z ---\n" + _tb.format_exc(),
+                    f"\n--- {datetime.datetime.utcnow().isoformat()}Z ---\n"
+                    + _tb.format_exc(),
                     e,
                 )
             except Exception as _suppressed_exc:
@@ -452,7 +571,14 @@ class _FallbackMainWindow(QMainWindow):
 # AppMainWindow = _FallbackMainWindow
 try:
     if not _ENABLE_STARTUP_SHIMS:
-        raise RuntimeError("startup shims disabled")
+        logging.getLogger("HjemmeladingApp").error("Startup shims disabled")
+        try:
+            from PySide6.QtWidgets import QMessageBox
+
+            QMessageBox.critical(None, "Oppstart", "Startup shims er deaktivert.")
+        except Exception:
+            pass
+        raise SystemExit(1)
     # Install lightweight instrumentation to detect which modules create
     # QWidget instances without a parent at import/startup. This helps find
     # modules that instantiate UI at import-time and leave top-level widgets.
@@ -498,13 +624,17 @@ try:
                             f":{getattr(caller,'name', '<unknown>')}"
                             f":{getattr(caller,'lineno', 0)}"
                         )
-                        _wf.write(f"widget-created: {type(self).__name__} - {caller_info}\n")
+                        _wf.write(
+                            f"widget-created: {type(self).__name__} - {caller_info}\n"
+                        )
                 except Exception:
                     pass
                 # Also write a verbose trace into workspace-accessible logs for easier inspection during development
                 try:
                     ws_base = Path(__file__).resolve().parents[1]
-                    dev_trace = ws_base / "tools" / "logs" / "widget_creation_trace_source.log"
+                    dev_trace = (
+                        ws_base / "tools" / "logs" / "widget_creation_trace_source.log"
+                    )
                     try:
                         dev_trace.parent.mkdir(parents=True, exist_ok=True)
                     except Exception:
@@ -513,16 +643,22 @@ try:
                         _wf2.write("--- WIDGET CREATED ---\n")
                         _wf2.write(f"type: {type(self).__name__}\n")
                         if caller is not None:
-                            _wf2.write(f"caller: {caller.filename}:{caller.name}:{caller.lineno}\n")
+                            _wf2.write(
+                                f"caller: {caller.filename}:{caller.name}:{caller.lineno}\n"
+                            )
                         try:
                             _wf2.write("stack:\n")
                             import traceback as _tb
 
-                            _wf2.write("".join(_tb.format_stack()))  # Fixed type mismatch
+                            _wf2.write(
+                                "".join(_tb.format_stack())
+                            )  # Fixed type mismatch
                             # Persist the full stack in-memory for later stray-widget diagnostics
                             try:
                                 try:
-                                    full_stack = "".join(_tb.format_stack())  # Fixed type mismatch
+                                    full_stack = "".join(
+                                        _tb.format_stack()
+                                    )  # Fixed type mismatch
                                 except Exception:
                                     full_stack = ""
                                 try:
@@ -536,7 +672,10 @@ try:
                         # If a force-parent anchor is set, attach this widget to it
                         try:
                             exempt = {"QMainWindow"}
-                            if _FORCE_PARENT_TO is not None and type(self).__name__ not in exempt:
+                            if (
+                                _FORCE_PARENT_TO is not None
+                                and type(self).__name__ not in exempt
+                            ):
                                 try:
                                     self.setParent(_FORCE_PARENT_TO)
                                 except Exception:
@@ -557,7 +696,7 @@ try:
     # catch modules that call QLabel/QPushButton/QMenu directly
     # without providing a parent.
     try:
-        from PyQt6.QtWidgets import (
+        from PySide6.QtWidgets import (
             QFrame,
             QGroupBox,
             QLabel,
@@ -582,7 +721,10 @@ try:
                         parent_provided = any(isinstance(a, QWidget) for a in args)
                     except Exception:
                         parent_provided = False
-                if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                if (
+                    not parent_provided
+                    and globals().get("_FORCE_PARENT_TO") is not None
+                ):
                     kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
             except Exception:
                 pass
@@ -594,7 +736,7 @@ try:
             pass
         # Also ensure QMessageBox instances default to the forced parent
         try:
-            from PyQt6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox
 
             _orig_qmsg_init = QMessageBox.__init__
 
@@ -608,7 +750,10 @@ try:
                             parent_provided = any(isinstance(a, QWidget) for a in args)
                         except Exception:
                             parent_provided = False
-                    if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                    if (
+                        not parent_provided
+                        and globals().get("_FORCE_PARENT_TO") is not None
+                    ):
                         kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
                 except Exception:
                     pass
@@ -633,7 +778,10 @@ try:
                         parent_provided = any(isinstance(a, QWidget) for a in args)
                     except Exception:
                         parent_provided = False
-                if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                if (
+                    not parent_provided
+                    and globals().get("_FORCE_PARENT_TO") is not None
+                ):
                     kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
             except Exception:
                 pass
@@ -657,7 +805,10 @@ try:
                             parent_provided = any(isinstance(a, QWidget) for a in args)
                         except Exception:
                             parent_provided = False
-                    if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                    if (
+                        not parent_provided
+                        and globals().get("_FORCE_PARENT_TO") is not None
+                    ):
                         kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
                 except Exception:
                     pass
@@ -684,7 +835,10 @@ try:
                             parent_provided = any(isinstance(a, QWidget) for a in args)
                         except Exception:
                             parent_provided = False
-                    if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                    if (
+                        not parent_provided
+                        and globals().get("_FORCE_PARENT_TO") is not None
+                    ):
                         kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
                 except Exception:
                     pass
@@ -710,7 +864,10 @@ try:
                             parent_provided = any(isinstance(a, QWidget) for a in args)
                         except Exception:
                             parent_provided = False
-                    if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                    if (
+                        not parent_provided
+                        and globals().get("_FORCE_PARENT_TO") is not None
+                    ):
                         kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
                 except Exception:
                     pass
@@ -736,7 +893,10 @@ try:
                             parent_provided = any(isinstance(a, QWidget) for a in args)
                         except Exception:
                             parent_provided = False
-                    if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                    if (
+                        not parent_provided
+                        and globals().get("_FORCE_PARENT_TO") is not None
+                    ):
                         kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
                 except Exception:
                     pass
@@ -762,7 +922,10 @@ try:
                             parent_provided = any(isinstance(a, QWidget) for a in args)
                         except Exception:
                             parent_provided = False
-                    if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                    if (
+                        not parent_provided
+                        and globals().get("_FORCE_PARENT_TO") is not None
+                    ):
                         kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
                 except Exception:
                     pass
@@ -788,7 +951,10 @@ try:
                             parent_provided = any(isinstance(a, QWidget) for a in args)
                         except Exception:
                             parent_provided = False
-                    if not parent_provided and globals().get("_FORCE_PARENT_TO") is not None:
+                    if (
+                        not parent_provided
+                        and globals().get("_FORCE_PARENT_TO") is not None
+                    ):
                         kwargs.setdefault("parent", globals().get("_FORCE_PARENT_TO"))
                 except Exception:
                     pass
@@ -815,17 +981,22 @@ def main():
     global _FORCE_PARENT_TO
     try:
         try:
-            from PyQt6.QtCore import qInstallMessageHandler
+            from PySide6.QtCore import qInstallMessageHandler
 
             def _qt_message_handler(msg_type, context, message):
                 try:
                     text = str(message)
                 except Exception:
                     text = message
-                if "Cannot find font directory" in text or "Qt no longer ships fonts" in text:
+                if (
+                    "Cannot find font directory" in text
+                    or "Qt no longer ships fonts" in text
+                ):
                     return
                 try:
-                    stderr = sys.__stderr__ if sys.__stderr__ is not None else sys.stderr
+                    stderr = (
+                        sys.__stderr__ if sys.__stderr__ is not None else sys.stderr
+                    )
                     if stderr is not None:
                         stderr.write(str(message) + "\n")
                 except Exception:
@@ -841,12 +1012,21 @@ def main():
         except Exception:
             pass
         try:
-            QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+            QCoreApplication.setAttribute(
+                Qt.ApplicationAttribute.AA_ShareOpenGLContexts
+            )
         except Exception as _suppressed_exc:
             pass
         app = QApplication(sys.argv)
+        # Ensure safe widget patching after QApplication is created
         try:
-            from PyQt6.QtGui import QFont
+            from src.ui.main_window import setup_gui_wrappers
+
+            setup_gui_wrappers()
+        except Exception:
+            pass
+        try:
+            from PySide6.QtGui import QFont
 
             font = app.font()
             if font.pointSize() <= 0:
@@ -874,7 +1054,9 @@ def main():
                 app.setStyleSheet(ReloadingTheme.get_safe_stylesheet())
             except Exception:
                 try:
-                    app.setStyleSheet("QWidget { background-color: #f7f8fa; color: #111111; }")
+                    app.setStyleSheet(
+                        "QWidget { background-color: #f7f8fa; color: #111111; }"
+                    )
                 except Exception:
                     pass
         else:
@@ -891,7 +1073,7 @@ def main():
             _headless_env = os.environ.get("HEADLESS", "").lower() in ("1", "true")
             if _headless_env or _qp in ("offscreen", "minimal"):
                 try:
-                    from PyQt6.QtWidgets import QMessageBox
+                    from PySide6.QtWidgets import QMessageBox
 
                     for _name in ("information", "warning", "critical"):
                         try:
@@ -908,7 +1090,9 @@ def main():
 
             trace_file = _P(get_log_dir()) / "startup_trace.log"
             with open(trace_file, "a", encoding="utf-8") as _tf:
-                _tf.write(f"startup: pre-window topLevelWidgets={len(app.topLevelWidgets())}\n")
+                _tf.write(
+                    f"startup: pre-window topLevelWidgets={len(app.topLevelWidgets())}\n"
+                )
         except Exception:
             pass
         # Additional startup markers for hang diagnostics
@@ -918,7 +1102,9 @@ def main():
 
             trace_file = _P(get_log_dir()) / "startup_trace.log"
             with open(trace_file, "a", encoding="utf-8") as _tf:
-                _tf.write(f"startup: app_created pid={os.getpid()} time={_dt.utcnow().isoformat()} argv={sys.argv}\n")
+                _tf.write(
+                    f"startup: app_created pid={os.getpid()} time={_dt.utcnow().isoformat()} argv={sys.argv}\n"
+                )
         except Exception:
             pass
         try:
@@ -981,12 +1167,23 @@ def main():
 
             trace_file = _P(get_log_dir()) / "startup_trace.log"
             with open(trace_file, "a", encoding="utf-8") as _tf:
-                _tf.write(f"startup: resolved_ui_module={_selected_ui_mod} time={_dt.utcnow().isoformat()}\n")
+                _tf.write(
+                    f"startup: resolved_ui_module={_selected_ui_mod} time={_dt.utcnow().isoformat()}\n"
+                )
         except Exception:
             pass
 
         if AppMainWindow is None:
-            raise RuntimeError("AppMainWindow is not defined.")
+            logging.getLogger("HjemmeladingApp").error("AppMainWindow is not defined.")
+            try:
+                from PySide6.QtWidgets import QMessageBox
+
+                QMessageBox.critical(
+                    None, "Oppstart", "AppMainWindow er ikke definert."
+                )
+            except Exception:
+                pass
+            raise SystemExit(1)
         win = AppMainWindow()
 
         try:
@@ -995,7 +1192,9 @@ def main():
 
             trace_file = _P(get_log_dir()) / "startup_trace.log"
             with open(trace_file, "a", encoding="utf-8") as _tf:
-                _tf.write(f"startup: win_instantiated class={type(win).__name__} time={_dt.utcnow().isoformat()}\n")
+                _tf.write(
+                    f"startup: win_instantiated class={type(win).__name__} time={_dt.utcnow().isoformat()}\n"
+                )
         except Exception:
             pass
 
@@ -1036,14 +1235,17 @@ def main():
         try:
             if not _should_cleanup_stray_widgets():
                 raise RuntimeError("stray widget cleanup disabled")
-            from PyQt6.QtCore import QTimer
+            from PySide6.QtCore import QTimer
 
             _orig_show = getattr(QWidget, "show", None)
 
             def _guarded_show(self, *a, **kw):
                 try:
                     # Allow the main window and any widgets that have a parent
-                    if self is win or getattr(self, "parent", lambda: None)() is not None:
+                    if (
+                        self is win
+                        or getattr(self, "parent", lambda: None)() is not None
+                    ):
                         if _orig_show:
                             return _orig_show(self, *a, **kw)
                         return None
@@ -1065,7 +1267,9 @@ def main():
                 # Clear the forced-parent anchor after a longer grace period
                 try:
                     # Keep the force-parent anchor longer to catch delayed UI initializers
-                    QTimer.singleShot(90000, lambda: globals().update({"_FORCE_PARENT_TO": None}))
+                    QTimer.singleShot(
+                        90000, lambda: globals().update({"_FORCE_PARENT_TO": None})
+                    )
                 except Exception:
                     pass
             except Exception:
@@ -1089,7 +1293,7 @@ def main():
         try:
             if not _should_cleanup_stray_widgets():
                 raise RuntimeError("stray widget cleanup disabled")
-            from PyQt6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox
 
             _orig_qmsg_show = getattr(QMessageBox, "show", None)
             _orig_qmsg_exec = getattr(QMessageBox, "exec", None)
@@ -1125,12 +1329,34 @@ def main():
                     if _orig_qmsg_exec is not None and callable(_orig_qmsg_exec):
                         return _orig_qmsg_exec(*a, **kw)
                     else:
-                        raise RuntimeError("QMessageBox.exec is not callable")
+                        logging.getLogger("HjemmeladingApp").error(
+                            "QMessageBox.exec is not callable"
+                        )
+                        try:
+                            from PySide6.QtWidgets import QMessageBox
+
+                            QMessageBox.critical(
+                                None, "Feil", "QMessageBox.exec er ikke kallbar."
+                            )
+                        except Exception:
+                            pass
+                        raise SystemExit(1)
                 except Exception:
                     if _orig_qmsg_exec is not None and callable(_orig_qmsg_exec):
                         return _orig_qmsg_exec(*a, **kw)
                     else:
-                        raise RuntimeError("QMessageBox.exec is not callable")
+                        logging.getLogger("HjemmeladingApp").error(
+                            "QMessageBox.exec is not callable"
+                        )
+                        try:
+                            from PySide6.QtWidgets import QMessageBox
+
+                            QMessageBox.critical(
+                                None, "Feil", "QMessageBox.exec er ikke kallbar."
+                            )
+                        except Exception:
+                            pass
+                        raise SystemExit(1)
 
             try:
                 if _orig_qmsg_show:
@@ -1147,7 +1373,7 @@ def main():
         try:
             if not _should_cleanup_stray_widgets():
                 raise RuntimeError("stray widget cleanup disabled")
-            from PyQt6.QtWidgets import QMenu
+            from PySide6.QtWidgets import QMenu
 
             _orig_qmenu_show = getattr(QMenu, "show", None)
 
@@ -1181,7 +1407,10 @@ def main():
             win.raise_()
             win.activateWindow()
             try:
-                win.setWindowState((win.windowState() & ~Qt.WindowState.WindowMinimized) | Qt.WindowState.WindowActive)
+                win.setWindowState(
+                    (win.windowState() & ~Qt.WindowState.WindowMinimized)
+                    | Qt.WindowState.WindowActive
+                )
             except Exception:
                 pass
         except Exception:
@@ -1200,7 +1429,7 @@ def main():
         # or menus that briefly become top-level; close them to ensure only
         # the main window remains visible at startup.
         try:
-            from PyQt6.QtCore import QTimer
+            from PySide6.QtCore import QTimer
 
             def _force_close_strays():
                 try:
@@ -1245,7 +1474,7 @@ def main():
         # QMenu popups or stray menus during startup. Restore after app
         # initialization has settled.
         try:
-            from PyQt6.QtCore import QTimer
+            from PySide6.QtCore import QTimer
 
             try:
                 mb = win.menuBar()
@@ -1263,7 +1492,7 @@ def main():
         # Defensive: prune stray top-level widgets that may have been created
         # by modules during startup (prevents transient second windows).
         try:
-            from PyQt6.QtCore import QTimer
+            from PySide6.QtCore import QTimer
 
             def _prune_top_level():
                 try:
@@ -1338,11 +1567,13 @@ def main():
         try:
             from pathlib import Path as _P
 
-            from PyQt6.QtCore import QTimer
+            from PySide6.QtCore import QTimer
 
             trace_file = _P(get_log_dir()) / "startup_trace.log"
             with open(trace_file, "a", encoding="utf-8") as _tf:
-                _tf.write(f"startup: post-window topLevelWidgets={len(app.topLevelWidgets())}\n")
+                _tf.write(
+                    f"startup: post-window topLevelWidgets={len(app.topLevelWidgets())}\n"
+                )
 
             # Also write delayed snapshots to catch windows that appear shortly
             # after startup (e.g. scheduled dialogs or background initializers).
@@ -1352,12 +1583,18 @@ def main():
                         return
                     widgets = list(app.topLevelWidgets())
                     with open(trace_file, "a", encoding="utf-8") as _tf2:
-                        _tf2.write(f"startup: later-window(1s) topLevelWidgets={len(widgets)}\n")
+                        _tf2.write(
+                            f"startup: later-window(1s) topLevelWidgets={len(widgets)}\n"
+                        )
                         for w in widgets:
                             try:
                                 title = ""
                                 try:
-                                    title = w.windowTitle() if hasattr(w, "windowTitle") else ""
+                                    title = (
+                                        w.windowTitle()
+                                        if hasattr(w, "windowTitle")
+                                        else ""
+                                    )
                                 except Exception:
                                     title = ""
                                 p = None
@@ -1371,7 +1608,9 @@ def main():
                                         pinfo = f"{type(p).__name__} ({getattr(p, 'objectName', lambda: '')()})"
                                 except Exception:
                                     pinfo = "<err>"
-                                _tf2.write(f"  widget: {type(w).__name__} - title={title} - parent={pinfo}\n")
+                                _tf2.write(
+                                    f"  widget: {type(w).__name__} - title={title} - parent={pinfo}\n"
+                                )
                             except Exception:
                                 pass
                     # Attempt to reparent/hide any remaining stray widgets seen at 1s
@@ -1427,12 +1666,18 @@ def main():
                         return
                     widgets = list(app.topLevelWidgets())
                     with open(trace_file, "a", encoding="utf-8") as _tf3:
-                        _tf3.write(f"startup: later-window(3s) topLevelWidgets={len(widgets)}\n")
+                        _tf3.write(
+                            f"startup: later-window(3s) topLevelWidgets={len(widgets)}\n"
+                        )
                         for w in widgets:
                             try:
                                 title = ""
                                 try:
-                                    title = w.windowTitle() if hasattr(w, "windowTitle") else ""
+                                    title = (
+                                        w.windowTitle()
+                                        if hasattr(w, "windowTitle")
+                                        else ""
+                                    )
                                 except Exception:
                                     title = ""
                                 p = None
@@ -1446,7 +1691,9 @@ def main():
                                         pinfo = f"{type(p).__name__} ({getattr(p, 'objectName', lambda: '')()})"
                                 except Exception:
                                     pinfo = "<err>"
-                                _tf3.write(f"  widget: {type(w).__name__} - title={title} - parent={pinfo}\n")
+                                _tf3.write(
+                                    f"  widget: {type(w).__name__} - title={title} - parent={pinfo}\n"
+                                )
                             except Exception:
                                 pass
                     # Final attempt: reparent/hide any remaining stray widgets at 3s
@@ -1513,7 +1760,7 @@ def main():
                     try:
                         app = None
                         try:
-                            from PyQt6.QtWidgets import QApplication
+                            from PySide6.QtWidgets import QApplication
 
                             app = QApplication.instance()
                         except Exception:
@@ -1540,6 +1787,7 @@ def main():
             trace_file = _P(get_log_dir()) / "startup_trace.log"
             with open(trace_file, "a", encoding="utf-8") as _tf:
                 _tf.write(f"startup: entering_exec time={_dt.utcnow().isoformat()}\n")
+
         except Exception:
             pass
         sys.exit(app.exec())

@@ -1,0 +1,3 @@
+﻿weapon_id;weapon_name;caliber;barrel_id;barrel_name;active_barrel_label;barrel_length_mm;twist;barrel_profile;mount_type;barrel_attachment_type;muzzle_device_type;muzzle_device_weight_g;case_standard;h2o_capacity_grains;h2o_sample_count;h2o_spread_grains;trim_length_mm;shoulder_bump_mm;base_to_datum_mm;neck_diameter_mm;case_notes;baseline_quality;source_path
+demo-01;Valkyrie Scout;6.5mm;b1;Std barrel;;610.0;1:8;;screwed;;suppressor;320.0;;;0;;;;;;;missing;c:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\data\demo_weapons.json
+demo-02;Valkyrie Precision;.308 Win;b1;Match barrel;;660.0;1:10;;integral;;compensator;85.0;;;0;;;;;;;missing;c:\Users\bjjoh\OneDrive\Dokumenter\Programering\Hjemmelading\data\demo_weapons.json

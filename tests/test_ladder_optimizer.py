@@ -2,6 +2,8 @@ import os
 import sqlite3
 import sys
 
+import pytest
+
 # Ensure repo root is on sys.path so `src` package is importable during tests
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -15,6 +17,7 @@ class SimpleDB:
         self.cursor = self.conn.cursor()
 
 
+@pytest.mark.core
 def test_fit_quadratic_and_suggest():
     db = SimpleDB()
     # Create ladder_tests and test_results tables
@@ -60,6 +63,7 @@ def test_fit_quadratic_and_suggest():
     res = ladder_optimizer.suggest_charge_from_history(db, rifle_id=1)
     assert res is not None
     assert "suggested_charge" in res
+    assert res["sample_count"] == 3
     assert (
         res["observed_range"][0] <= res["suggested_charge"] <= res["observed_range"][1]
     )

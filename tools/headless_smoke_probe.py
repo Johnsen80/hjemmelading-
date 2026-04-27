@@ -27,6 +27,9 @@ try:
 except Exception:
     pass
 
+SKIP_LOAD_BUILDER = os.environ.get("HEADLESS_PROBE_SKIP_MLB") == "1"
+SKIP_WIDGETS = os.environ.get("HEADLESS_PROBE_SKIP_WIDGETS") == "1"
+
 print("PROBE: start")
 
 # Install faulthandler to ensure Python-level tracebacks on deadlock/crash
@@ -60,9 +63,65 @@ def _start_watchdog(timeout: float = 8.0):
     t.start()
 
 
+def _filter_widgets(widgets: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    raw = os.environ.get("HEADLESS_PROBE_WIDGETS", "").strip()
+    if not raw:
+        return widgets
+    allowed = {token.strip().lower() for token in raw.split(",") if token.strip()}
+    if not allowed:
+        return widgets
+    filtered = []
+    for module_name, class_name in widgets:
+        module_key = module_name.rsplit(".", 1)[-1].lower()
+        if class_name.lower() in allowed or module_key in allowed:
+            filtered.append((module_name, class_name))
+    return filtered
+
+
+def _smoke_widget(module_name: str, class_name: str) -> None:
+    try:
+        print(f"PROBE: importing {module_name}.{class_name}")
+        mod = importlib.import_module(module_name)
+    except Exception as exc:
+        print(f"PROBE: {module_name} import failed: {exc}")
+        traceback.print_exc()
+        return
+
+    cls = getattr(mod, class_name, None)
+    if cls is None:
+        print(f"PROBE: {module_name}.{class_name} not found")
+        return
+
+    try:
+        widget = cls()
+        print(f"PROBE: {class_name} instantiated")
+        try:
+            widget.close()
+        except Exception:
+            pass
+        try:
+            widget.deleteLater()
+        except Exception:
+            pass
+        try:
+            _app = globals().get("app", None)
+            if _app is not None:
+                _app.processEvents()
+        except Exception:
+            pass
+    except Exception as exc:
+        print(f"PROBE: {class_name} instantiation failed: {exc}")
+        traceback.print_exc()
+
+
+_start_watchdog()
+
+
 # 1: basic imports
 try:
     print("PROBE: importing PyQt6")
+    import PyQt6  # noqa: F401 - presence check only
+
     print("PROBE: PyQt6 imported")
 except Exception as e:
     print("PROBE: PyQt6 import failed:", e)
@@ -92,8 +151,6 @@ if mwmod and hasattr(mwmod, "MainWindow"):
             "apply_user_settings",
             "check_saved_workflows",
             "create_tabs",
-            "close",
-            "closeEvent",
         ):
             if hasattr(mwmod.MainWindow, name):
                 try:
@@ -161,7 +218,50 @@ except Exception as e:
     print("PROBE: MainWindow instantiation failed:", e)
     traceback.print_exc()
 
-# 4: optional matplotlib check
+# 4: optional ModernLoadBuilder smoke
+try:
+    if not SKIP_LOAD_BUILDER:
+        print("PROBE: importing ModernLoadBuilder")
+        mlb_mod = importlib.import_module("src.modules.modern_load_builder")
+        print("PROBE: imported ModernLoadBuilder module")
+        if hasattr(mlb_mod, "ModernLoadBuilder"):
+            print("PROBE: instantiating ModernLoadBuilder")
+            try:
+                builder = mlb_mod.ModernLoadBuilder()
+                builder.close()
+                builder.deleteLater()
+                print("PROBE: ModernLoadBuilder instantiated")
+            except Exception as exc:  # noqa: BLE001 - best-effort smoke output
+                print("PROBE: ModernLoadBuilder instantiation failed:", exc)
+                traceback.print_exc()
+    else:
+        print("PROBE: skipping ModernLoadBuilder instantiation (env override)")
+except Exception as exc:
+    print("PROBE: ModernLoadBuilder import failed:", exc)
+    traceback.print_exc()
+
+# 5: additional widget smoke checks
+try:
+    if SKIP_WIDGETS:
+        print("PROBE: skipping extra widget smoke (env override)")
+    else:
+        widget_specs = _filter_widgets(
+            [
+                ("src.modules.chronograph_importer", "ChronographImporter"),
+                ("src.modules.historical_analysis", "HistoricalAnalysisViewer"),
+                (
+                    "src.modules.calibration_validation_workflow",
+                    "CalibrationValidationDialog",
+                ),
+            ]
+        )
+        for module_name, class_name in widget_specs:
+            _smoke_widget(module_name, class_name)
+except Exception as exc:
+    print("PROBE: widget smoke failed:", exc)
+    traceback.print_exc()
+
+# 6: optional matplotlib check
 try:
     import matplotlib as mpl
     from matplotlib import font_manager as fm

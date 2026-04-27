@@ -1,0 +1,4 @@
+﻿id;display_name;manufacturer;name;caliber;material;quantity;times_fired;last_annealed;needs_annealing_label;notes
+3;Reference Baseline Brass .30-06 Springfield;Reference;Baseline Brass;.30-06 Springfield;brass;0;0;;nei;Seedet referansehylse fra intern kaliberbaseline. Verifiser kapasitet mot eget lot før presis lastutvikling.
+2;Reference Baseline Brass .308 Winchester;Reference;Baseline Brass;.308 Winchester;brass;0;0;;nei;Seedet referansehylse fra intern kaliberbaseline. Verifiser kapasitet mot eget lot før presis lastutvikling.
+1;Reference Baseline Brass 6.5 Creedmoor;Reference;Baseline Brass;6.5 Creedmoor;brass;0;0;;nei;Seedet referansehylse fra intern kaliberbaseline. Verifiser kapasitet mot eget lot før presis lastutvikling.

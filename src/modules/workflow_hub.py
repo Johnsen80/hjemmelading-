@@ -3,6 +3,9 @@ Workflow Hub - Task-Based Navigation System
 Erstatter tab-chaos med guided workflows
 """
 
+import os
+from typing import Any
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
@@ -18,7 +21,16 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.ui.logo_helper import load_logo_pixmap
+from ..ui.reloading_theme import ReloadingTheme
+from ..utils.i18n import tr
+
+try:
+    from ..ui.logo_helper import load_logo_pixmap
+except Exception:
+    # Packaged environments may not expose src.* imports the same way.
+    # Provide a safe fallback that returns None when logo can't be loaded.
+    def load_logo_pixmap(width: int | None = None) -> QPixmap | None:
+        return None
 
 
 class WorkflowCard(QFrame):
@@ -43,94 +55,50 @@ class WorkflowCard(QFrame):
         self.color = color
         self.status = status
 
-        self.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Raised)
-        self.setLineWidth(2)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-        # Base style
-        self.base_style = f"""
-            WorkflowCard {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {color}, stop:1 {self._darken_color(color)});
-                border-radius: 12px;
-                border: 2px solid {self._darken_color(color)};
-                padding: 12px;
-            }}
-            WorkflowCard:hover {{
-                border: 3px solid #2c3e50;
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {self._lighten_color(color)}, stop:1 {color});
-            }}
-        """
-        self.setStyleSheet(self.base_style)
+        self.setProperty("variant", "statCard")
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        accent = QFrame(self)
+        accent.setFixedHeight(4)
+        accent.setStyleSheet(
+            f"background-color: {color}; border: none; border-radius: 2px;"
+        )
+        layout.addWidget(accent)
 
         # Icon + Status
         header_layout = QHBoxLayout()
 
         icon_label = QLabel(icon, self)
-        icon_label.setStyleSheet(
-            "font-size: 36px; background: transparent; border: none;"
-        )
+        icon_label.setProperty("role", "muted")
         header_layout.addWidget(icon_label)
 
         header_layout.addStretch()
 
         # Status badge
         if status == "in_progress":
-            status_label = QLabel("🔄 Aktiv", self)
-            status_label.setStyleSheet(
-                """
-                background-color: #f39c12;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 10px;
-                font-weight: bold;
-                font-size: 11px;
-            """
-            )
+            status_label = QLabel(tr("workflow_hub_status_active"), self)
+            status_label.setProperty("variant", "warningText")
             header_layout.addWidget(status_label)
         elif status == "completed":
-            status_label = QLabel("✅ Done", self)
-            status_label.setStyleSheet(
-                """
-                background-color: #27ae60;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 10px;
-                font-weight: bold;
-                font-size: 11px;
-            """
-            )
+            status_label = QLabel(tr("workflow_hub_status_completed"), self)
+            status_label.setProperty("variant", "successText")
             header_layout.addWidget(status_label)
 
         layout.addLayout(header_layout)
 
         # Title
         title_label = QLabel(title, self)
-        title_label.setStyleSheet(
-            """
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            background: transparent;
-            border: none;
-        """
-        )
+        title_label.setProperty("variant", "cardTitle")
         title_label.setWordWrap(True)
         layout.addWidget(title_label)
 
         # Description
         desc_label = QLabel(description, self)
-        desc_label.setStyleSheet(
-            """
-            font-size: 11px;
-            color: rgba(255, 255, 255, 200);
-            background: transparent;
-            border: none;
-        """
-        )
+        desc_label.setProperty("variant", "cardSubtitle")
         desc_label.setWordWrap(True)
         layout.addWidget(desc_label)
 
@@ -153,7 +121,7 @@ class WorkflowCard(QFrame):
         r, g, b = min(255, r + 30), min(255, g + 30), min(255, b + 30)
         return f"#{r:02x}{g:02x}{b:02x}"
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: Any):  # type: ignore
         """Click handler"""
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self.workflow_id)
@@ -170,6 +138,44 @@ class WorkflowHub(QWidget):
     def __init__(
         self, state_manager=None, mode_manager=None, parent=None, defer_ui: bool = True
     ):
+        # Diagnostic: record who instantiated WorkflowHub (stacktrace)
+        try:
+            import traceback
+            from datetime import datetime as _dt
+
+            log_dir = os.path.join(os.getcwd(), "tools", "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            stack_file = os.path.join(log_dir, "workflowhub_init_stack.log")
+            detailed_file = os.path.join(log_dir, "workflowhub_init_detailed.log")
+            with open(stack_file, "a", encoding="utf-8") as _f:
+                _f.write(
+                    f"workflowhub: init time={_dt.utcnow().isoformat()} pid={os.getpid()}\n"
+                )
+                traceback.print_stack(file=_f)
+                _f.write("\n")
+            # Also write a separate detailed trace including caller frames
+            try:
+                stack = traceback.extract_stack()
+                caller = stack[-2] if len(stack) >= 2 else None
+                with open(detailed_file, "a", encoding="utf-8") as _df:
+                    _df.write("--- WORKFLOWHUB INSTANTIATED ---\n")
+                    _df.write(f"time={_dt.utcnow().isoformat()} pid={os.getpid()}\n")
+                    if caller is not None:
+                        _df.write(
+                            f"called_from: {caller.filename}:{caller.name}:{caller.lineno}\n"
+                        )
+                    try:
+                        import traceback as _tb
+
+                        _df.write("stack:\n")
+                        _df.write("".join(_tb.format_stack()))
+                    except Exception:
+                        pass
+                    _df.write("\n")
+            except Exception:
+                pass
+        except Exception:
+            pass
         # Force deferred UI creation to avoid accidental top-level widget
         # construction during import/instantiation. Ignore caller's
         # `defer_ui` argument and require an explicit `ensure_ui()` call
@@ -187,7 +193,8 @@ class WorkflowHub(QWidget):
 
                     app = QApplication.instance()
                     if app:
-                        for w in app.topLevelWidgets():
+                        widgets = list(getattr(app, "topLevelWidgets", lambda: [])())
+                        for w in widgets:
                             if isinstance(w, QMainWindow):
                                 parent = w
                                 break
@@ -201,6 +208,9 @@ class WorkflowHub(QWidget):
         self.mode_manager = mode_manager
         # Track active workflows for compact display
         self.active_workflows: dict[str, str] = {}
+        # Optional UI regions populated during init_ui
+        self.active_section: Any | None = None
+        self.active_layout: Any | None = None
         # For safety, always defer heavy UI construction by default to avoid
         # accidental top-level widget creation during imports/instantiation.
         # Callers should explicitly call `ensure_ui()` to initialize the UI.
@@ -218,12 +228,16 @@ class WorkflowHub(QWidget):
                 # Best-effort: leave UI deferred if scheduling fails
                 pass
 
+    def _legacy_workflow_ids(self) -> set[str]:
+        return {"primer_tools"}
+
     def ensure_ui(self):
         """Force initialization of the UI if it was deferred."""
         # Flip the deferred flag before calling init_ui so init_ui can
         # reliably check the flag and avoid accidental construction when
         # the object was instantiated during import/early startup.
         if getattr(self, "_ui_deferred", False):
+            self._write_startup_trace("enter_WorkflowHub.ensure_ui")
             self._ui_deferred = False
             try:
                 self.init_ui()
@@ -231,18 +245,20 @@ class WorkflowHub(QWidget):
                 # Keep behavior best-effort: if init fails, ensure flag
                 # is left cleared so future calls will still attempt init.
                 raise
+            self._write_startup_trace("exit_WorkflowHub.ensure_ui")
 
-    def init_ui(self):
-        # Prevent accidental UI construction if this object is still
-        # marked as deferred. Some callers may instantiate the hub during
-        # startup; this guard ensures UI only builds when `ensure_ui()`
-        # explicitly allows it.
-        if getattr(self, "_ui_deferred", False):
-            return
+    def _write_startup_trace(self, message: str) -> None:
+        try:
+            from datetime import datetime as _dt
+            from pathlib import Path as _P
 
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        content = QWidget(scroll)
+            trace_file = _P.cwd() / "tools" / "logs" / "startup_trace.log"
+            with open(trace_file, "a", encoding="utf-8") as _tf:
+                _tf.write(f"startup: {message} time={_dt.utcnow().isoformat()}\n")
+        except Exception:
+            pass
+
+    def _apply_local_widget_shims(self, content: QWidget) -> None:
         # Local shims: ensure common lightweight widgets created without an
         # explicit parent are attached to the content widget. This prevents
         # accidental transient top-level windows during deferred initialization.
@@ -265,7 +281,6 @@ class WorkflowHub(QWidget):
             try:
                 if not _needs_parent_arg(a, kw):
                     return _orig_QLabel(*a, **kw)
-                # default parent -> content
                 if len(a) == 0:
                     return _orig_QLabel(content)
                 return _orig_QLabel(a[0], content)
@@ -327,12 +342,20 @@ class WorkflowHub(QWidget):
         globals()["QRadioButton"] = _local_radiobutton  # type: ignore
         globals()["QFrame"] = _local_frame  # type: ignore
 
+    def _init_scroll_container(self) -> tuple[QScrollArea, QWidget, QVBoxLayout]:
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setProperty("variant", "clean")
+        content = QWidget(scroll)
+        self._apply_local_widget_shims(content)
+
         layout = QVBoxLayout(content)
         layout.setContentsMargins(20, 15, 20, 15)
         layout.setSpacing(15)
+        self._mode_widgets = []
+        return scroll, content, layout
 
-        # HERO HEADER
-        # Hero header: vis faktisk logo og tydelig tittel
+    def _build_hero_header(self, layout: QVBoxLayout, content: QWidget) -> None:
         from PyQt6.QtWidgets import QSizePolicy
 
         hero = QWidget(content)
@@ -346,20 +369,18 @@ class WorkflowHub(QWidget):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         hero_layout.addWidget(logo_label, stretch=1)
+
         hero_text = QVBoxLayout()
-        title = QLabel("VALKYRIE BALLISTICS", hero)
-        title.setStyleSheet(
-            "font-size: 32px; font-weight: bold; color: #e0e0e0; margin-bottom: 0px; letter-spacing: 2px;"
-        )
+        title = QLabel(tr("workflow_hub_title"), hero)
+        title.setProperty("variant", "heroTitle")
         title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         hero_text.addWidget(title)
+
         subtitle = QLabel(
-            "Premium reloading, ballistics & analysis. Velg modul for å komme i gang.",
+            tr("workflow_hub_subtitle"),
             hero,
         )
-        subtitle.setStyleSheet(
-            "font-size: 17px; color: #ffd700; margin-bottom: 10px; font-weight: 600;"
-        )
+        subtitle.setProperty("variant", "heroSubtitle")
         subtitle.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
@@ -367,91 +388,110 @@ class WorkflowHub(QWidget):
         hero_layout.addLayout(hero_text, stretch=2)
         layout.addWidget(hero)
 
-        # Mode selector
-        mode_group = QGroupBox("⚙ Brukermodus", content)
+    def _build_mode_status_group(self, layout: QVBoxLayout, content: QWidget) -> None:
+        mode_group = QGroupBox(tr("workflow_hub_user_mode"), content)
+        mode_group.setProperty("variant", "panel")
         mode_layout = QHBoxLayout()
-        self.radio_beginner = QRadioButton("▶ Nybegynner (Guidet)", mode_group)
-        self.radio_expert = QRadioButton("▶▶ Ekspert (Hurtig tilgang)", mode_group)
-        if self.mode_manager:
-            if self.mode_manager.is_beginner():
-                self.radio_beginner.setChecked(True)
-            else:
-                self.radio_expert.setChecked(True)
-        else:
-            self.radio_beginner.setChecked(True)
-        self.radio_beginner.toggled.connect(self.on_mode_toggled)
-        mode_layout.addWidget(self.radio_beginner)
-        mode_layout.addWidget(self.radio_expert)
-        self.mode_description = QLabel(mode_group)
-        self.mode_description.setStyleSheet(
-            "color: #7f8c8d; font-size: 11px; font-style: italic;"
-        )
-        mode_layout.addWidget(self.mode_description)
+        self.mode_status_label = QLabel(mode_group)
+        self.mode_status_label.setProperty("role", "muted")
+        self._update_mode_status_label()
+        hint = QLabel(tr("workflow_hub_change_mode_hint"), mode_group)
+        hint.setProperty("role", "muted")
+        mode_layout.addWidget(self.mode_status_label)
         mode_layout.addStretch()
+        mode_layout.addWidget(hint)
         mode_group.setLayout(mode_layout)
         layout.addWidget(mode_group)
 
-        # PREMIUM GRID MED HOVEDMODULER
-        import os
+    def _build_quick_start_group(self, layout: QVBoxLayout, content: QWidget) -> None:
+        quick_group = QGroupBox(tr("workflow_hub_quick_start"), content)
+        quick_group.setProperty("variant", "panel")
+        quick_layout = QHBoxLayout()
+        quick_group.setLayout(quick_layout)
 
+        quick_load = QPushButton(tr("workflow_hub_open_load_flow"), quick_group)
+        quick_load.setProperty("variant", "primary")
+        quick_load.clicked.connect(
+            lambda: self.workflow_selected.emit("load_development_workflow")
+        )
+        quick_layout.addWidget(quick_load)
+
+        quick_chrono = QPushButton(tr("workflow_hub_import_chrono"), quick_group)
+        quick_chrono.setProperty("variant", "secondary")
+        quick_chrono.clicked.connect(
+            lambda: self.workflow_selected.emit("chronograph_import")
+        )
+        quick_layout.addWidget(quick_chrono)
+
+        quick_layout.addStretch()
+        layout.addWidget(quick_group)
+        self._register_mode_widget(quick_group, "beginner")
+
+    def _build_premium_grid(self, layout: QVBoxLayout, content: QWidget) -> None:
         grid = QGridLayout()
         grid.setSpacing(24)
         premium_mods = [
             (
-                "dashboard",
-                "Dashboard",
-                "Oversikt, AI-tips, widgets og statistikk",
-                "#ffd700",
-                "dashboard_icon.png",
-            ),
-            (
-                "batch_qc",
-                "Batch QC",
-                "Batch-logging, analyse og rapportering",
-                "#27ae60",
+                "batch_workspace",
+                tr("workflow_hub_batch_workspace"),
+                tr("workflow_hub_batch_workspace_desc"),
+                ReloadingTheme.SUCCESS,
                 "batch_icon.png",
+                "expert",
             ),
             (
                 "target_analyzer",
-                "Bildeanalyse",
-                "Automatisk skivegjenkjenning og treffanalyse",
-                "#00bfff",
+                tr("workflow_hub_target_analyzer"),
+                tr("workflow_hub_target_analyzer_desc"),
+                ReloadingTheme.INFO,
                 "target_icon.png",
+                "expert",
             ),
             (
                 "rifle_optic_manager",
-                "Våpen & Optikk",
-                "Profil, ballistikk og utstyr",
-                "#bfa14a",
+                tr("workflow_hub_rifle_optics"),
+                tr("workflow_hub_rifle_optics_desc"),
+                ReloadingTheme.ACCENT_BRASS,
                 "rifle_icon.png",
+                "all",
+            ),
+            (
+                "harmonics_lab",
+                tr("workflow_hub_harmonics_lab"),
+                tr("workflow_hub_harmonics_lab_desc"),
+                ReloadingTheme.SUCCESS,
+                "target_icon.png",
+                "expert",
             ),
         ]
-        for i, (wf_id, title, desc, color, icon_file) in enumerate(premium_mods):
+        for i, (wf_id, title, desc, color, icon_file, mode) in enumerate(premium_mods):
             card = QWidget(content)
             card_layout = QVBoxLayout()
+            card_layout.setContentsMargins(16, 16, 16, 16)
+            card_layout.setSpacing(10)
             card.setLayout(card_layout)
-            card.setStyleSheet(
-                f"background-color: #23242b; border-radius: 18px; border: 2px solid {color}; padding: 24px;"
+            card.setProperty("variant", "statCard")
+
+            accent = QFrame(card)
+            accent.setFixedHeight(4)
+            accent.setStyleSheet(
+                f"background-color: {color}; border: none; border-radius: 2px;"
             )
-            # Ikon
-            # Prefer module-specific icon; fall back to central Logo at different sizes, then empty text
+            card_layout.addWidget(accent)
+
             icon_label = QLabel(card)
             pixmap = None
             try:
-                if wf_id == "dashboard":
-                    pixmap = load_logo_pixmap(64)
-                else:
-                    icon_path = os.path.join(
-                        os.path.dirname(__file__), "..", "assets", icon_file
-                    )
-                    tmp = QPixmap(icon_path)
-                    if tmp and not tmp.isNull():
-                        pixmap = tmp
+                icon_path = os.path.join(
+                    os.path.dirname(__file__), "..", "assets", icon_file
+                )
+                tmp = QPixmap(icon_path)
+                if tmp and not tmp.isNull():
+                    pixmap = tmp
             except Exception:
                 pixmap = None
 
             if not pixmap:
-                # try smaller project logo as a fallback
                 try:
                     pixmap = load_logo_pixmap(32)
                 except Exception:
@@ -470,151 +510,170 @@ class WorkflowHub(QWidget):
                 icon_label.setText("")
             icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             card_layout.addWidget(icon_label)
-            # Tittel
+
             title_label = QLabel(title, card)
-            title_label.setStyleSheet(
-                f"font-size: 22px; font-weight: bold; color: {color}; margin-top: 8px;"
-            )
+            title_label.setProperty("variant", "cardTitle")
             title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             card_layout.addWidget(title_label)
-            # Beskrivelse
+
             desc_label = QLabel(desc, card)
-            desc_label.setStyleSheet(
-                "font-size: 13px; color: #e0e0e0; margin-bottom: 8px;"
-            )
+            desc_label.setProperty("variant", "cardSubtitle")
             desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             card_layout.addWidget(desc_label)
-            # Start-knapp
-            btn = QPushButton("Start", card)
-            style = (
-                f"background-color: {color}; color: #23242b; font-weight: bold; "
-                f"border-radius: 8px; padding: 10px 24px; font-size: 15px;"
-            )
-            btn.setStyleSheet(style)
+
+            btn = QPushButton(tr("workflow_hub_start"), card)
+            btn.setProperty("variant", "primary")
+            btn.setProperty("size", "lg")
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.clicked.connect(
                 lambda _, wf_id=wf_id: self.workflow_selected.emit(wf_id)
             )
             card_layout.addWidget(btn)
             grid.addWidget(card, i // 2, i % 2)
+            self._register_mode_widget(card, mode)
         layout.addLayout(grid)
 
-        # Resten av workflow-knappene
+    def _build_workflow_lists(self, layout: QVBoxLayout, content: QWidget) -> None:
         main_layout = QVBoxLayout()
         main_layout.setSpacing(10)
 
-        self._add_category_compact(main_layout, "▶ LOAD DEVELOPMENT")
-        workflows = [
+        sections = [
             (
-                "load_development_workflow",
-                "🎯",
-                "Load Development Workflow",
-                "KOMPLETT: Load → Batch → Test → Analyze → Optimize → Finalize",
+                tr("workflow_hub_batch_workspace"),
+                [
+                    (
+                        "load_development_workflow",
+                        "",
+                        tr("workflow_hub_batch_workspace"),
+                        tr("workflow_hub_batch_workspace_full_desc"),
+                        "all",
+                    ),
+                ],
+            ),
+            (
+                tr("workflow_hub_testing_optimization"),
+                [
+                    (
+                        "ocw_test",
+                        "",
+                        tr("workflow_hub_ocw_test"),
+                        tr("workflow_hub_ocw_test_desc"),
+                        "expert",
+                    ),
+                    (
+                        "ladder_test",
+                        "",
+                        tr("workflow_hub_ladder_test"),
+                        tr("workflow_hub_ladder_test_desc"),
+                        "expert",
+                    ),
+                    (
+                        "seating_depth",
+                        "",
+                        tr("workflow_hub_seating_depth"),
+                        tr("workflow_hub_seating_depth_desc"),
+                        "expert",
+                    ),
+                ],
+            ),
+            (
+                tr("workflow_hub_components_database"),
+                [
+                    (
+                        "component_database",
+                        "",
+                        tr("workflow_hub_component_database"),
+                        tr("workflow_hub_component_database_desc"),
+                        "all",
+                    ),
+                    (
+                        "component_inventory",
+                        "",
+                        tr("workflow_hub_component_inventory"),
+                        tr("workflow_hub_component_inventory_desc"),
+                        "all",
+                    ),
+                    (
+                        "primer_tools",
+                        "",
+                        tr("workflow_hub_primer_tools"),
+                        tr("workflow_hub_primer_tools_desc"),
+                        "expert",
+                    ),
+                ],
+            ),
+            (
+                tr("workflow_hub_components"),
+                [
+                    (
+                        "brass_manager",
+                        "",
+                        tr("workflow_hub_brass_manager"),
+                        tr("workflow_hub_brass_manager_desc"),
+                        "expert",
+                    ),
+                    (
+                        "bullet_manager",
+                        "",
+                        tr("workflow_hub_bullet_manager"),
+                        tr("workflow_hub_bullet_manager_desc"),
+                        "expert",
+                    ),
+                    (
+                        "powder_manager",
+                        "",
+                        tr("workflow_hub_powder_manager"),
+                        tr("workflow_hub_powder_manager_desc"),
+                        "expert",
+                    ),
+                    (
+                        "primer_manager",
+                        "",
+                        tr("workflow_hub_primer_manager"),
+                        tr("workflow_hub_primer_manager_desc"),
+                        "expert",
+                    ),
+                ],
+            ),
+            (
+                tr("workflow_hub_rifles_equipment"),
+                [
+                    (
+                        "rifle_optic_manager",
+                        "",
+                        tr("workflow_hub_rifles_and_optics"),
+                        tr("workflow_hub_rifles_and_optics_desc"),
+                        "all",
+                    ),
+                    (
+                        "ammo_profile_manager",
+                        "",
+                        tr("workflow_hub_ammo_profiles"),
+                        tr("workflow_hub_ammo_profiles_desc"),
+                        "all",
+                    ),
+                    (
+                        "rifle_performance",
+                        "",
+                        tr("workflow_hub_rifle_performance"),
+                        tr("workflow_hub_rifle_performance_desc"),
+                        "expert",
+                    ),
+                ],
             ),
         ]
-        for wf_id, icon, title, desc in workflows:
-            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
-            main_layout.addWidget(btn)
 
-        self._add_category_compact(main_layout, "▶ TESTING & OPTIMIZATION")
-        testing = [
-            (
-                "ocw_test",
-                "▲",
-                "OCW Test",
-                "Optimal Charge Weight - find pressure nodes",
-            ),
-            ("ladder_test", "▲▲", "Ladder Test", "Velocity ladder analysis"),
-            (
-                "seating_depth",
-                "◆",
-                "Seating Depth Test",
-                "Berger method - find best CBTO/jump",
-            ),
-        ]
-        for wf_id, icon, title, desc in testing:
-            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
-            main_layout.addWidget(btn)
+        for title, workflows in sections:
+            self._add_category_compact(main_layout, title)
+            for wf_id, icon, w_title, desc, mode in workflows:
+                btn = self._create_list_button(
+                    wf_id, icon, w_title, desc, parent=content, mode=mode
+                )
+                main_layout.addWidget(btn)
 
-        self._add_category_compact(main_layout, "▶ COMPONENTS & DATABASE")
-        components = [
-            (
-                "component_database",
-                "■",
-                "Component Database",
-                "Bullets, powder, primers, brass inventory",
-            ),
-            (
-                "component_inventory",
-                "▣",
-                "Component Inventory",
-                "Stock levels, costs, lot tracking",
-            ),
-            (
-                "primer_tools",
-                "◆",
-                "Primer Tools",
-                "Selector, seating guide, pressure diagnostics",
-            ),
-        ]
-        for wf_id, icon, title, desc in components:
-            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
-            main_layout.addWidget(btn)
-
-        self._add_category_compact(main_layout, "🥉 Komponenter")
-        components = [
-            (
-                "brass_manager",
-                "🥉",
-                "Brass/Hylse Manager",
-                "Lifecycle tracking: Kjøp → Firing → Annealing → Retirement",
-            ),
-            (
-                "bullet_manager",
-                "🎯",
-                "Bullet Manager",
-                "Spor bullet lots, BC testing, sorting",
-            ),
-            (
-                "powder_manager",
-                "💨",
-                "Powder Manager",
-                "Lot tracking, temp sensitivity, burn rate",
-            ),
-            ("primer_manager", "💥", "Primer Manager", "Lot variasjon, pocket sizing"),
-        ]
-        for wf_id, icon, title, desc in components:
-            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
-            main_layout.addWidget(btn)
-
-        self._add_category_compact(main_layout, "🔫 Rifles & Utstyr")
-        equipment = [
-            (
-                "rifle_optic_manager",
-                "🎯",
-                "Rifles & Optikk",
-                "Administrer våpen og kikkertsikter",
-            ),
-            (
-                "ammo_profile_manager",
-                "📦",
-                "Ammunisjonsprofiler",
-                "Lagrede ladninger med ballistic data",
-            ),
-            (
-                "rifle_performance",
-                "📊",
-                "Rifle Performance",
-                "Cold bore, barrel tracking, analyse",
-            ),
-        ]
-        for wf_id, icon, title, desc in equipment:
-            btn = self._create_list_button(wf_id, icon, title, desc, parent=content)
-            main_layout.addWidget(btn)
-        # VIS KUN LOGOEN SENTRERT (flyttet til topp i layout)
-        # Ensure the main_layout is attached to the content layout so
-        # widgets created with the content as parent are properly parented.
         layout.addLayout(main_layout)
+
+    def _build_logo_footer(self, layout: QVBoxLayout, content: QWidget) -> None:
         logo_layout = QVBoxLayout()
         logo_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label = QLabel(content)
@@ -625,7 +684,7 @@ class WorkflowHub(QWidget):
         logo_layout.addWidget(logo_label)
         layout.addLayout(logo_layout)
 
-        # Finalize scroll/content parenting and attach scroll into this widget
+    def _finalize_layout(self, scroll: QScrollArea, content: QWidget) -> None:
         try:
             scroll.setWidget(content)
         except Exception:
@@ -636,12 +695,35 @@ class WorkflowHub(QWidget):
         outer.addWidget(scroll)
         self.setLayout(outer)
 
+    def init_ui(self):
+        self._write_startup_trace("enter_WorkflowHub.init_ui")
+        # Prevent accidental UI construction if this object is still
+        # marked as deferred. Some callers may instantiate the hub during
+        # startup; this guard ensures UI only builds when `ensure_ui()`
+        # explicitly allows it.
+        if getattr(self, "_ui_deferred", False):
+            return
+
+        scroll, content, layout = self._init_scroll_container()
+        self._build_hero_header(layout, content)
+        self._build_mode_status_group(layout, content)
+        self._build_quick_start_group(layout, content)
+        self._build_premium_grid(layout, content)
+        self._build_workflow_lists(layout, content)
+        self._build_logo_footer(layout, content)
+
+        try:
+            self._apply_mode_visibility()
+        except Exception:
+            pass
+
+        self._finalize_layout(scroll, content)
+        self._write_startup_trace("exit_WorkflowHub.init_ui")
+
     def _add_category_compact(self, layout, title: str):
         """Add a compact category header used to separate groups of workflows."""
         header = QLabel(title, self)
-        header.setStyleSheet(
-            "font-size:14px; font-weight:700; color: #ffd700; margin-top:12px; margin-bottom:6px;"
-        )
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
     def _create_list_button(
@@ -651,71 +733,46 @@ class WorkflowHub(QWidget):
         title: str,
         description: str,
         parent: QWidget | None = None,
+        mode: str = "all",
     ):
         """Create compact list-style button"""
+        is_legacy = workflow_id in self._legacy_workflow_ids()
+        display_title = tr("mw_with_legacy_suffix", label=title) if is_legacy else title
+        label_text = f"{icon} {display_title}".strip()
         if parent is None:
-            btn = QPushButton(f"{icon}  {title}", self)
+            btn = QPushButton(label_text, self)
         else:
-            btn = QPushButton(f"{icon}  {title}", parent)
+            btn = QPushButton(label_text, parent)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setToolTip(description)
-
-        btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: white;
-                border: 1px solid #dce4ec;
-                border-radius: 6px;
-                text-align: left;
-                padding: 12px 15px;
-                min-height: 45px;
-                font-size: 13px;
-                font-weight: bold;
-                color: #2c3e50;
-            }
-            QPushButton:hover {
-                background-color: #ecf0f1;
-                border: 2px solid #3498db;
-            }
-            QPushButton:pressed {
-                background-color: #d5dbdb;
-            }
-        """
+        tooltip = (
+            f"{description}\n\n{tr('mw_legacy_workflow')}" if is_legacy else description
         )
+        btn.setToolTip(tooltip)
+        btn.setProperty("variant", "list")
 
         btn.clicked.connect(
             lambda _, wf_id=workflow_id: self.workflow_selected.emit(wf_id)
         )
+
+        self._register_mode_widget(btn, mode)
 
         return btn
 
     def _add_category(self, layout: QVBoxLayout, title: str, description: str):
         """Add category header"""
         category_frame = QFrame(self)
-        category_frame.setStyleSheet(
-            """
-            QFrame {
-                background-color: #ecf0f1;
-                border-left: 4px solid #3498db;
-                border-radius: 5px;
-                padding: 10px;
-                margin-top: 15px;
-            }
-        """
-        )
+        category_frame.setProperty("variant", "statCard")
 
         category_layout = QVBoxLayout()
+        category_layout.setContentsMargins(12, 10, 12, 10)
+        category_layout.setSpacing(4)
 
         title_label = QLabel(title, category_frame)
-        title_label.setStyleSheet(
-            "font-size: 16px; font-weight: bold; color: #2c3e50; background: transparent; border: none;"
-        )
+        title_label.setProperty("variant", "cardTitle")
         category_layout.addWidget(title_label)
 
         desc_label = QLabel(description, category_frame)
-        desc_label.setStyleSheet(
-            "font-size: 12px; color: #7f8c8d; background: transparent; border: none;"
-        )
+        desc_label.setProperty("variant", "cardSubtitle")
         category_layout.addWidget(desc_label)
 
         category_frame.setLayout(category_layout)
@@ -725,29 +782,96 @@ class WorkflowHub(QWidget):
         """Mode toggle"""
         if not self.mode_manager:
             return
+        mode_cls = None
+        try:
+            from .mode_manager import UserMode as _UserMode
 
-        from src.modules.user_mode import UserMode
+            mode_cls = _UserMode
+        except Exception:
+            mode_cls = None
+
+        if mode_cls is None:
+            return
 
         if checked:  # Beginner selected
-            self.mode_manager.set_mode(UserMode.BEGINNER)
+            self.mode_manager.set_mode(mode_cls.BEGINNER)
         else:  # Expert selected
-            self.mode_manager.set_mode(UserMode.EXPERT)
+            self.mode_manager.set_mode(mode_cls.EXPERT)
 
         self.update_mode_description()
+        try:
+            self._apply_mode_visibility()
+        except Exception:
+            pass
+
+    def _update_mode_status_label(self) -> None:
+        if not getattr(self, "mode_status_label", None) or not self.mode_manager:
+            return
+        try:
+            if getattr(self.mode_manager, "is_research", lambda: False)():
+                self.mode_status_label.setText(tr("workflow_hub_mode_research"))
+                return
+        except Exception:
+            pass
+        if self.mode_manager.is_beginner():
+            self.mode_status_label.setText(tr("workflow_hub_mode_beginner"))
+        else:
+            self.mode_status_label.setText(tr("workflow_hub_mode_expert"))
 
     def update_mode_description(self):
         """Update mode description label"""
-        if not self.mode_manager:
-            return
+        try:
+            self._update_mode_status_label()
+        except Exception:
+            pass
 
-        if self.mode_manager.is_beginner():
-            self.mode_description.setText(
-                "Full tooltips, wizards, confirmation dialogs"
-            )
-        else:
-            self.mode_description.setText(
-                "Minimal UI, keyboard shortcuts, direct access"
-            )
+        try:
+            self._apply_mode_visibility()
+        except Exception:
+            pass
+
+    def _register_mode_widget(self, widget: QWidget, mode: str) -> None:
+        try:
+            self._mode_widgets.append((widget, mode))
+        except Exception:
+            pass
+
+    def _apply_mode_visibility(self) -> None:
+        current_mode = "beginner"
+        try:
+            if self.mode_manager:
+                if getattr(self.mode_manager, "is_research", lambda: False)():
+                    current_mode = "research"
+                elif self.mode_manager.is_beginner():
+                    current_mode = "beginner"
+                else:
+                    current_mode = "expert"
+        except Exception:
+            current_mode = "beginner"
+
+        for widget, required_mode in list(getattr(self, "_mode_widgets", []) or []):
+            try:
+                if required_mode == "beginner":
+                    widget.setVisible(current_mode == "beginner")
+                elif required_mode == "expert":
+                    widget.setVisible(current_mode in ("expert", "research"))
+                elif required_mode == "research":
+                    widget.setVisible(current_mode == "research")
+                else:
+                    widget.setVisible(True)
+            except Exception:
+                pass
+
+    def refresh_for_mode(self) -> None:
+        """Public hook for callers to re-apply mode visibility."""
+        try:
+            self._update_mode_status_label()
+        except Exception:
+            pass
+        try:
+            self._apply_mode_visibility()
+        except Exception:
+            pass
 
     def mark_workflow_active(self, workflow_id: str, title: str):
         """Mark workflow as active (simplified for compact view)"""
@@ -772,8 +896,8 @@ class WorkflowHub(QWidget):
             card = WorkflowCard(
                 workflow_id,
                 title,
-                "Click to continue...",
-                "🔄",
+                tr("workflow_hub_click_to_continue"),
+                "",
                 "#f39c12",
                 status="in_progress",
                 parent=self,

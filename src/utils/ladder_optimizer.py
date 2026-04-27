@@ -126,4 +126,5 @@ def suggest_charge_from_history(
         "suggested_charge": suggested,
         "model": model,
         "observed_range": (min_c, max_c),
+        "sample_count": len(rows),
     }

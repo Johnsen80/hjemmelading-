@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
+from ..database.database import get_database
 
 
 class SAAMISpecs:
@@ -129,23 +129,23 @@ class SAAMIComplianceChecker(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("✅ SAAMI/CIP Compliance Checker")
+        header = QLabel("SAAMI/CIP Compliance Checker")
         header.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
         layout.addWidget(header)
 
         desc = QLabel(
-            "Verify din ladning mot SAAMI/CIP/NATO standards.\n"
-            "Ammofabrikker MUST følge disse specs - du bør også for sikkerhet og compatibility!"
+            "Verify your load against SAAMI/CIP/NATO standards.\n"
+            "Ammunition factories MUST follow these specs. You should too for safety and compatibility."
         )
         desc.setWordWrap(True)
         desc.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
         layout.addWidget(desc)
 
         # Caliber selection
-        caliber_group = QGroupBox("🔍 Velg Kaliber")
+        caliber_group = QGroupBox("Select Caliber")
         caliber_layout = QHBoxLayout()
 
-        caliber_layout.addWidget(QLabel("Kaliber:"))
+        caliber_layout.addWidget(QLabel("Caliber:"))
         self.combo_caliber = QComboBox()
         self.combo_caliber.addItems(SAAMISpecs.get_all_calibers())
         self.combo_caliber.currentTextChanged.connect(self.on_caliber_changed)
@@ -156,7 +156,7 @@ class SAAMIComplianceChecker(QWidget):
         layout.addWidget(caliber_group)
 
         # Specification display
-        spec_group = QGroupBox("📋 SAAMI/CIP Spesifikasjoner")
+        spec_group = QGroupBox("SAAMI/CIP Specifications")
         spec_layout = QVBoxLayout()
 
         self.text_spec = QTextEdit()
@@ -168,7 +168,7 @@ class SAAMIComplianceChecker(QWidget):
         layout.addWidget(spec_group)
 
         # Load data input
-        load_group = QGroupBox("📊 Din Ladning")
+        load_group = QGroupBox("Your Load")
         load_layout = QVBoxLayout()
 
         # COAL
@@ -203,12 +203,12 @@ class SAAMIComplianceChecker(QWidget):
         self.spin_pressure.setSpecialValueText("Unknown")
         pressure_layout.addWidget(self.spin_pressure)
 
-        pressure_layout.addWidget(QLabel("(fra GRT/QuickLOAD)"))
+        pressure_layout.addWidget(QLabel("(from reference model)"))
         pressure_layout.addStretch()
         load_layout.addLayout(pressure_layout)
 
         # Check button
-        self.btn_check = QPushButton("🔍 Sjekk Compliance")
+        self.btn_check = QPushButton("Sjekk Compliance")
         self.btn_check.clicked.connect(self.check_compliance)
         self.btn_check.setStyleSheet(
             """
@@ -230,7 +230,7 @@ class SAAMIComplianceChecker(QWidget):
         layout.addWidget(load_group)
 
         # Results
-        results_group = QGroupBox("📈 Compliance Resultater")
+        results_group = QGroupBox("Compliance Resultater")
         results_layout = QVBoxLayout()
 
         self.text_results = QTextEdit()
@@ -289,7 +289,7 @@ class SAAMIComplianceChecker(QWidget):
         if "note" in self.current_spec:
             note_html = (
                 "<p style='color: #f39c12; margin-top: 10px;'>"
-                f"<b>⚠️ Note:</b> {self.current_spec['note']}"
+                f"<b>Note:</b> {self.current_spec['note']}"
                 "</p>"
             )
             html += "\n" + note_html
@@ -317,74 +317,78 @@ class SAAMIComplianceChecker(QWidget):
         if coal > self.current_spec["max_coal"]:
             delta = coal - self.current_spec["max_coal"]
             issues.append(
-                f"❌ <b>COAL for lang!</b> {coal:.3f}\" > {self.current_spec['max_coal']:.3f}\" (+{delta:.3f}\")"
+                f"<b>COAL too long.</b> {coal:.3f}\" > {self.current_spec['max_coal']:.3f}\" (+{delta:.3f}\")"
             )
             issues.append(
-                "   <i>Risiko: Funker ikke i alle magasiner/kamre. Single-feed only!</i>"
+                "   <i>Risk: Will not work in all magazines and chambers. Single-feed only.</i>"
             )
         elif coal < self.current_spec.get("min_coal", 0):
             issues.append(
-                f"❌ <b>COAL for kort!</b> {coal:.3f}\" < {self.current_spec['min_coal']:.3f}\""
+                f"<b>COAL too short.</b> {coal:.3f}\" < {self.current_spec['min_coal']:.3f}\""
             )
         else:
             ok.append(
-                f"✅ <b>COAL OK:</b> {coal:.3f}\" (innenfor {self.current_spec.get('min_coal', 'N/A')} - {self.current_spec['max_coal']}\")"
+                f"<b>COAL OK:</b> {coal:.3f}\" (innenfor {self.current_spec.get('min_coal', 'N/A')} - {self.current_spec['max_coal']}\")"
             )
 
         # Check case length
         if case_length > self.current_spec["case_length"]:
             delta = case_length - self.current_spec["case_length"]
             issues.append(
-                f"❌ <b>Case for lang!</b> {case_length:.3f}\" > {self.current_spec['case_length']:.3f}\" (+{delta:.3f}\")"
+                f"<b>Case too long.</b> {case_length:.3f}\" > {self.current_spec['case_length']:.3f}\" (+{delta:.3f}\")"
             )
             issues.append(
-                "   <i>Risiko: Kan gi høyt trykk (reduced case volume). TRIM NÅ!</i>"
+                "   <i>Risk: May cause high pressure (reduced case volume). TRIM NOW.</i>"
             )
         elif case_length < self.current_spec.get("case_length_trim", 0):
             warnings.append(
-                f"⚠️ <b>Case veldig kort:</b> {case_length:.3f}\" < {self.current_spec['case_length_trim']:.3f}\""
+                f"<b>Case very short.</b> {case_length:.3f}\" < {self.current_spec['case_length_trim']:.3f}\""
             )
-            warnings.append("   <i>OK å bruke, men uvanlig kort. Sjekk måling.</i>")
+            warnings.append(
+                "   <i>OK to use, but unusually short. Check the measurement.</i>"
+            )
         else:
-            ok.append(f'✅ <b>Case Length OK:</b> {case_length:.3f}"')
+            ok.append(f'<b>Case Length OK:</b> {case_length:.3f}"')
 
         # Check pressure
         if pressure > 0:
             if pressure > self.current_spec["max_pressure_psi"]:
                 delta = pressure - self.current_spec["max_pressure_psi"]
                 issues.append(
-                    f"❌ <b>Pressure for høyt!</b> {pressure:,} PSI > {self.current_spec['max_pressure_psi']:,} PSI (+{delta:,} PSI)"
+                    f"<b>Pressure too high.</b> {pressure:,} PSI > {self.current_spec['max_pressure_psi']:,} PSI (+{delta:,} PSI)"
                 )
-                issues.append("   <i>Risiko: FARLIG! Reduser ladning UMIDDELBART!</i>")
+                issues.append(
+                    "   <i>Risk: DANGEROUS. Reduce the charge IMMEDIATELY.</i>"
+                )
             elif pressure > self.current_spec["max_pressure_psi"] * 0.95:
                 warnings.append(
-                    f"⚠️ <b>Pressure høyt:</b> {pressure:,} PSI ({(pressure/self.current_spec['max_pressure_psi']*100):.1f}% av max)"
+                    f"<b>Pressure high.</b> {pressure:,} PSI ({(pressure/self.current_spec['max_pressure_psi']*100):.1f}% of max)"
                 )
-                warnings.append("   <i>Vær obs på trykktegn. Minimal margin.</i>")
+                warnings.append("   <i>Watch for pressure signs. Minimal margin.</i>")
             else:
                 ok.append(
-                    f"✅ <b>Pressure OK:</b> {pressure:,} PSI ({(pressure/self.current_spec['max_pressure_psi']*100):.1f}% av max)"
+                    f"<b>Pressure OK:</b> {pressure:,} PSI ({(pressure/self.current_spec['max_pressure_psi']*100):.1f}% of max)"
                 )
 
         # Generate report using short lines
-        parts = ["<h2 style='color: #2c3e50;'>📊 Compliance Report</h2>"]
+        parts = ["<h2 style='color: #2c3e50;'>Compliance Report</h2>"]
 
         if issues:
-            parts.append("<h3 style='color: #e74c3c;'>❌ CRITICAL ISSUES:</h3>")
+            parts.append("<h3 style='color: #e74c3c;'>CRITICAL ISSUES:</h3>")
             parts.append("<ul>")
             for issue in issues:
                 parts.append(f"<li>{issue}</li>")
             parts.append("</ul>")
 
         if warnings:
-            parts.append("<h3 style='color: #f39c12;'>⚠️ WARNINGS:</h3>")
+            parts.append("<h3 style='color: #f39c12;'>WARNINGS:</h3>")
             parts.append("<ul>")
             for warning in warnings:
                 parts.append(f"<li>{warning}</li>")
             parts.append("</ul>")
 
         if ok:
-            parts.append("<h3 style='color: #27ae60;'>✅ COMPLIANT:</h3>")
+            parts.append("<h3 style='color: #27ae60;'>COMPLIANT:</h3>")
             parts.append("<ul>")
             for item in ok:
                 parts.append(f"<li>{item}</li>")
@@ -393,40 +397,38 @@ class SAAMIComplianceChecker(QWidget):
         # Overall verdict
         standard_txt = self.current_spec["standard"]
         if issues:
-            parts.append("<h3 style='color: #e74c3c;'>🚫 OVERALL: FAIL</h3>")
-            parts.append(f"<p><b>Din ladning følger IKKE {standard_txt} specs!</b></p>")
-            parts.append(
-                "<p>Risiko: Sikkerhetsproblemer eller compatibility issues.</p>"
-            )
-            parts.append("<p><b>Anbefaling:</b> Korriger issues før bruk!</p>")
+            parts.append("<h3 style='color: #e74c3c;'>OVERALL: FAIL</h3>")
+            parts.append(f"<p><b>Your load does NOT meet {standard_txt} specs.</b></p>")
+            parts.append("<p>Risk: Safety problems or compatibility issues.</p>")
+            parts.append("<p><b>Recommendation:</b> Correct the issues before use.</p>")
         elif warnings:
-            parts.append("<h3 style='color: #f39c12;'>⚠️ OVERALL: MARGINAL</h3>")
-            parts.append("<p><b>Din ladning har noen warnings.</b></p>")
-            parts.append("<p>Teknisk compliant, men vær forsiktig.</p>")
+            parts.append("<h3 style='color: #f39c12;'>OVERALL: MARGINAL</h3>")
+            parts.append("<p><b>Your load has some warnings.</b></p>")
+            parts.append("<p>Technically compliant, but use caution.</p>")
         else:
-            parts.append("<h3 style='color: #27ae60;'>✅ OVERALL: PASS</h3>")
-            parts.append(f"<p><b>Din ladning følger {standard_txt} specs! 🎉</b></p>")
-            parts.append("<p>Safe å bruke i alle SAAMI-spec rifles/chambers.</p>")
-            parts.append("<p>Ammofabrikk-grade compliance!</p>")
+            parts.append("<h3 style='color: #27ae60;'>OVERALL: PASS</h3>")
+            parts.append(f"<p><b>Your load meets {standard_txt} specs.</b></p>")
+            parts.append("<p>Safe to use in all SAAMI-spec rifles and chambers.</p>")
+            parts.append("<p>Factory-grade compliance.</p>")
 
         # Cross-rifle compatibility
-        parts.append("<h3>🔄 Cross-Rifle Compatibility:</h3>")
+        parts.append("<h3>Cross-Rifle Compatibility:</h3>")
         parts.append("<ul>")
 
         if coal <= self.current_spec["max_coal"]:
-            parts.append("<li>✅ Fungerer i standard magasiner</li>")
+            parts.append("<li>Works in standard magazines</li>")
         else:
-            parts.append("<li>❌ Single-feed only (for lang for magasin)</li>")
+            parts.append("<li>Single-feed only (too long for the magazine)</li>")
 
         if case_length <= self.current_spec["case_length"]:
-            parts.append("<li>✅ Fungerer i alle SAAMI-kamre</li>")
+            parts.append("<li>Works in all SAAMI chambers</li>")
         else:
-            parts.append("<li>❌ Kan ikke chambres (case for lang)</li>")
+            parts.append("<li>Will not chamber (case too long)</li>")
 
         if not pressure or pressure <= self.current_spec["max_pressure_psi"]:
-            parts.append("<li>✅ Safe i alle rifles (pressure OK)</li>")
+            parts.append("<li>Safe in all rifles (pressure OK)</li>")
         else:
-            parts.append("<li>❌ FARLIG (over-pressure)</li>")
+            parts.append("<li>DANGEROUS (over-pressure)</li>")
 
         parts.append("</ul>")
 
@@ -437,19 +439,19 @@ class SAAMIComplianceChecker(QWidget):
             QMessageBox.critical(
                 self,
                 "Compliance FAIL",
-                "❌ Din ladning har CRITICAL ISSUES!\n\nSe detaljer for å fikse.",
+                "Your load has CRITICAL ISSUES.\n\nSee the details to fix them.",
             )
         elif warnings:
             QMessageBox.warning(
                 self,
                 "Compliance MARGINAL",
-                "⚠️ Din ladning har warnings.\n\nSe detaljer for mer info.",
+                "Your load has warnings.\n\nSee the details for more information.",
             )
         else:
             QMessageBox.information(
                 self,
                 "Compliance PASS",
-                "✅ Din ladning følger SAAMI/CIP specs!\n\nAmmofabrikk-grade compliance! 🎉",
+                "Your load meets SAAMI/CIP specs.\n\nFactory-grade compliance.",
             )
 
 

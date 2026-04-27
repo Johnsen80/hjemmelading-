@@ -1,7 +1,4 @@
-"""
-Brass/Case Manager - Comprehensive lifecycle tracking
-Spor hylser fra kjøp til retirement med målinger, annealing, og firing count
-"""
+"""Brass/Case Manager with comprehensive lifecycle tracking."""
 
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QColor
@@ -27,7 +24,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
+from ..database.database import get_database
+from ..utils.i18n import tr
 
 
 class BrassManager(QWidget):
@@ -44,49 +42,55 @@ class BrassManager(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("🥉 Brass/Hylse Manager", self)
-        header.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
+        header = QLabel(tr("brass_title"), self)
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
         info = QLabel(
-            "Spor lifecycle av hylser: Kjøp → Firing → Annealing → Trimming → Retirement\n"
-            "Hold oversikt over lot numbers, målinger, og prep history.",
+            tr("brass_subtitle"),
             self,
         )
         info.setWordWrap(True)
-        info.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
+        info.setProperty("variant", "cardSubtitle")
         layout.addWidget(info)
 
         # Toolbar
         toolbar = QHBoxLayout()
 
-        btn_add = QPushButton("➕ Nytt Hylse-Lot", self)
+        btn_add = QPushButton(tr("brass_new_lot"), self)
+        btn_add.setProperty("variant", "primary")
         btn_add.clicked.connect(self.add_case_lot)
         toolbar.addWidget(btn_add)
 
-        btn_fire = QPushButton("🔥 Logg Skyting (+1 Firing)", self)
+        btn_fire = QPushButton(tr("brass_log_firing"), self)
+        btn_fire.setProperty("variant", "secondary")
         btn_fire.clicked.connect(self.log_firing)
         toolbar.addWidget(btn_fire)
 
-        btn_anneal = QPushButton("♨️ Logg Annealing", self)
+        btn_anneal = QPushButton(tr("brass_log_annealing"), self)
+        btn_anneal.setProperty("variant", "secondary")
         btn_anneal.clicked.connect(self.log_annealing)
         toolbar.addWidget(btn_anneal)
 
-        btn_prep = QPushButton("🔧 Logg Prep (Trim/Uniform)", self)
+        btn_prep = QPushButton(tr("brass_log_prep"), self)
+        btn_prep.setProperty("variant", "secondary")
         btn_prep.clicked.connect(self.log_prep)
         toolbar.addWidget(btn_prep)
 
-        btn_measure = QPushButton("📏 Legg til Måling", self)
+        btn_measure = QPushButton(tr("brass_add_measurement"), self)
+        btn_measure.setProperty("variant", "ghost")
         btn_measure.clicked.connect(self.add_measurement)
         toolbar.addWidget(btn_measure)
 
-        btn_retire = QPushButton("🗑️ Retirer Hylser", self)
+        btn_retire = QPushButton(tr("brass_retire_cases"), self)
+        btn_retire.setProperty("variant", "ghost")
         btn_retire.clicked.connect(self.retire_cases)
         toolbar.addWidget(btn_retire)
 
         toolbar.addStretch()
 
-        btn_refresh = QPushButton("🔄 Oppdater", self)
+        btn_refresh = QPushButton(tr("bw_refresh"), self)
+        btn_refresh.setProperty("variant", "ghost")
         btn_refresh.clicked.connect(self.load_data)
         toolbar.addWidget(btn_refresh)
 
@@ -98,17 +102,17 @@ class BrassManager(QWidget):
         self.table.setHorizontalHeaderLabels(
             [
                 "ID",
-                "Lot/Navn",
-                "Produsent",
-                "Kaliber",
-                "Antall",
-                "Times Fired",
-                "Sist Annealed",
-                "Anneal Due?",
-                "Avg Weight",
-                "Capacity",
-                "Retired",
-                "Status",
+                tr("brass_col_lot_name"),
+                tr("brass_col_manufacturer"),
+                tr("brass_col_caliber"),
+                tr("brass_col_quantity"),
+                tr("brass_col_times_fired"),
+                tr("brass_col_last_annealed"),
+                tr("brass_col_anneal_due"),
+                tr("brass_col_avg_weight"),
+                tr("brass_col_capacity"),
+                tr("brass_col_retired"),
+                tr("brass_col_status"),
             ]
         )
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -117,8 +121,8 @@ class BrassManager(QWidget):
         layout.addWidget(self.table)
 
         # Status bar
-        self.status_label = QLabel("Klar", self)
-        self.status_label.setStyleSheet("color: #7f8c8d; padding: 5px;")
+        self.status_label = QLabel(tr("status_ready"), self)
+        self.status_label.setProperty("role", "muted")
         layout.addWidget(self.status_label)
 
         self.setLayout(layout)
@@ -185,10 +189,10 @@ class BrassManager(QWidget):
             self.table.setItem(i, 5, fired_item)
 
             # Last Annealed
-            self.table.setItem(i, 6, QTableWidgetItem(annealed or "Aldri"))
+            self.table.setItem(i, 6, QTableWidgetItem(annealed or "Never"))
 
             # Anneal Due?
-            anneal_item = QTableWidgetItem("⚠️ JA" if needs_anneal else "OK")
+            anneal_item = QTableWidgetItem("YES" if needs_anneal else "OK")
             if needs_anneal:
                 anneal_item.setBackground(QColor("#f39c12"))
                 anneal_item.setForeground(QColor("white"))
@@ -207,15 +211,15 @@ class BrassManager(QWidget):
 
             # Status
             if qty == 0:
-                status = "❌ Tom"
+                status = "Empty"
             elif fired >= 10:
-                status = "🔴 Consider Retirement"
+                status = "Consider Retiring"
             elif needs_anneal:
-                status = "⚠️ Needs Annealing"
+                status = "Needs Annealing"
             elif fired >= 5:
-                status = "🟡 Moderat bruk"
+                status = "Moderate Use"
             else:
-                status = "✅ God"
+                status = "Good"
             self.table.setItem(i, 11, QTableWidgetItem(status))
 
         self.table.resizeColumnsToContents()
@@ -225,9 +229,25 @@ class BrassManager(QWidget):
         total_cases = sum(case[4] for case in cases)  # Sum quantities
         need_anneal = sum(1 for case in cases if case[7])
         self.status_label.setText(
-            f"Total: {len(cases)} lots, {total_cases} hylser | "
-            f"⚠️ {need_anneal} lots trenger annealing"
+            tr(
+                "brass_status_summary",
+                lots=len(cases),
+                cases=total_cases,
+                anneal_due=need_anneal,
+            )
         )
+
+    def _ensure_case_exists(self, case_id):
+        rows = self.db.execute_query("SELECT id FROM cases WHERE id = ?", (case_id,))
+        if rows:
+            return True
+        QMessageBox.warning(
+            self,
+            tr("brass_missing_lot_title"),
+            tr("brass_missing_lot_message"),
+        )
+        self.load_data()
+        return False
 
     def add_case_lot(self):
         """Add new case lot"""
@@ -235,52 +255,58 @@ class BrassManager(QWidget):
         if dialog.exec():
             data = dialog.get_data()
 
-            self.db.execute_query(
-                """
-                INSERT INTO cases (
-                    name, manufacturer, caliber, quantity, lot_number,
-                    purchase_date, case_capacity_gr_h2o, avg_weight_gr,
-                    wall_thickness, material, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    data["name"],
-                    data["manufacturer"],
-                    data["caliber"],
-                    data["quantity"],
-                    data["lot_number"],
-                    data["purchase_date"],
-                    data["case_capacity"],
-                    data["avg_weight"],
-                    data["wall_thickness"],
-                    data["material"],
-                    data["notes"],
-                ),
+            case_id = self.db.insert(
+                "cases",
+                {
+                    "name": data["name"],
+                    "manufacturer": data["manufacturer"],
+                    "caliber": data["caliber"],
+                    "quantity": data["quantity"],
+                    "lot_number": data["lot_number"],
+                    "purchase_date": data["purchase_date"],
+                    "case_capacity_gr_h2o": data["case_capacity"],
+                    "avg_weight_gr": data["avg_weight"],
+                    "wall_thickness": data["wall_thickness"],
+                    "material": data["material"],
+                    "notes": data["notes"],
+                },
             )
-
-            self.db.commit()
+            self.db.refresh_case_learning_profile(case_id)
             self.load_data()
             QMessageBox.information(
-                self, "✅ Lagt til", f"Lot '{data['name']}' er lagt til!"
+                self, tr("msg_success"), tr("brass_lot_added", name=data["name"])
             )
 
     def log_firing(self):
         """Log firing session (increment times_fired)"""
         selected = self.table.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Ingen valgt", "Velg et hylse-lot først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("brass_select_lot_first")
+            )
             return
 
         case_id = selected[0].data(Qt.ItemDataRole.UserRole)
+        if not self._ensure_case_exists(case_id):
+            return
 
         dialog = FiringLogDialog(self, case_id)
         if dialog.exec():
             data = dialog.get_data()
 
             # Update times_fired
-            current = self.db.execute_query(
+            current_rows = self.db.execute_query(
                 "SELECT times_fired FROM cases WHERE id = ?", (case_id,)
-            )[0][0]
+            )
+            if not current_rows:
+                QMessageBox.warning(
+                    self,
+                    tr("brass_missing_lot_title"),
+                    tr("brass_missing_lot_message"),
+                )
+                self.load_data()
+                return
+            current = current_rows[0][0]
 
             new_fired = current + 1
 
@@ -321,21 +347,26 @@ class BrassManager(QWidget):
             )
 
             self.db.commit()
+            self.db.refresh_case_learning_profile(case_id)
             self.load_data()
 
             msg = f"Skyting logget! Times fired: {new_fired}"
             if needs_anneal:
-                msg += "\n\n⚠️ ANNEALING DUE! (hver 3. gang)"
-            QMessageBox.information(self, "✅ Logget", msg)
+                msg += "\n\nANNEALING DUE! (hver 3. gang)"
+            QMessageBox.information(self, tr("brass_logged_title"), msg)
 
     def log_annealing(self):
         """Log annealing session"""
         selected = self.table.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Ingen valgt", "Velg et hylse-lot først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("brass_select_lot_first")
+            )
             return
 
         case_id = selected[0].data(Qt.ItemDataRole.UserRole)
+        if not self._ensure_case_exists(case_id):
+            return
 
         dialog = AnnealingLogDialog(self, case_id)
         if dialog.exec():
@@ -372,17 +403,24 @@ class BrassManager(QWidget):
             )
 
             self.db.commit()
+            self.db.refresh_case_learning_profile(case_id)
             self.load_data()
-            QMessageBox.information(self, "✅ Logget", "Annealing er logget!")
+            QMessageBox.information(
+                self, tr("brass_logged_title"), tr("brass_annealing_logged")
+            )
 
     def log_prep(self):
         """Log case prep (trimming, uniforming, etc.)"""
         selected = self.table.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Ingen valgt", "Velg et hylse-lot først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("brass_select_lot_first")
+            )
             return
 
         case_id = selected[0].data(Qt.ItemDataRole.UserRole)
+        if not self._ensure_case_exists(case_id):
+            return
 
         dialog = PrepLogDialog(self, case_id)
         if dialog.exec():
@@ -433,17 +471,24 @@ class BrassManager(QWidget):
             )
 
             self.db.commit()
+            self.db.refresh_case_learning_profile(case_id)
             self.load_data()
-            QMessageBox.information(self, "✅ Logget", "Case prep er logget!")
+            QMessageBox.information(
+                self, tr("brass_logged_title"), tr("brass_prep_logged")
+            )
 
     def add_measurement(self):
         """Add case measurements"""
         selected = self.table.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Ingen valgt", "Velg et hylse-lot først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("brass_select_lot_first")
+            )
             return
 
         case_id = selected[0].data(Qt.ItemDataRole.UserRole)
+        if not self._ensure_case_exists(case_id):
+            return
 
         dialog = MeasurementDialog(self, case_id)
         if dialog.exec():
@@ -482,22 +527,38 @@ class BrassManager(QWidget):
                 )
 
             self.db.commit()
-            QMessageBox.information(self, "✅ Lagret", "Måling er lagret!")
+            self.db.refresh_case_learning_profile(case_id)
+            QMessageBox.information(
+                self, tr("msg_success"), tr("brass_measurement_saved")
+            )
 
     def retire_cases(self):
         """Retire cases (splits, cracks, etc.)"""
         selected = self.table.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Ingen valgt", "Velg et hylse-lot først!")
+            QMessageBox.warning(
+                self, tr("msg_no_selection"), tr("brass_select_lot_first")
+            )
             return
 
         case_id = selected[0].data(Qt.ItemDataRole.UserRole)
+        if not self._ensure_case_exists(case_id):
+            return
 
         # Get current quantities
-        case = self.db.execute_query(
+        case_rows = self.db.execute_query(
             "SELECT name, quantity, retired_quantity FROM cases WHERE id = ?",
             (case_id,),
-        )[0]
+        )
+        if not case_rows:
+            QMessageBox.warning(
+                self,
+                tr("brass_missing_lot_title"),
+                tr("brass_missing_lot_message"),
+            )
+            self.load_data()
+            return
+        case = case_rows[0]
 
         name, qty, retired = case
 
@@ -506,8 +567,8 @@ class BrassManager(QWidget):
 
         retire_qty, ok = QInputDialog.getInt(
             self,
-            "Retirer Hylser",
-            f"Lot: {name}\nTilgjengelig: {qty}\n\nAntall å retire:",
+            tr("brass_retire_cases"),
+            tr("brass_retire_prompt", name=name, quantity=qty),
             1,
             1,
             qty,
@@ -528,11 +589,12 @@ class BrassManager(QWidget):
             )
 
             self.db.commit()
+            self.db.refresh_case_learning_profile(case_id)
             self.load_data()
             QMessageBox.information(
                 self,
-                "✅ Retirert",
-                f"{retire_qty} hylser retirert.\nGjenstående: {new_qty}",
+                tr("brass_retired_title"),
+                tr("brass_retired_message", retired=retire_qty, remaining=new_qty),
             )
 
     def view_details(self, index):
@@ -548,7 +610,7 @@ class CaseLotDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("➕ Nytt Hylse-Lot")
+        self.setWindowTitle(tr("brass_new_lot"))
         self.setMinimumWidth(500)
         self.init_ui()
 
@@ -559,11 +621,11 @@ class CaseLotDialog(QDialog):
 
         # Basic info
         self.name = QLineEdit()
-        self.name.setPlaceholderText("F.eks: Lapua 6.5 CM Batch 2024-01")
-        form.addRow("Lot Navn:", self.name)
+        self.name.setPlaceholderText("E.g. Lapua 6.5 CM Batch 2024-01")
+        form.addRow("Lot Name:", self.name)
 
         self.lot_number = QLineEdit()
-        self.lot_number.setPlaceholderText("Lot nummer fra produsent")
+        self.lot_number.setPlaceholderText("Manufacturer lot number")
         form.addRow("Lot #:", self.lot_number)
 
         self.manufacturer = QComboBox()
@@ -581,7 +643,7 @@ class CaseLotDialog(QDialog):
                 "Starline",
             ]
         )
-        form.addRow("Produsent:", self.manufacturer)
+        form.addRow("Manufacturer:", self.manufacturer)
 
         self.caliber = QComboBox()
         self.caliber.setEditable(True)
@@ -595,7 +657,7 @@ class CaseLotDialog(QDialog):
                 "6mm Creedmoor",
             ]
         )
-        form.addRow("Kaliber:", self.caliber)
+        form.addRow("Caliber:", self.caliber)
 
         self.material = QComboBox()
         self.material.addItems(["Brass", "Nickel Brass", "Steel"])
@@ -604,26 +666,26 @@ class CaseLotDialog(QDialog):
         self.quantity = QSpinBox()
         self.quantity.setRange(1, 1000)
         self.quantity.setValue(100)
-        form.addRow("Antall:", self.quantity)
+        form.addRow("Quantity:", self.quantity)
 
         self.purchase_date = QDateEdit()
         self.purchase_date.setDate(QDate.currentDate())
         self.purchase_date.setCalendarPopup(True)
-        form.addRow("Kjøpsdato:", self.purchase_date)
+        form.addRow("Purchase Date:", self.purchase_date)
 
         # Technical specs
         self.case_capacity = QDoubleSpinBox()
         self.case_capacity.setRange(0, 100)
         self.case_capacity.setSuffix(" gr H2O")
         self.case_capacity.setDecimals(1)
-        self.case_capacity.setSpecialValueText("Ukjent")
+        self.case_capacity.setSpecialValueText("Unknown")
         form.addRow("Case Capacity:", self.case_capacity)
 
         self.avg_weight = QDoubleSpinBox()
         self.avg_weight.setRange(0, 300)
         self.avg_weight.setSuffix(" gr")
         self.avg_weight.setDecimals(1)
-        self.avg_weight.setSpecialValueText("Ukjent")
+        self.avg_weight.setSpecialValueText("Unknown")
         form.addRow("Avg Weight:", self.avg_weight)
 
         self.wall_thickness = QComboBox()
@@ -633,16 +695,18 @@ class CaseLotDialog(QDialog):
         # Notes
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(80)
-        self.notes.setPlaceholderText("Notater om dette hylse-lotet...")
-        form.addRow("Notater:", self.notes)
+        self.notes.setPlaceholderText("Notes about this brass lot...")
+        form.addRow("Notes:", self.notes)
 
         layout.addLayout(form)
 
         # Buttons
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 Lagre")
+        btn_save = QPushButton(tr("btn_save"))
+        btn_save.setProperty("variant", "primary")
         btn_save.clicked.connect(self.accept)
-        btn_cancel = QPushButton("❌ Avbryt")
+        btn_cancel = QPushButton(tr("btn_cancel"))
+        btn_cancel.setProperty("variant", "ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
@@ -681,7 +745,7 @@ class FiringLogDialog(QDialog):
         super().__init__(parent)
         self.case_id = case_id
         self.db = get_database()
-        self.setWindowTitle("🔥 Logg Skyting")
+        self.setWindowTitle(tr("brass_log_firing"))
         self.init_ui()
 
     def init_ui(self):
@@ -690,12 +754,12 @@ class FiringLogDialog(QDialog):
         self.date = QDateEdit()
         self.date.setDate(QDate.currentDate())
         self.date.setCalendarPopup(True)
-        layout.addRow("Dato:", self.date)
+        layout.addRow("Date:", self.date)
 
         self.rounds_fired = QSpinBox()
         self.rounds_fired.setRange(1, 100)
         self.rounds_fired.setValue(5)
-        layout.addRow("Antall skudd:", self.rounds_fired)
+        layout.addRow("Rounds Fired:", self.rounds_fired)
 
         # Rifle selection
         self.rifle_combo = QComboBox()
@@ -713,17 +777,17 @@ class FiringLogDialog(QDialog):
         self.ammo_combo.addItem("-", None)
         for ammo_id, name in ammos:
             self.ammo_combo.addItem(name, ammo_id)
-        layout.addRow("Ammunisjon:", self.ammo_combo)
+        layout.addRow("Ammunition:", self.ammo_combo)
 
         self.pressure_level = QComboBox()
         self.pressure_level.addItems(["-", "Low", "Medium", "High", "Max"])
-        layout.addRow("Trykkfnivå:", self.pressure_level)
+        layout.addRow("Pressure Level:", self.pressure_level)
 
         self.case_head_expansion = QDoubleSpinBox()
         self.case_head_expansion.setRange(0, 0.001)
         self.case_head_expansion.setSuffix(' "')
         self.case_head_expansion.setDecimals(5)
-        self.case_head_expansion.setSpecialValueText("Ikke målt")
+        self.case_head_expansion.setSpecialValueText("Not Measured")
         layout.addRow("Case Head Expansion:", self.case_head_expansion)
 
         self.primer_condition = QComboBox()
@@ -732,13 +796,15 @@ class FiringLogDialog(QDialog):
 
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(60)
-        layout.addRow("Notater:", self.notes)
+        layout.addRow("Notes:", self.notes)
 
         # Buttons
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 Logg")
+        btn_save = QPushButton(tr("brass_log_button"))
+        btn_save.setProperty("variant", "primary")
         btn_save.clicked.connect(self.accept)
-        btn_cancel = QPushButton("❌ Avbryt")
+        btn_cancel = QPushButton(tr("btn_cancel"))
+        btn_cancel.setProperty("variant", "ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
@@ -775,7 +841,7 @@ class AnnealingLogDialog(QDialog):
     def __init__(self, parent, case_id):
         super().__init__(parent)
         self.case_id = case_id
-        self.setWindowTitle("♨️ Logg Annealing")
+        self.setWindowTitle(tr("brass_log_annealing"))
         self.init_ui()
 
     def init_ui(self):
@@ -784,18 +850,18 @@ class AnnealingLogDialog(QDialog):
         self.date = QDateEdit()
         self.date.setDate(QDate.currentDate())
         self.date.setCalendarPopup(True)
-        layout.addRow("Dato:", self.date)
+        layout.addRow("Date:", self.date)
 
         self.method = QComboBox()
         self.method.addItems(["Flame (torch)", "Induction (Annie/EP)", "AMP Annealer"])
-        layout.addRow("Metode:", self.method)
+        layout.addRow("Method:", self.method)
 
         self.temperature = QSpinBox()
         self.temperature.setRange(0, 900)
         self.temperature.setSuffix(" °F")
         self.temperature.setValue(750)
-        self.temperature.setSpecialValueText("Ukjent")
-        layout.addRow("Temperatur:", self.temperature)
+        self.temperature.setSpecialValueText("Unknown")
+        layout.addRow("Temperature:", self.temperature)
 
         self.time_seconds = QDoubleSpinBox()
         self.time_seconds.setRange(0, 60)
@@ -805,18 +871,20 @@ class AnnealingLogDialog(QDialog):
         self.time_seconds.setSpecialValueText("Auto")
         layout.addRow("Tid:", self.time_seconds)
 
-        self.templaq_verified = QCheckBox("Templaq paint verifisert")
+        self.templaq_verified = QCheckBox("Templaq paint verified")
         layout.addRow("", self.templaq_verified)
 
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(60)
-        layout.addRow("Notater:", self.notes)
+        layout.addRow("Notes:", self.notes)
 
         # Buttons
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 Logg")
+        btn_save = QPushButton(tr("brass_log_button"))
+        btn_save.setProperty("variant", "primary")
         btn_save.clicked.connect(self.accept)
-        btn_cancel = QPushButton("❌ Avbryt")
+        btn_cancel = QPushButton(tr("btn_cancel"))
+        btn_cancel.setProperty("variant", "ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
@@ -847,7 +915,7 @@ class PrepLogDialog(QDialog):
     def __init__(self, parent, case_id):
         super().__init__(parent)
         self.case_id = case_id
-        self.setWindowTitle("🔧 Logg Case Prep")
+        self.setWindowTitle(tr("brass_log_case_prep"))
         self.init_ui()
 
     def init_ui(self):
@@ -858,11 +926,12 @@ class PrepLogDialog(QDialog):
         self.date = QDateEdit()
         self.date.setDate(QDate.currentDate())
         self.date.setCalendarPopup(True)
-        date_layout.addRow("Dato:", self.date)
+        date_layout.addRow("Date:", self.date)
         layout.addLayout(date_layout)
 
         # Checkboxes for prep steps
-        prep_group = QGroupBox("Prep Steps")
+        prep_group = QGroupBox(tr("brass_prep_steps"))
+        prep_group.setProperty("variant", "panel")
         prep_layout = QVBoxLayout()
 
         self.trimmed = QCheckBox("Trimmed")
@@ -913,14 +982,16 @@ class PrepLogDialog(QDialog):
         notes_layout = QFormLayout()
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(60)
-        notes_layout.addRow("Notater:", self.notes)
+        notes_layout.addRow("Notes:", self.notes)
         layout.addLayout(notes_layout)
 
         # Buttons
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 Logg")
+        btn_save = QPushButton(tr("brass_log_button"))
+        btn_save.setProperty("variant", "primary")
         btn_save.clicked.connect(self.accept)
-        btn_cancel = QPushButton("❌ Avbryt")
+        btn_cancel = QPushButton(tr("btn_cancel"))
+        btn_cancel.setProperty("variant", "ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
@@ -960,7 +1031,7 @@ class MeasurementDialog(QDialog):
     def __init__(self, parent, case_id):
         super().__init__(parent)
         self.case_id = case_id
-        self.setWindowTitle("📏 Hylse Målinger")
+        self.setWindowTitle(tr("brass_measurements_title"))
         self.init_ui()
 
     def init_ui(self):
@@ -969,71 +1040,73 @@ class MeasurementDialog(QDialog):
         self.date = QDateEdit()
         self.date.setDate(QDate.currentDate())
         self.date.setCalendarPopup(True)
-        layout.addRow("Dato:", self.date)
+        layout.addRow("Date:", self.date)
 
         self.measurement_type = QComboBox()
         self.measurement_type.addItems(["new", "fired", "sized", "after_trim"])
-        layout.addRow("Type måling:", self.measurement_type)
+        layout.addRow("Measurement Type:", self.measurement_type)
 
         # Measurements
         self.case_length = QDoubleSpinBox()
         self.case_length.setRange(0, 100)
         self.case_length.setSuffix(" mm")
         self.case_length.setDecimals(2)
-        self.case_length.setSpecialValueText("Ikke målt")
+        self.case_length.setSpecialValueText("Not Measured")
         layout.addRow("Case Length:", self.case_length)
 
         self.neck_diameter = QDoubleSpinBox()
         self.neck_diameter.setRange(0, 20)
         self.neck_diameter.setSuffix(" mm")
         self.neck_diameter.setDecimals(3)
-        self.neck_diameter.setSpecialValueText("Ikke målt")
+        self.neck_diameter.setSpecialValueText("Not Measured")
         layout.addRow("Neck Diameter:", self.neck_diameter)
 
         self.neck_thickness = QDoubleSpinBox()
         self.neck_thickness.setRange(0, 5)
         self.neck_thickness.setSuffix(" mm")
         self.neck_thickness.setDecimals(3)
-        self.neck_thickness.setSpecialValueText("Ikke målt")
+        self.neck_thickness.setSpecialValueText("Not Measured")
         layout.addRow("Neck Thickness:", self.neck_thickness)
 
         self.base_diameter = QDoubleSpinBox()
         self.base_diameter.setRange(0, 20)
         self.base_diameter.setSuffix(" mm")
         self.base_diameter.setDecimals(3)
-        self.base_diameter.setSpecialValueText("Ikke målt")
+        self.base_diameter.setSpecialValueText("Not Measured")
         layout.addRow("Base Diameter:", self.base_diameter)
 
         self.shoulder_diameter = QDoubleSpinBox()
         self.shoulder_diameter.setRange(0, 20)
         self.shoulder_diameter.setSuffix(" mm")
         self.shoulder_diameter.setDecimals(3)
-        self.shoulder_diameter.setSpecialValueText("Ikke målt")
+        self.shoulder_diameter.setSpecialValueText("Not Measured")
         layout.addRow("Shoulder Diameter:", self.shoulder_diameter)
 
         self.case_weight = QDoubleSpinBox()
         self.case_weight.setRange(0, 300)
         self.case_weight.setSuffix(" gr")
         self.case_weight.setDecimals(1)
-        self.case_weight.setSpecialValueText("Ikke målt")
+        self.case_weight.setSpecialValueText("Not Measured")
         layout.addRow("Case Weight:", self.case_weight)
 
         self.concentricity = QDoubleSpinBox()
         self.concentricity.setRange(0, 1)
         self.concentricity.setSuffix(" mm TIR")
         self.concentricity.setDecimals(3)
-        self.concentricity.setSpecialValueText("Ikke målt")
+        self.concentricity.setSpecialValueText("Not Measured")
         layout.addRow("Concentricity:", self.concentricity)
 
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(60)
-        layout.addRow("Notater:", self.notes)
+        layout.addRow("Notes:", self.notes)
 
         # Buttons
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 Lagre")
+        btn_save = QPushButton(tr("btn_save"))
+        btn_save.setProperty("variant", "primary")
         btn_save.clicked.connect(self.accept)
-        btn_cancel = QPushButton("❌ Avbryt")
+        btn_cancel = QPushButton(tr("btn_cancel"))
+        btn_cancel.setProperty("variant", "ghost")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addWidget(btn_save)
         btn_layout.addWidget(btn_cancel)
@@ -1081,7 +1154,7 @@ class CaseDetailsDialog(QDialog):
         super().__init__(parent)
         self.case_id = case_id
         self.db = get_database()
-        self.setWindowTitle("📋 Hylse Detaljer")
+        self.setWindowTitle(tr("brass_details_title"))
         self.setMinimumSize(800, 600)
         self.init_ui()
 
@@ -1094,30 +1167,34 @@ class CaseDetailsDialog(QDialog):
             (self.case_id,),
         )[0]
 
-        header = QLabel(f"<h2>{case[0]}</h2>")
-        header.setStyleSheet("color: #2c3e50;")
+        header = QLabel(str(case[0]))
+        header.setProperty("variant", "cardTitle")
         layout.addWidget(header)
 
         info = QLabel(
-            f"<b>Produsent:</b> {case[1]} | "
-            f"<b>Kaliber:</b> {case[2]} | "
-            f"<b>Antall:</b> {case[3]} | "
+            f"<b>Manufacturer:</b> {case[1]} | "
+            f"<b>Caliber:</b> {case[2]} | "
+            f"<b>Quantity:</b> {case[3]} | "
             f"<b>Times Fired:</b> {case[4]}"
         )
+        info.setProperty("variant", "cardSubtitle")
+        info.setWordWrap(True)
         layout.addWidget(info)
 
         # Tabs for different history types
         tabs = QTabWidget()
 
-        tabs.addTab(self.create_firing_history_tab(), "🔥 Firing History")
-        tabs.addTab(self.create_annealing_history_tab(), "♨️ Annealing History")
-        tabs.addTab(self.create_prep_history_tab(), "🔧 Prep History")
-        tabs.addTab(self.create_measurements_tab(), "📏 Målinger")
+        tabs.addTab(self.create_firing_history_tab(), tr("brass_firing_history"))
+        tabs.addTab(self.create_annealing_history_tab(), tr("brass_annealing_history"))
+        tabs.addTab(self.create_prep_history_tab(), tr("brass_prep_history"))
+        tabs.addTab(self.create_measurements_tab(), tr("brass_measurements_tab"))
+        tabs.addTab(self.create_learning_tab(), tr("brass_learning_tab"))
 
         layout.addWidget(tabs)
 
         # Close button
-        btn_close = QPushButton("✖️ Lukk")
+        btn_close = QPushButton(tr("btn_close"))
+        btn_close.setProperty("variant", "ghost")
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close)
 
@@ -1141,7 +1218,7 @@ class CaseDetailsDialog(QDialog):
         table = QTableWidget()
         table.setColumnCount(6)
         table.setHorizontalHeaderLabels(
-            ["Dato", "Skudd", "Trykk", "Case Head Exp", "Primer", "Notater"]
+            ["Date", "Shots", "Pressure", "Case Head Exp", "Primer", "Notes"]
         )
         table.setRowCount(len(firings))
 
@@ -1172,14 +1249,14 @@ class CaseDetailsDialog(QDialog):
         table = QTableWidget()
         table.setColumnCount(6)
         table.setHorizontalHeaderLabels(
-            ["Dato", "Metode", "Temp (°F)", "Tid (s)", "Templaq", "Notater"]
+            ["Date", "Method", "Temp (°F)", "Time (s)", "Templaq", "Notes"]
         )
         table.setRowCount(len(annealings))
 
         for i, annealing in enumerate(annealings):
             for j, value in enumerate(annealing):
                 if j == 4:  # Templaq boolean
-                    table.setItem(i, j, QTableWidgetItem("✅" if value else "❌"))
+                    table.setItem(i, j, QTableWidgetItem("Yes" if value else "No"))
                 else:
                     table.setItem(i, j, QTableWidgetItem(str(value) if value else "-"))
 
@@ -1207,13 +1284,13 @@ class CaseDetailsDialog(QDialog):
         table.setColumnCount(7)
         table.setHorizontalHeaderLabels(
             [
-                "Dato",
+                "Date",
                 "Trimmed",
                 "Length",
                 "Chamfered",
                 "Pocket",
                 "Neck Turned",
-                "Notater",
+                "Notes",
             ]
         )
         table.setRowCount(len(preps))
@@ -1221,7 +1298,7 @@ class CaseDetailsDialog(QDialog):
         for i, prep in enumerate(preps):
             for j, value in enumerate(prep):
                 if j in [1, 3, 4, 5]:  # Boolean fields
-                    table.setItem(i, j, QTableWidgetItem("✅" if value else "❌"))
+                    table.setItem(i, j, QTableWidgetItem("Yes" if value else "No"))
                 else:
                     table.setItem(i, j, QTableWidgetItem(str(value) if value else "-"))
 
@@ -1248,7 +1325,7 @@ class CaseDetailsDialog(QDialog):
         table = QTableWidget()
         table.setColumnCount(6)
         table.setHorizontalHeaderLabels(
-            ["Dato", "Type", "Length (mm)", "Neck (mm)", "Base (mm)", "Weight (gr)"]
+            ["Date", "Type", "Length (mm)", "Neck (mm)", "Base (mm)", "Weight (gr)"]
         )
         table.setRowCount(len(measurements))
 
@@ -1258,5 +1335,56 @@ class CaseDetailsDialog(QDialog):
 
         table.resizeColumnsToContents()
         layout.addWidget(table)
+        widget.setLayout(layout)
+        return widget
+
+    def create_learning_tab(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        learning = self.db.refresh_case_learning_profile(self.case_id)
+
+        summary = QLabel(
+            f"<b>Status:</b> {learning.get('status', 'insufficient_data')}<br>"
+            f"<b>Confidence:</b> {learning.get('confidence_label', 'no data yet')}<br>"
+            f"<b>Data Points:</b> {learning.get('data_points', 0)}<br>"
+            f"<b>H2O Samples:</b> {learning.get('h2o_samples', 0)}<br>"
+            f"<b>Firing Events:</b> {learning.get('firing_events', 0)}<br>"
+            f"<b>Prep:</b> {learning.get('prep_events', 0)}<br>"
+            f"<b>Annealing:</b> {learning.get('anneal_events', 0)}"
+        )
+        summary.setWordWrap(True)
+        layout.addWidget(summary)
+
+        details = []
+        if learning.get("avg_case_capacity_h2o") is not None:
+            details.append(
+                f"Average case capacity: {float(learning['avg_case_capacity_h2o']):.2f} gr H2O"
+            )
+        if learning.get("capacity_spread_h2o") is not None:
+            details.append(
+                f"H2O spread: {float(learning['capacity_spread_h2o']):.2f} gr"
+            )
+        if learning.get("avg_case_weight_gr") is not None:
+            details.append(
+                f"Average case weight: {float(learning['avg_case_weight_gr']):.1f} gr"
+            )
+        if learning.get("typical_times_fired") is not None:
+            details.append(
+                f"Typical reload cycles: {float(learning['typical_times_fired']):.1f}"
+            )
+        if learning.get("estimated_remaining_cycles") is not None:
+            details.append(
+                f"Estimated remaining cycles: {float(learning['estimated_remaining_cycles']):.1f}"
+            )
+        if learning.get("drift_flag"):
+            details.append(f"Drift Flag: {learning['drift_flag']}")
+
+        details_label = QLabel(
+            "<br>".join(details) if details else tr("brass_no_learning_data")
+        )
+        details_label.setWordWrap(True)
+        layout.addWidget(details_label)
+
         widget.setLayout(layout)
         return widget

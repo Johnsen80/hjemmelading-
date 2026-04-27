@@ -3,6 +3,7 @@ Ballistikk-modul for Reloading Workshop Manager
 Beregninger for ballistikk, zero shift, og ammunisjonsbytte
 """
 
+import math
 from dataclasses import dataclass
 from typing import Dict, List
 
@@ -31,6 +32,13 @@ class BallisticsCalculator:
         """Initialiserer kalkulator"""
         pass
 
+    @staticmethod
+    def _drag_scale(bc_type: str) -> float:
+        normalized = str(bc_type or "G1").strip().upper()
+        if normalized == "G7":
+            return 0.72
+        return 1.0
+
     def calculate_drop(
         self,
         velocity_fps: float,
@@ -38,6 +46,7 @@ class BallisticsCalculator:
         distance_m: float,
         zero_distance_m: float = 100,
         bc_type: str = "G1",
+        density_ratio: float = 1.0,
     ) -> float:
         """
         Beregner drop (fall) i cm ved gitt avstand
@@ -54,6 +63,8 @@ class BallisticsCalculator:
 
         # Juster for BC (forenklet drag-modell)
         drag_factor = 1.0 / (bc * 0.5) if bc > 0 else 1.0
+        drag_factor *= self._drag_scale(bc_type)
+        drag_factor *= max(float(density_ratio), 0.5)
         drop_m *= drag_factor
 
         # Beregn drop ved zero-avstand
@@ -72,6 +83,7 @@ class BallisticsCalculator:
         bc: float,
         distance_m: float,
         bc_type: str = "G1",
+        density_ratio: float = 1.0,
     ) -> float:
         """Beregner hastighet ved gitt avstand"""
         # Forenklet beregning - kan forbedres
@@ -79,13 +91,19 @@ class BallisticsCalculator:
 
         # Hastighetstap basert på drag
         drag_factor = 1.0 / (bc * 2.0) if bc > 0 else 0.1
+        drag_factor *= self._drag_scale(bc_type)
+        drag_factor *= max(float(density_ratio), 0.5)
         velocity_loss = drag_factor * distance_m
 
         final_velocity_ms = max(velocity_ms - velocity_loss, velocity_ms * 0.5)
         return final_velocity_ms / self.FEET_TO_METERS
 
     def calculate_zero_shift(
-        self, ammo1: BallisticData, ammo2: BallisticData, distance_m: float
+        self,
+        ammo1: BallisticData,
+        ammo2: BallisticData,
+        distance_m: float,
+        density_ratio: float = 1.0,
     ) -> Dict[str, float]:
         """
         Beregner forskjell i treffpunkt mellom to ammunisjoner
@@ -93,11 +111,21 @@ class BallisticsCalculator:
         """
         # Beregn drop for begge ammunisjoner
         drop1_cm = self.calculate_drop(
-            ammo1.velocity, ammo1.bc, distance_m, ammo1.zero_distance, ammo1.bc_type
+            ammo1.velocity,
+            ammo1.bc,
+            distance_m,
+            ammo1.zero_distance,
+            ammo1.bc_type,
+            density_ratio=density_ratio,
         )
 
         drop2_cm = self.calculate_drop(
-            ammo2.velocity, ammo2.bc, distance_m, ammo2.zero_distance, ammo2.bc_type
+            ammo2.velocity,
+            ammo2.bc,
+            distance_m,
+            ammo2.zero_distance,
+            ammo2.bc_type,
+            density_ratio=density_ratio,
         )
 
         # Forskjell i cm
@@ -145,6 +173,7 @@ class BallisticsCalculator:
         distances: List[float],
         click_value: float,
         click_unit: str = "MOA",
+        density_ratio: float = 1.0,
     ) -> List[Dict]:
         """
         Genererer tabell med justeringer for flere avstander
@@ -152,7 +181,9 @@ class BallisticsCalculator:
         table = []
 
         for distance in distances:
-            shift = self.calculate_zero_shift(ammo1, ammo2, distance)
+            shift = self.calculate_zero_shift(
+                ammo1, ammo2, distance, density_ratio=density_ratio
+            )
 
             if click_unit.upper() == "MOA":
                 adjustment = shift["difference_moa"]
@@ -184,6 +215,95 @@ class BallisticsCalculator:
     def calculate_momentum(self, velocity_fps: float, weight_grains: float) -> float:
         """Beregner momentum"""
         return (velocity_fps * weight_grains) / 225400
+
+
+def estimate_retained_velocity_fps(
+    muzzle_velocity_fps: float,
+    distance_m: float,
+    bc: float,
+    bc_type: str = "G1",
+    density_ratio: float = 1.0,
+) -> float:
+    """Felles helper for estimert resthastighet ved gitt avstand."""
+    if muzzle_velocity_fps <= 0:
+        return 0.0
+    calculator = BallisticsCalculator()
+    return round(
+        calculator.calculate_velocity_at_distance(
+            float(muzzle_velocity_fps),
+            float(bc),
+            float(distance_m),
+            str(bc_type or "G1"),
+            density_ratio=float(density_ratio or 1.0),
+        ),
+        1,
+    )
+
+
+def estimate_wind_drift_cm(
+    muzzle_velocity_fps: float,
+    bc: float,
+    distance_m: float,
+    wind_speed_mps: float,
+    wind_angle_deg: float = 90.0,
+    bc_type: str = "G1",
+    density_ratio: float = 1.0,
+) -> float:
+    """Felles helper for estimert vinddrift i cm."""
+    if muzzle_velocity_fps <= 0 or bc <= 0 or distance_m <= 0 or wind_speed_mps <= 0:
+        return 0.0
+
+    calculator = BallisticsCalculator()
+    retained_velocity_fps = calculator.calculate_velocity_at_distance(
+        float(muzzle_velocity_fps),
+        float(bc),
+        float(distance_m),
+        str(bc_type or "G1"),
+        density_ratio=float(density_ratio or 1.0),
+    )
+    avg_velocity_fps = max(
+        1.0,
+        (float(muzzle_velocity_fps) + float(retained_velocity_fps)) / 2.0,
+    )
+
+    angle_rad = math.radians(float(wind_angle_deg))
+    wind_factor = abs(math.sin(angle_rad))
+    wind_mph = float(wind_speed_mps) * 2.237
+    range_yards = float(distance_m) * 1.094
+    drift_inches = (wind_mph * range_yards * 15.0) / (avg_velocity_fps * float(bc))
+    drift_inches *= wind_factor
+    drift_inches *= max(float(density_ratio or 1.0), 0.5)
+    return round(drift_inches * 2.54, 1)
+
+
+def estimate_time_of_flight_seconds(
+    muzzle_velocity_fps: float,
+    bc: float,
+    distance_m: float,
+    bc_type: str = "G1",
+    density_ratio: float = 1.0,
+) -> float:
+    """Felles helper for estimert time of flight."""
+    if muzzle_velocity_fps <= 0 or bc <= 0 or distance_m <= 0:
+        return 0.0
+
+    calculator = BallisticsCalculator()
+    retained_velocity_fps = calculator.calculate_velocity_at_distance(
+        float(muzzle_velocity_fps),
+        float(bc),
+        float(distance_m),
+        str(bc_type or "G1"),
+        density_ratio=float(density_ratio or 1.0),
+    )
+    avg_velocity_fps = max(
+        1.0,
+        (float(muzzle_velocity_fps) + float(retained_velocity_fps)) / 2.0,
+    )
+    avg_velocity_mps = avg_velocity_fps * BallisticsCalculator.FEET_TO_METERS
+    tof_s = float(distance_m) / avg_velocity_mps
+    tof_s *= calculator._drag_scale(str(bc_type or "G1"))
+    tof_s *= max(float(density_ratio or 1.0), 0.5)
+    return tof_s
 
 
 class SeatingDepthCalculator:

@@ -14,9 +14,7 @@ if TYPE_CHECKING:
     # below and that assignment would otherwise confuse mypy ("Cannot assign
     # to a type").
     try:  # pragma: no cover - typing-only
-        from matplotlib.backends.backend_qtagg import (
-            FigureCanvasQTAgg as _TypingBaseCanvas,
-        )  # type: ignore
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as _TypingBaseCanvas  # type: ignore
     except Exception:  # pragma: no cover - typing-only
         from typing import Any as _Any
 
@@ -39,7 +37,7 @@ except Exception:
     plt: Any = None  # type: ignore[no-redef]
     _HAS_MPL = False
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 # Provide a safe BaseCanvas when matplotlib/qtagg backend is missing
 if _HAS_MPL:
@@ -205,7 +203,7 @@ class LiveVelocityGraph(BaseCanvas):
                 edgecolors="#27ae60",
                 linewidths=3,
                 zorder=4,
-                label="⭐ Pressure Nodes",
+                label="Pressure Nodes",
             )
 
     def clear_data(self):
@@ -384,8 +382,8 @@ class LiveStatisticsDisplay(QWidget):
         layout = QVBoxLayout()
 
         # Title
-        title = QLabel("📊 Live Statistics")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50;")
+        title = QLabel("Live Statistics")
+        title.setProperty("role", "subtitle")
         layout.addWidget(title)
 
         # Stats grid
@@ -413,36 +411,37 @@ class LiveStatisticsDisplay(QWidget):
 
     def _create_stat_label(self, name: str, value: str, color: str) -> QWidget:
         """Create stat display widget"""
-        widget = QWidget()
-        widget.setStyleSheet(
-            f"""
-            QWidget {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {color}, stop:1 {self._darken(color)});
-                border-radius: 10px;
-                padding: 15px;
-            }}
-        """
-        )
+        widget = QFrame()
+        widget.setProperty("variant", "statCard")
 
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(10)
+        widget.setLayout(layout)
+
+        accent_bar = QFrame(widget)
+        accent_bar.setFixedWidth(4)
+        accent_bar.setStyleSheet(
+            f"background-color: {color}; border: none; border-radius: 2px;"
+        )
+        layout.addWidget(accent_bar)
+
+        content = QVBoxLayout()
+        content.setContentsMargins(0, 0, 0, 0)
+        content.setSpacing(4)
+        layout.addLayout(content, 1)
 
         name_label = QLabel(name)
-        name_label.setStyleSheet(
-            "color: white; font-size: 12px; background: transparent;"
-        )
-        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(name_label)
+        name_label.setProperty("variant", "statTitle")
+        name_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        content.addWidget(name_label)
 
         value_label = QLabel(value)
-        value_label.setStyleSheet(
-            "color: white; font-size: 24px; font-weight: bold; background: transparent;"
-        )
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        value_label.setProperty("variant", "statValue")
+        value_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         value_label.setObjectName(f"{name}_value")
-        layout.addWidget(value_label)
+        content.addWidget(value_label)
 
-        widget.setLayout(layout)
         return widget
 
     def _darken(self, color: str) -> str:
@@ -605,9 +604,7 @@ class LiveHistogram(BaseCanvas):
 
         self.ax.set_xlabel(f"Value ({self.unit})", fontsize=12, fontweight="bold")
         self.ax.set_ylabel("Frequency", fontsize=12, fontweight="bold")
-        self.ax.set_title(
-            "📊 Live Distribution", fontsize=14, fontweight="bold", pad=20
-        )
+        self.ax.set_title("Live Distribution", fontsize=14, fontweight="bold", pad=20)
         self.ax.legend(loc="upper left")
         self.ax.grid(True, alpha=0.3, axis="y")
 
@@ -621,7 +618,7 @@ class LiveHistogram(BaseCanvas):
 
 
 # Use the optional deps shim so import-time won't fail in CI/headless
-from src.utils.optional_deps import plt
+from ..utils.optional_deps import plt
 
 if __name__ == "__main__":
     import sys

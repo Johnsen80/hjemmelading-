@@ -6,7 +6,13 @@ dependency-free (plain text or CSV output) so the host can print or generate
 PDFs externally.
 """
 
+import json
 from typing import Any, Optional
+
+from .internal_ballistics import (
+    build_internal_ballistics_summary,
+    format_internal_ballistics_text,
+)
 
 
 def _safe_row(row, key, default=""):
@@ -16,8 +22,121 @@ def _safe_row(row, key, default=""):
         return default
 
 
+def _fetch_name(cur: Any, table_names: list[str], row_id: Any) -> str:
+    for table_name in table_names:
+        try:
+            cur.execute(f"SELECT name FROM {table_name} WHERE id = ?", (row_id,))
+            row = cur.fetchone()
+        except Exception:
+            row = None
+        if row:
+            try:
+                return str(row["name"])
+            except Exception:
+                try:
+                    return str(row[0])
+                except Exception:
+                    continue
+    return str(row_id)
+
+
+def _fetch_case_capacity_gr_h2o(cur: Any, case_id: Any) -> float | None:
+    try:
+        cur.execute(
+            "SELECT case_capacity_gr_h2o FROM cases WHERE id = ?",
+            (case_id,),
+        )
+        row = cur.fetchone()
+    except Exception:
+        row = None
+    value = _safe_row(row, "case_capacity_gr_h2o", None)
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _fetch_powder_density(cur: Any, powder_id: Any) -> float | None:
+    for query in (
+        "SELECT density FROM powder WHERE id = ?",
+        "SELECT density FROM powder_data WHERE id = ?",
+    ):
+        try:
+            cur.execute(query, (powder_id,))
+            row = cur.fetchone()
+        except Exception:
+            row = None
+        value = _safe_row(row, "density", None)
+        try:
+            if value is not None:
+                return float(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _format_component_context_lines(raw_value: Any) -> list[str]:
+    if not raw_value:
+        return []
+    if isinstance(raw_value, str):
+        try:
+            payload = json.loads(raw_value)
+        except Exception:
+            return []
+    elif isinstance(raw_value, dict):
+        payload = dict(raw_value)
+    else:
+        return []
+
+    if not isinstance(payload, dict):
+        return []
+
+    lines: list[str] = []
+    bullet = payload.get("bullet") or {}
+    if isinstance(bullet, dict) and bullet:
+        name = str(bullet.get("name") or "Bullet").strip()
+        lot = str(bullet.get("lot_number") or "").strip()
+        if bullet.get("uses_measured_lot_stats"):
+            detail = f"Bullet context: {name}"
+            if lot:
+                detail += f" | Lot {lot}"
+            detail += " | measured lot averages active"
+            lines.append(detail)
+
+    powder = payload.get("powder") or {}
+    if isinstance(powder, dict) and powder:
+        name = str(powder.get("name") or "Powder").strip()
+        lot = str(powder.get("lot_number") or "").strip()
+        title = str(powder.get("lot_learning_title") or "").strip()
+        if lot or title:
+            detail = f"Powder context: {name}"
+            if lot:
+                detail += f" | Lot {lot}"
+            if title:
+                detail += f" | {title}"
+            lines.append(detail)
+
+    primer = payload.get("primer") or {}
+    if isinstance(primer, dict) and primer:
+        name = str(primer.get("name") or "Primer").strip()
+        lot = str(primer.get("lot_number") or "").strip()
+        title = str(primer.get("lot_learning_title") or "").strip()
+        if lot or title:
+            detail = f"Primer context: {name}"
+            if lot:
+                detail += f" | Lot {lot}"
+            if title:
+                detail += f" | {title}"
+            lines.append(detail)
+
+    return lines
+
+
 def generate_label_text(
-    db: Any, ammo_profile_id: Optional[int] = None, batch_id: Optional[int] = None
+    db: Any,
+    ammo_profile_id: Optional[int] = None,
+    batch_id: Optional[int] = None,
+    internal_ballistics_summary: Optional[dict[str, object]] = None,
 ) -> str:
     """Return a text label for the given ammo_profile_id or qc batch id.
 
@@ -34,47 +153,66 @@ def generate_label_text(
         ap = cur.fetchone()
         if ap:
             lines.append(f"Profile ID: {ap['id']}")
-            lines.append(f"Name: {ap.get('name','')}")
-            lines.append(f"Rifle ID: {ap.get('rifle_id','')}")
-            lines.append(f"Caliber: {ap.get('caliber','')}")
-            lines.append(f"Charge (gr): {ap.get('powder_charge','')}")
-            lines.append(f"COAL (mm): {ap.get('coal','')}")
-            lines.append(f"CBTO (mm): {ap.get('cbto','')}")
+            lines.append(f"Name: {_safe_row(ap, 'name', '')}")
+            lines.append(f"Rifle ID: {_safe_row(ap, 'rifle_id', '')}")
+            lines.append(f"Caliber: {_safe_row(ap, 'caliber', '')}")
+            lines.append(f"Charge (gr): {_safe_row(ap, 'powder_charge', '')}")
+            lines.append(f"COAL (mm): {_safe_row(ap, 'coal', '')}")
+            lines.append(f"CBTO (mm): {_safe_row(ap, 'cbto', '')}")
 
             # Components: try to list names and any lot fields if present
             try:
-                if ap.get("bullet_id"):
-                    cur.execute(
-                        "SELECT name FROM bullet_data WHERE id = ?", (ap["bullet_id"],)
+                if _safe_row(ap, "bullet_id", None):
+                    lines.append(
+                        f"Bullet: {_fetch_name(cur, ['bullets', 'bullet_data'], ap['bullet_id'])}"
                     )
-                    b = cur.fetchone()
-                    lines.append(f"Bullet: {b[0] if b else ap.get('bullet_id')}")
-                if ap.get("powder_id"):
-                    cur.execute(
-                        "SELECT name FROM powder_data WHERE id = ?", (ap["powder_id"],)
+                if _safe_row(ap, "powder_id", None):
+                    lines.append(
+                        f"Powder: {_fetch_name(cur, ['powder', 'powder_data'], ap['powder_id'])}"
                     )
-                    p = cur.fetchone()
-                    lines.append(f"Powder: {p[0] if p else ap.get('powder_id')}")
-                if ap.get("case_id"):
-                    cur.execute("SELECT name FROM cases WHERE id = ?", (ap["case_id"],))
-                    c = cur.fetchone()
-                    lines.append(f"Case: {c[0] if c else ap.get('case_id')}")
-                if ap.get("primer_id"):
-                    cur.execute(
-                        "SELECT name FROM primers WHERE id = ?", (ap["primer_id"],)
+                if _safe_row(ap, "case_id", None):
+                    lines.append(f"Case: {_fetch_name(cur, ['cases'], ap['case_id'])}")
+                if _safe_row(ap, "primer_id", None):
+                    lines.append(
+                        f"Primer: {_fetch_name(cur, ['primers'], ap['primer_id'])}"
                     )
-                    pr = cur.fetchone()
-                    lines.append(f"Primer: {pr[0] if pr else ap.get('primer_id')}")
             except Exception:
                 pass
 
             # Lot/patch information: best-effort lookup in ammo_profile fields
-            lot = ap.get("component_lot") if "component_lot" in ap.keys() else None
-            patch = ap.get("patch") if "patch" in ap.keys() else None
+            lot = _safe_row(ap, "component_lot", None)
+            patch = _safe_row(ap, "patch", None)
             if lot:
                 lines.append(f"Lot: {lot}")
             if patch:
                 lines.append(f"Patch: {patch}")
+
+            summary = internal_ballistics_summary
+            if not summary:
+                summary = build_internal_ballistics_summary(
+                    charge_weight_gr=_safe_row(ap, "powder_charge", None),
+                    powder_name=_fetch_name(
+                        cur, ["powder", "powder_data"], _safe_row(ap, "powder_id", None)
+                    ),
+                    case_capacity_gr_h2o=_fetch_case_capacity_gr_h2o(
+                        cur, _safe_row(ap, "case_id", None)
+                    ),
+                    powder_density_g_ml=_fetch_powder_density(
+                        cur, _safe_row(ap, "powder_id", None)
+                    ),
+                )
+            internal_lines = format_internal_ballistics_text(summary or {})
+            if internal_lines:
+                lines.append("")
+                lines.extend(internal_lines)
+
+            context_lines = _format_component_context_lines(
+                _safe_row(ap, "component_context_json", None)
+            )
+            if context_lines:
+                lines.append("")
+                lines.append("Component context:")
+                lines.extend(context_lines)
 
             lines.append("")
             lines.append("Label generated by Reloading Workshop")
@@ -86,9 +224,9 @@ def generate_label_text(
         b = cur.fetchone()
         if b:
             lines.append(f"Batch ID: {b['id']}")
-            lines.append(f"Name: {b.get('name','')}")
-            lines.append(f"Batch size: {b.get('batch_size','')}")
-            lines.append(f"Target charge: {b.get('target_charge','')}")
+            lines.append(f"Name: {_safe_row(b, 'name', '')}")
+            lines.append(f"Batch size: {_safe_row(b, 'batch_size', '')}")
+            lines.append(f"Target charge: {_safe_row(b, 'target_charge', '')}")
             lines.append("")
             lines.append("Measurements:")
             try:

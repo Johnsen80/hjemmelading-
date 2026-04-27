@@ -1,0 +1,147 @@
+{
+  "install_root": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY",
+  "db_copy": "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading\\reference_data\\ReferenceLibrary.db",
+  "exe_path": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary.exe",
+  "db_exists": true,
+  "db_size_bytes": 101105664,
+  "extension_counts_top": {
+    ".txt": 428,
+    ".png": 345,
+    ".dll": 36,
+    ".mo": 16,
+    ".load": 8,
+    ".pdf": 7,
+    ".jpg": 6,
+    ".cfg": 4,
+    ".exe": 4,
+    ".cfg~": 3,
+    ".grtrace": 3,
+    ".xml": 2,
+    ".svg": 2,
+    ".db": 1
+  },
+  "docs": {
+    "projectile_doc": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY\\doku\\en\\doku\\dbprojectile.txt",
+    "propellant_doc": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY\\doku\\en\\doku\\dbpropellant.txt",
+    "caliber_doc": "C:\\Users\\bjjoh\\Desktop\\ReferenceLibrary-2021.2030-NIGHTLY\\ReferenceLibrary-2021.2030-NIGHTLY\\doku\\en\\doku\\dbcaliber.txt"
+  },
+  "evidence": {
+    "real_sql_database_present": true,
+    "database_encryption_api_present": true,
+    "attach_database_with_key_present": true,
+    "cip_url_present": true,
+    "saami_url_present": false,
+    "user_xml_dump_functions_present": true
+  },
+  "schema": {
+    "caliber": "CREATE TABLE caliber (\r  id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,\r  cipname         TEXT NOT NULL,\r  altname         TEXT NOT NULL,\r  standard        TEXT NOT NULL,\r  ciporigin       TEXT NOT NULL,\r  ciptype         TEXT NOT NULL,\r  cipdate         DATE NOT NULL,\r  ciprevdate      DATE NOT NULL,\r  cippdf          TEXT NOT NULL,\r  L0              FLOAT NOT NULL,\r  L1              FLOAT NOT NULL,\r  L2              FLOAT NOT NULL,\r  L3              FLOAT NOT NULL,\r  L4              FLOAT NOT NULL,\r  L5              FLOAT NOT NULL,\r  L6              FLOAT NOT NULL,\r  R              FLOAT NOT NULL,\r  R1              FLOAT NOT NULL,\r  R3              FLOAT NOT NULL,\r  E               FLOAT NOT NULL,\r  E1              FLOAT NOT NULL,\r  Emin            FLOAT NOT NULL,\r  delta           TEXT NOT NULL,\r  FG              FLOAT NOT NULL,\r  beta            TEXT NOT NULL,\r  P0              FLOAT NOT NULL,\r  P1              FLOAT NOT NULL,\r  P2              FLOAT NOT NULL,\r  alpha           TEXT NOT NULL,\r  S               FLOAT NOT NULL,\r  r1min           FLOAT NOT NULL,\r  r2              FLOAT NOT NULL,\r  H1              FLOAT NOT NULL,\r  H2              FLOAT NOT NULL,\r  G1              FLOAT NOT NULL,\r  G2              FLOAT NOT NULL,\r  f               FLOAT NOT NULL,\r  L3G             FLOAT NOT NULL,\r  Pmax            FLOAT NOT NULL,\r  PK              FLOAT NOT NULL,\r  PE              FLOAT NOT NULL,\r  EE              FLOAT NOT NULL,\r  V               FLOAT NOT NULL,\r  M               TEXT NOT NULL,\r\r  c_L0              FLOAT NOT NULL,\r  c_L1              FLOAT NOT NULL,\r  c_L2              FLOAT NOT NULL,\r  c_L3              FLOAT NOT NULL,\r  c_R              FLOAT NOT NULL,\r  c_R1              FLOAT NOT NULL,\r  c_R2              FLOAT NOT NULL,\r  c_R3              FLOAT NOT NULL,\r  c_r_             FLOAT NOT NULL,\r  c_E                FLOAT NOT NULL,\r  c_P0              FLOAT NOT NULL,\r  c_P1              FLOAT NOT NULL,\r  c_P2              FLOAT NOT NULL,\r  c_alpha         FLOAT NOT NULL,\r  c_S              FLOAT NOT NULL,\r  c_r1max      FLOAT NOT NULL,\r  c_r2_           FLOAT NOT NULL,\r  c_H1              FLOAT NOT NULL,\r  c_H2              FLOAT NOT NULL,\r  c_G              FLOAT NOT NULL,\r  c_G1              FLOAT NOT NULL,\r  c_alpha1       FLOAT NOT NULL,\r  c_h_             FLOAT NOT NULL,\r  c_s_              FLOAT NOT NULL,\r  c_i_              FLOAT NOT NULL,\r  c_w_             FLOAT NOT NULL,\r  c_F               FLOAT NOT NULL,\r  c_Z               FLOAT NOT NULL,\r  c_b_              FLOAT NOT NULL,\r  c_N               FLOAT NOT NULL,\r  c_u_               FLOAT NOT NULL,\r  c_Q               FLOAT NOT NULL,\r  c_delta         FLOAT NOT NULL,\r  c_Fe             FLOAT NOT NULL,\r  c_Fe_proof      FLOAT NOT NULL,\r  c_Fe_auto       FLOAT NOT NULL,\r\r  sebert          FLOAT NOT NULL,\r  cdate           DATE NOT NULL,\r  cby             TEXT NOT NULL,\r  mdate           DATE NOT NULL,\r  mby             TEXT NOT NULL,\r  type            TEXT NOT NULL,\r  mode            TEXT NOT NULL,\r  status          TEXT NOT NULL,\r  origin          TEXT NOT NULL,\r  descr           TEXT NOT NULL,\r  geloescht       INTEGER NOT NULL\r);",
+    "projectile": "CREATE TABLE projectile (\r  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,\r  mname     TEXT COLLATE NOCASE NOT NULL,\r  pname     TEXT COLLATE NOCASE NOT NULL,\r  lotid     TEXT COLLATE NOCASE NOT NULL,\r  caliber   TEXT COLLATE NOCASE NOT NULL,\r  gdia      FLOAT NOT NULL,\r  glen      FLOAT NOT NULL,\r  gmass     FLOAT NOT NULL,\r  gpressure FLOAT NOT NULL,\r  gfriction FLOAT NOT NULL,\r  gtaildiaA FLOAT NOT NULL,\r  gtaildiaB FLOAT NOT NULL,\r  gtailh    FLOAT NOT NULL,\r  gtailtype INTEGER NOT NULL,\r  gdepthmax      FLOAT NOT NULL,\r  g1bc      FLOAT NOT NULL,\r  g7bc      FLOAT NOT NULL,\r  gUBCS     TEXT COLLATE NOCASE NOT NULL,\r  cdate     DATE NOT NULL,\r  cby       TEXT COLLATE NOCASE NOT NULL,\r  mdate     DATE NOT NULL,\r  mby       TEXT COLLATE NOCASE NOT NULL,\r  type      TEXT COLLATE NOCASE NOT NULL,\r  mode      TEXT COLLATE NOCASE NOT NULL,\r  status    TEXT COLLATE NOCASE NOT NULL,\r  origin    TEXT COLLATE NOCASE NOT NULL,\r  descr     TEXT COLLATE NOCASE NOT NULL,\r  imageUuid     TEXT NOT NULL,\r  geloescht INTEGER NOT NULL\r);",
+    "propellant": "CREATE TABLE propellant (\r\tid\t\t\t\tINTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,\r\tmname\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\tpname\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\tlotid\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\tBr\t\t\t\tFLOAT NOT NULL,\r\tBp\t\t\t\tFLOAT NOT NULL,\r\tBrp\t\t\t\tFLOAT NOT NULL,\r\tBa\t\t\t\tFLOAT NOT NULL,\r\tQex\t\t\t\tFLOAT NOT NULL,\r\tk\t\t\t\t\tFLOAT NOT NULL,\r\teta\t\t\t\tFLOAT NOT NULL,\r\ta0\t\t\t\tFLOAT NOT NULL,\r\ta1\t\t\t\tFLOAT NOT NULL,\r\tz1\t\t\t\tFLOAT NOT NULL,\r\tz2\t\t\t\tFLOAT NOT NULL,\r\tpc\t\t\t\tFLOAT NOT NULL,\r\tpcd\t\t\t\tFLOAT NOT NULL,\r\tpt\t\t\t\tFLOAT NOT NULL,\r\ttcc\t\t\t\tFLOAT NOT NULL,\r\ttch\t\t\t\tFLOAT NOT NULL,\r\tLp\t\t\t\tFLOAT NOT NULL,\r\tLr\t\t\t\tFLOAT NOT NULL,\r\tL01\t\t\t\tFLOAT NOT NULL,\r\tL02\t\t\t\tFLOAT NOT NULL,\r\tL03\t\t\t\tFLOAT NOT NULL,\r\tL04\t\t\t\tFLOAT NOT NULL,\r\tL05\t\t\t\tFLOAT NOT NULL,\r\tL06\t\t\t\tFLOAT NOT NULL,\r\tL07\t\t\t\tFLOAT NOT NULL,\r\tL08\t\t\t\tFLOAT NOT NULL,\r\tL09\t\t\t\tFLOAT NOT NULL,\r\tQlty\t\t\tFLOAT NOT NULL,\r\tcdate\t\t\tDATE NOT NULL,\r\tcby\t\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\tmdate\t\t\tDATE NOT NULL,\r\tmby\t\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\ttype\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\tmode\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\tstatus\t\tTEXT COLLATE NOCASE NOT NULL,\r\torigin\t\tTEXT COLLATE NOCASE NOT NULL,\r\tdescr\t\t\tTEXT COLLATE NOCASE NOT NULL,\r\timageUuid\tTEXT NOT NULL,\r\timageDetailUuid\tTEXT NOT NULL,\r\tgeloescht\tINTEGER NOT NULL\r);"
+  },
+  "queries": {
+    "caliber": [
+      "select * from caliber where (",
+      "(select * from caliber where geloescht=0 ",
+      "+select * from caliber where (cipname like '",
+      "Pselect * from caliber where mode='userfile' and geloescht=0 order by cipname asc",
+      "select * from caliber where ",
+      "%select * from caliber where ciptype='"
+    ],
+    "projectile": [
+      "&select * from projectile where mname='",
+      " select * from projectile where (",
+      "select * from projectile where ",
+      "bselect * from projectile where mode='userfile' and geloescht=0 order by mname,pname asc,lotid desc",
+      "&select * from Projectile where mname='",
+      "\"select * from projectile where id="
+    ],
+    "propellant": [
+      "&select * from propellant where mname='",
+      " select * from propellant where (",
+      "select * from propellant where ",
+      "Rselect * from propellant where geloescht=0 order by mname asc,pname asc,lotid desc",
+      "cselect * from propellant where mode='userfile' and geloescht=0 order by mname,pname asc, lotid desc",
+      "\"select * from propellant where id="
+    ]
+  },
+  "database_signals": {
+    "db_filename_hits": [
+      "3e:\\projekte\\innereBallistik\\ReferenceLibrary.db",
+      "ReferenceLibrary.db"
+    ],
+    "encryption_hits": [
+      "EncryptionKey.Get",
+      "EncryptionKey.Set",
+      "EncryptionKey",
+      "nREALSQLDatabase.AttachDatabase(file as FolderItem, databaseName as String, encryptionKey as String) as Boolean",
+      "0REALSQLDatabase.Encrypt(encryptionKey as String)",
+      "!REALSQLDatabase.EncryptionKey.Get",
+      "!REALSQLDatabase.EncryptionKey.Set"
+    ],
+    "cip_hits": [
+      "cipname",
+      "ciptype",
+      "5 and geloescht=0 order by cipname asc,ciprevdate desc",
+      "% order by cipname asc,ciprevdate desc",
+      "cippdf",
+      "ciporigin",
+      "mciptypes",
+      "cipdate",
+      "ciprevdate",
+      "Gselect distinct ciptype from caliber where geloescht=0 order by ciptype",
+      " (CIP: 'B')",
+      " (CIP: 'd')",
+      " (CIP: 'D')",
+      " (CIP: 'g')",
+      " (CIP: 'G')",
+      " (CIP: 'h')",
+      " (CIP: 'H')",
+      " (CIP: 'l')",
+      " (CIP: 'L')",
+      " (CIP: 't')",
+      " (CIP: 'T')",
+      "  cipname         TEXT NOT NULL,",
+      "  ciporigin       TEXT NOT NULL,",
+      "  ciptype         TEXT NOT NULL,",
+      "  cipdate         DATE NOT NULL,",
+      "  ciprevdate      DATE NOT NULL,",
+      "  cippdf          TEXT NOT NULL,",
+      "+select * from caliber where (cipname like '",
+      "&select id from caliber where cipname='",
+      "Pselect * from caliber where mode='userfile' and geloescht=0 order by cipname asc",
+      "Piezo CIP",
+      "GetCIPURL",
+      "https://bobp.cip-bobp.org",
+      ".45-70 Govt. CIP",
+      "+select distinct ciptype from caliber where ",
+      "! and geloescht=0 order by ciptype",
+      "%select * from caliber where ciptype='",
+      "! and geloescht=0 order by cipname",
+      "ciptypes",
+      "tf_cipname_bg"
+    ],
+    "saami_hits": [
+      " SAAMI ",
+      "(SAAMI)"
+    ],
+    "user_dump_hits": [
+      "XmlUserFileDump",
+      "XmlUserFileDumpPropellant",
+      "XmlUserFileDumpCaliber",
+      "XmlUserFileDumpProjectile",
+      "XmlUserFileDumpGun"
+    ]
+  },
+  "interpretation": {
+    "projectile": "Built-in projectile catalog exists in Gordon and uses an internal SQL schema. The public docs only describe exporting selected projectile records to XML and user XML backups.",
+    "propellant": "Built-in propellant catalog exists in Gordon and includes full powder-model fields such as Ba, Qex, k, eta, a0, z1, z2, pc, pcd, pt, tcc and tch.",
+    "caliber": "Built-in caliber catalog is strongly CIP-oriented in this nightly build. Schema and strings expose CIP fields and CIP datasheet URL handling, but no SAAMI URL evidence was found.",
+    "db": "The .db file is almost certainly a SQL-backed encrypted database rather than a plain SQLite file. The executable exposes REALSQLDatabase encryption APIs and SQL table definitions."
+  },
+  "next_steps": [
+    "Prefer building our own database from extracted Gordon schema plus official CIP/SAAMI/manufacturer data.",
+    "Attempt UI automation or internal command discovery for bulk export, because docs only expose single-record export.",
+    "Investigate whether the Gordon executable can be coerced to dump user XML for built-in records or expose a hidden database maintenance action.",
+    "Treat SAAMI as a separate ingestion track because this Gordon build shows strong CIP evidence but no SAAMI URL evidence."
+  ]
+}

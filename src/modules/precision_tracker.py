@@ -5,11 +5,12 @@ Finner sammenhenger mellom væ, ammunisjon, og presisjon
 
 from datetime import datetime
 
-from PyQt6.QtCore import QDate, Qt
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtCore import QDate, QSettings, Qt
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QComboBox,
     QDateEdit,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -21,9 +22,56 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.database import get_database
-from src.utils.optional_deps import Figure as Figure
-from src.utils.optional_deps import FigureCanvas as FigureCanvas
+from ..database.database import get_database
+from ..ui.reloading_theme import ReloadingTheme
+from ..utils.optional_deps import Figure as Figure
+from ..utils.optional_deps import FigureCanvas as FigureCanvas
+from ..utils.unit_preferences import format_temperature_c as format_temperature_c_pref
+
+
+def _format_group_mm(value: object) -> str:
+    try:
+        group_mm = float(value)
+    except Exception:
+        return str(value) if value not in (None, "") else "N/A"
+    if _get_global_unit_system() == "imperial":
+        return f"{group_mm / 25.4:.2f} in ({group_mm:.1f} mm)"
+    return f"{group_mm:.1f} mm"
+
+
+def _format_temperature_c(value: object) -> str:
+    return format_temperature_c_pref(value)
+
+
+def _get_global_unit_system() -> str:
+    settings = QSettings("ReloadingWorkshop", "ReloadingManager")
+    return str(settings.value("units/global", "metric") or "metric").strip().lower()
+
+
+def _format_wind_mps(value: object) -> str:
+    try:
+        wind_mps = float(value)
+    except Exception:
+        return str(value) if value not in (None, "") else "N/A"
+    if _get_global_unit_system() == "imperial":
+        return f"{wind_mps * 2.23694:.1f} mph ({wind_mps:.1f} m/s)"
+    return f"{wind_mps:.1f} m/s"
+
+
+def _group_unit_label() -> str:
+    return "in" if _get_global_unit_system() == "imperial" else "mm"
+
+
+def _temperature_axis_label() -> str:
+    return (
+        "Temperature (°F)"
+        if _get_global_unit_system() == "imperial"
+        else "Temperature (°C)"
+    )
+
+
+def _wind_axis_label() -> str:
+    return "Wind (mph)" if _get_global_unit_system() == "imperial" else "Wind (m/s)"
 
 
 class PrecisionTracker(QWidget):
@@ -35,19 +83,21 @@ class PrecisionTracker(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        """Initialiserer brukergrensesnittet"""
+        """Initialize the user interface."""
         layout = QVBoxLayout()
         self.setLayout(layout)
 
         # Tittel
-        title = QLabel("📊 Presisjonstracker - Historisk Analyse")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title = QLabel("Precision Tracker - Historical Analysis")
+        title.setProperty("role", "title")
+        title.setWordWrap(True)
         layout.addWidget(title)
 
         subtitle = QLabel(
-            "Analyser sammenhenger mellom vær, ammunisjon og presisjon over tid"
+            "Analyze relationships between weather, ammunition, and precision over time"
         )
-        subtitle.setStyleSheet("color: gray; font-size: 11pt;")
+        subtitle.setProperty("role", "subtitle")
+        subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
 
         # Filterkontroller
@@ -58,40 +108,40 @@ class PrecisionTracker(QWidget):
         tabs = QTabWidget()
         layout.addWidget(tabs)
 
-        tabs.addTab(self.create_overview_tab(), "📈 Oversikt")
-        tabs.addTab(self.create_weather_impact_tab(), "🌦️ Værpåvirkning")
-        tabs.addTab(self.create_trends_tab(), "📉 Trender")
-        tabs.addTab(self.create_alerts_tab(), "⚠️ Varsler & POI Shift")
+        tabs.addTab(self.create_overview_tab(), "Overview")
+        tabs.addTab(self.create_weather_impact_tab(), "Weather Impact")
+        tabs.addTab(self.create_trends_tab(), "Trends")
+        tabs.addTab(self.create_alerts_tab(), "Alerts and POI Shift")
 
     def create_filters(self):
-        """Oppretter filterkontroller"""
+        """Create filter controls."""
         layout = QHBoxLayout()
 
         # Rifle-filter
         layout.addWidget(QLabel("Rifle:"))
         self.rifle_filter = QComboBox()
-        self.rifle_filter.addItem("Alle rifles", None)
+        self.rifle_filter.addItem("All Rifles", None)
         self.load_rifles()
         self.rifle_filter.currentIndexChanged.connect(self.refresh_data)
         layout.addWidget(self.rifle_filter)
 
         # Ammunisjon-filter
-        layout.addWidget(QLabel("Ammunisjon:"))
+        layout.addWidget(QLabel("Ammunition:"))
         self.ammo_filter = QComboBox()
-        self.ammo_filter.addItem("Alle ammunisjoner", None)
+        self.ammo_filter.addItem("All Ammunition", None)
         self.load_ammo_profiles()
         self.ammo_filter.currentIndexChanged.connect(self.refresh_data)
         layout.addWidget(self.ammo_filter)
 
         # Datofilter
-        layout.addWidget(QLabel("Fra:"))
+        layout.addWidget(QLabel("From:"))
         self.date_from = QDateEdit()
         self.date_from.setDate(QDate.currentDate().addMonths(-6))
         self.date_from.setCalendarPopup(True)
         self.date_from.dateChanged.connect(self.refresh_data)
         layout.addWidget(self.date_from)
 
-        layout.addWidget(QLabel("Til:"))
+        layout.addWidget(QLabel("To:"))
         self.date_to = QDateEdit()
         self.date_to.setDate(QDate.currentDate())
         self.date_to.setCalendarPopup(True)
@@ -99,7 +149,8 @@ class PrecisionTracker(QWidget):
         layout.addWidget(self.date_to)
 
         # Oppdater-knapp
-        refresh_btn = QPushButton("🔄 Oppdater")
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setProperty("variant", "secondary")
         refresh_btn.clicked.connect(self.refresh_data)
         layout.addWidget(refresh_btn)
 
@@ -108,7 +159,7 @@ class PrecisionTracker(QWidget):
         return layout
 
     def create_overview_tab(self):
-        """Oppretter oversikserfane"""
+        """Create the overview tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
@@ -117,20 +168,29 @@ class PrecisionTracker(QWidget):
         cards_layout = QHBoxLayout()
         layout.addLayout(cards_layout)
 
-        self.avg_group_label = self.create_stat_card("Gj.snitt gruppe", "-- mm")
+        self.avg_group_label = self.create_stat_card(
+            "Average Group", "-- mm", ReloadingTheme.ACCENT
+        )
         cards_layout.addWidget(self.avg_group_label)
 
-        self.best_group_label = self.create_stat_card("Beste gruppe", "-- mm")
+        self.best_group_label = self.create_stat_card(
+            "Best Group", "-- mm", ReloadingTheme.SUCCESS
+        )
         cards_layout.addWidget(self.best_group_label)
 
-        self.worst_group_label = self.create_stat_card("Dårligste gruppe", "-- mm")
+        self.worst_group_label = self.create_stat_card(
+            "Worst Group", "-- mm", ReloadingTheme.WARNING
+        )
         cards_layout.addWidget(self.worst_group_label)
 
-        self.session_count_label = self.create_stat_card("Skyteøkter", "--")
+        self.session_count_label = self.create_stat_card(
+            "Shooting Sessions", "--", ReloadingTheme.INFO
+        )
         cards_layout.addWidget(self.session_count_label)
 
         # Graf: Gruppestørrelse over tid
-        graph_group = QGroupBox("Gruppestørrelse over tid")
+        graph_group = QGroupBox("Group Size Over Time")
+        graph_group.setProperty("variant", "panel")
         graph_layout = QVBoxLayout()
         graph_group.setLayout(graph_layout)
 
@@ -140,14 +200,23 @@ class PrecisionTracker(QWidget):
         layout.addWidget(graph_group)
 
         # Detaljert tabell
-        table_group = QGroupBox("Detaljerte data")
+        table_group = QGroupBox("Detailed Data")
+        table_group.setProperty("variant", "panel")
         table_layout = QVBoxLayout()
         table_group.setLayout(table_layout)
 
         self.detail_table = QTableWidget()
         self.detail_table.setColumnCount(7)
         self.detail_table.setHorizontalHeaderLabels(
-            ["Dato", "Rifle", "Ammunisjon", "Gruppe (mm)", "MOA", "Temp °C", "Vind m/s"]
+            [
+                "Date",
+                "Rifle",
+                "Ammunition",
+                f"Group ({_group_unit_label()})",
+                "MOA",
+                _temperature_axis_label(),
+                _wind_axis_label(),
+            ]
         )
         table_layout.addWidget(self.detail_table)
 
@@ -156,19 +225,20 @@ class PrecisionTracker(QWidget):
         return widget
 
     def create_weather_impact_tab(self):
-        """Oppretter værpåvirkningsfane"""
+        """Create the weather impact tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
         # Insight-kort
-        insight_group = QGroupBox("🔍 Væranalyse")
+        insight_group = QGroupBox("Weather Analysis")
+        insight_group.setProperty("variant", "panel")
         insight_layout = QVBoxLayout()
         insight_group.setLayout(insight_layout)
 
-        self.weather_insights = QLabel("Last data for å se værets påvirkning...")
+        self.weather_insights = QLabel("Load data to see weather impact...")
         self.weather_insights.setWordWrap(True)
-        self.weather_insights.setStyleSheet("font-size: 11pt; padding: 10px;")
+        self.weather_insights.setProperty("role", "muted")
         insight_layout.addWidget(self.weather_insights)
 
         layout.addWidget(insight_group)
@@ -178,7 +248,8 @@ class PrecisionTracker(QWidget):
         layout.addLayout(graphs_layout)
 
         # Temperatur vs presisjon
-        temp_group = QGroupBox("Temperatur vs Gruppestørrelse")
+        temp_group = QGroupBox("Temperature vs Group Size")
+        temp_group.setProperty("variant", "panel")
         temp_layout = QVBoxLayout()
         temp_group.setLayout(temp_layout)
 
@@ -188,7 +259,8 @@ class PrecisionTracker(QWidget):
         graphs_layout.addWidget(temp_group)
 
         # Vind vs presisjon
-        wind_group = QGroupBox("Vind vs Gruppestørrelse")
+        wind_group = QGroupBox("Wind vs Group Size")
+        wind_group.setProperty("variant", "panel")
         wind_layout = QVBoxLayout()
         wind_group.setLayout(wind_layout)
 
@@ -200,25 +272,27 @@ class PrecisionTracker(QWidget):
         return widget
 
     def create_trends_tab(self):
-        """Oppretter trendfane"""
+        """Create the trends tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
         # Trend-insights
-        trend_group = QGroupBox("📈 Trend-analyse")
+        trend_group = QGroupBox("Trend Analysis")
+        trend_group.setProperty("variant", "panel")
         trend_layout = QVBoxLayout()
         trend_group.setLayout(trend_layout)
 
-        self.trend_insights = QLabel("Last data for å se trender...")
+        self.trend_insights = QLabel("Load data to see trends...")
         self.trend_insights.setWordWrap(True)
-        self.trend_insights.setStyleSheet("font-size: 11pt; padding: 10px;")
+        self.trend_insights.setProperty("role", "muted")
         trend_layout.addWidget(self.trend_insights)
 
         layout.addWidget(trend_group)
 
         # Trendgraf
-        graph_group = QGroupBox("Presisjon-trend (glidende gjennomsnitt)")
+        graph_group = QGroupBox("Precision Trend (Moving Average)")
+        graph_group.setProperty("variant", "panel")
         graph_layout = QVBoxLayout()
         graph_group.setLayout(graph_layout)
 
@@ -230,7 +304,7 @@ class PrecisionTracker(QWidget):
         return widget
 
     def create_alerts_tab(self):
-        """Oppretter varsler-fane"""
+        """Create the alerts tab."""
         widget = QWidget()
         layout = QVBoxLayout()
         widget.setLayout(layout)
@@ -239,11 +313,11 @@ class PrecisionTracker(QWidget):
         info = QLabel(
             """
         <h3>POI Shift Detection</h3>
-        <p>Systemet varsler automatisk hvis det detekteres:</p>
+        <p>The system automatically warns if it detects:</p>
         <ul>
-            <li><b>Plutselig forverring</b>: Gruppestørrelse øker med >30% fra forrige økt</li>
-            <li><b>Gradvis trend</b>: Presisjon forverres over 5+ økter</li>
-            <li><b>Væranomalier</b>: Uvanlig oppførsel ved spesifikke værforhold</li>
+            <li><b>Sudden degradation</b>: Group size increases by >30% from the previous session</li>
+            <li><b>Gradual trend</b>: Precision worsens over 5+ sessions</li>
+            <li><b>Weather anomalies</b>: Unusual behavior under specific weather conditions</li>
         </ul>
         """
         )
@@ -251,14 +325,15 @@ class PrecisionTracker(QWidget):
         layout.addWidget(info)
 
         # Varsler-tabell
-        alerts_group = QGroupBox("🚨 Aktive varsler")
+        alerts_group = QGroupBox("Active Alerts")
+        alerts_group.setProperty("variant", "panel")
         alerts_layout = QVBoxLayout()
         alerts_group.setLayout(alerts_layout)
 
         self.alerts_table = QTableWidget()
         self.alerts_table.setColumnCount(4)
         self.alerts_table.setHorizontalHeaderLabels(
-            ["Alvorlighet", "Type", "Rifle/Ammo", "Beskrivelse"]
+            ["Severity", "Type", "Rifle/Ammo", "Description"]
         )
         alerts_layout.addWidget(self.alerts_table)
 
@@ -268,46 +343,53 @@ class PrecisionTracker(QWidget):
 
         return widget
 
-    def create_stat_card(self, title, value):
-        """Oppretter statistikk-kort"""
-        card = QGroupBox()
+    def create_stat_card(self, title, value, accent: str | None = None):
+        """Create a statistics card."""
+        card = QFrame()
         card.setMinimumHeight(80)
-        card.setStyleSheet(
-            """
-            QGroupBox {
-                background-color: #f0f0f0;
-                border-radius: 8px;
-                padding: 10px;
-            }
-        """
-        )
+        card.setProperty("variant", "statCard")
 
-        card_layout = QVBoxLayout()
+        card_layout = QHBoxLayout()
+        card_layout.setContentsMargins(12, 10, 12, 10)
+        card_layout.setSpacing(10)
         card.setLayout(card_layout)
 
+        accent_color = accent or ReloadingTheme.ACCENT
+        accent_bar = QFrame(card)
+        accent_bar.setFixedWidth(4)
+        accent_bar.setStyleSheet(
+            f"background-color: {accent_color}; border: none; border-radius: 2px;"
+        )
+        card_layout.addWidget(accent_bar)
+
+        content = QVBoxLayout()
+        content.setContentsMargins(0, 0, 0, 0)
+        content.setSpacing(4)
+        card_layout.addLayout(content, 1)
+
         value_label = QLabel(value)
-        value_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        card_layout.addWidget(value_label)
+        value_label.setProperty("variant", "statValue")
+        value_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        content.addWidget(value_label)
 
         title_label = QLabel(title)
-        title_label.setFont(QFont("Arial", 10))
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        card_layout.addWidget(title_label)
+        title_label.setProperty("variant", "statTitle")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        content.addWidget(title_label)
 
-        # Lagre referanse til value_label for oppdatering
+        # Store reference to value_label for updates
         card.value_label = value_label
 
         return card
 
     def load_rifles(self):
-        """Laster rifles til filter"""
+        """Load rifles into the filter."""
         rifles = self.db.execute_query("SELECT id, name FROM rifles ORDER BY name")
         for rifle_id, name in rifles:
             self.rifle_filter.addItem(name, rifle_id)
 
     def load_ammo_profiles(self):
-        """Laster ammunisjonsprofiler til filter"""
+        """Load ammunition profiles into the filter."""
         ammos = self.db.execute_query(
             "SELECT id, name FROM ammo_profiles ORDER BY name"
         )
@@ -315,33 +397,33 @@ class PrecisionTracker(QWidget):
             self.ammo_filter.addItem(name, ammo_id)
 
     def refresh_data(self):
-        """Oppdaterer alle data og grafer"""
-        # Hent filtrerte data
+        """Refresh all data and charts."""
+        # Get filtered data
         data = self.get_shooting_data()
 
         if len(data) == 0:
             return
 
-        # Oppdater statistikk-kort
+        # Update statistics cards
         self.update_stats_cards(data)
 
-        # Oppdater oversikts-graf
+        # Update overview chart
         self.update_overview_graph(data)
 
-        # Oppdater detaljert tabell
+        # Update detailed table
         self.update_detail_table(data)
 
-        # Oppdater væranalyse
+        # Update weather analysis
         self.update_weather_analysis(data)
 
-        # Oppdater trend-analyse
+        # Update trend analysis
         self.update_trend_analysis(data)
 
-        # Oppdater varsler
+        # Update alerts
         self.update_alerts(data)
 
     def get_shooting_data(self):
-        """Henter skytedata basert på filtre"""
+        """Fetch shooting data based on filters."""
         rifle_id = self.rifle_filter.currentData()
         ammo_id = self.ammo_filter.currentData()
         date_from = self.date_from.date().toString("yyyy-MM-dd")
@@ -391,9 +473,9 @@ class PrecisionTracker(QWidget):
             best_group = min(groups)
             worst_group = max(groups)
 
-            self.avg_group_label.value_label.setText(f"{avg_group:.1f} mm")
-            self.best_group_label.value_label.setText(f"{best_group:.1f} mm")
-            self.worst_group_label.value_label.setText(f"{worst_group:.1f} mm")
+            self.avg_group_label.value_label.setText(_format_group_mm(avg_group))
+            self.best_group_label.value_label.setText(_format_group_mm(best_group))
+            self.worst_group_label.value_label.setText(_format_group_mm(worst_group))
 
         self.session_count_label.value_label.setText(str(len(data)))
 
@@ -410,9 +492,9 @@ class PrecisionTracker(QWidget):
         ax = fig.add_subplot(111)
 
         ax.plot(dates, groups, "o-", linewidth=2, markersize=6)
-        ax.set_xlabel("Dato")
-        ax.set_ylabel("Gruppestørrelse (mm)")
-        ax.set_title("Presisjon over tid")
+        ax.set_xlabel("Date")
+        ax.set_ylabel(f"Group Size ({_group_unit_label()})")
+        ax.set_title("Precision Over Time")
         ax.grid(True, alpha=0.3)
         fig.autofmt_xdate()
 
@@ -437,19 +519,17 @@ class PrecisionTracker(QWidget):
             self.detail_table.setItem(i, 1, QTableWidgetItem(rifle or "N/A"))
             self.detail_table.setItem(i, 2, QTableWidgetItem(ammo or "N/A"))
             self.detail_table.setItem(
-                i, 3, QTableWidgetItem(f"{best_group:.1f}" if best_group else "N/A")
+                i, 3, QTableWidgetItem(_format_group_mm(best_group))
             )
             self.detail_table.setItem(i, 4, QTableWidgetItem(moa))
             self.detail_table.setItem(
-                i, 5, QTableWidgetItem(f"{temp:.0f}" if temp else "N/A")
+                i, 5, QTableWidgetItem(_format_temperature_c(temp))
             )
-            self.detail_table.setItem(
-                i, 6, QTableWidgetItem(f"{wind:.1f}" if wind else "N/A")
-            )
+            self.detail_table.setItem(i, 6, QTableWidgetItem(_format_wind_mps(wind)))
 
     def update_weather_analysis(self, data):
-        """Oppdaterer væranalyse"""
-        # Filtrer ut data med temperatur og vind
+        """Update weather analysis."""
+        # Filter data that includes temperature and wind
         temp_data = [
             (row[5], row[3])
             for row in data
@@ -462,7 +542,7 @@ class PrecisionTracker(QWidget):
         ]
 
         if temp_data:
-            # Finn beste temperaturområde
+            # Find the best temperature range
             temp_ranges = [
                 ((-10, 0), "Under 0°C"),
                 ((0, 10), "0-10°C"),
@@ -482,12 +562,12 @@ class PrecisionTracker(QWidget):
                         best_range = label
 
             insight_text = f"""
-<h3>🌡️ Temperatur-analyse</h3>
-<p><b>Din rifle skyter best ved:</b> {best_range}<br>
-Gjennomsnittlig gruppe: {best_avg:.1f} mm</p>
+<h3>Temperature Analysis</h3>
+<p><b>Your rifle shoots best at:</b> {best_range}<br>
+Average group: {_format_group_mm(best_avg)}</p>
             """
 
-            # Tegn temperatur-graf
+            # Draw temperature chart
             temps = [t for t, g in temp_data]
             groups = [g for t, g in temp_data]
 
@@ -495,16 +575,16 @@ Gjennomsnittlig gruppe: {best_avg:.1f} mm</p>
             fig.clear()
             ax = fig.add_subplot(111)
             ax.scatter(temps, groups)
-            ax.set_xlabel("Temperatur (°C)")
-            ax.set_ylabel("Gruppe (mm)")
-            ax.set_title("Temperatur vs Presisjon")
+            ax.set_xlabel(_temperature_axis_label())
+            ax.set_ylabel(f"Group ({_group_unit_label()})")
+            ax.set_title("Temperature vs Precision")
             ax.grid(True, alpha=0.3)
             self.temp_canvas.draw()
 
             self.weather_insights.setHtml(insight_text)
 
         if wind_data:
-            # Tegn vind-graf
+            # Draw wind chart
             winds = [w for w, g in wind_data]
             groups = [g for w, g in wind_data]
 
@@ -512,14 +592,14 @@ Gjennomsnittlig gruppe: {best_avg:.1f} mm</p>
             fig.clear()
             ax = fig.add_subplot(111)
             ax.scatter(winds, groups)
-            ax.set_xlabel("Vind (m/s)")
-            ax.set_ylabel("Gruppe (mm)")
-            ax.set_title("Vind vs Presisjon")
+            ax.set_xlabel(_wind_axis_label())
+            ax.set_ylabel(f"Group ({_group_unit_label()})")
+            ax.set_title("Wind vs Precision")
             ax.grid(True, alpha=0.3)
             self.wind_canvas.draw()
 
     def update_trend_analysis(self, data):
-        """Oppdaterer trend-analyse"""
+        """Update trend analysis."""
         if len(data) < 3:
             return
 
@@ -528,14 +608,14 @@ Gjennomsnittlig gruppe: {best_avg:.1f} mm</p>
         if len(groups) < 3:
             return
 
-        # Beregn glidende gjennomsnitt
+        # Calculate moving average
         window = min(5, len(groups))
         moving_avg = []
         for i in range(len(groups) - window + 1):
             avg = sum(groups[i : i + window]) / window
             moving_avg.append(avg)
 
-        # Beregn trend (forbedring eller forverring)
+        # Calculate trend (improvement or deterioration)
         if len(moving_avg) >= 2:
             start_avg = (
                 sum(moving_avg[:3]) / 3 if len(moving_avg) >= 3 else moving_avg[0]
@@ -547,22 +627,22 @@ Gjennomsnittlig gruppe: {best_avg:.1f} mm</p>
             change_pct = ((end_avg - start_avg) / start_avg) * 100
 
             if change_pct < -10:
-                trend_text = f"<span style='color: green;'>✅ Presisjon forbedres! ({abs(change_pct):.1f}% bedre)</span>"
+                trend_text = f"<span style='color: green;'>Precision is improving! ({abs(change_pct):.1f}% better)</span>"
             elif change_pct > 10:
-                trend_text = f"<span style='color: red;'>⚠️ Presisjon forverres ({change_pct:.1f}% dårligere)</span>"
+                trend_text = f"<span style='color: red;'>Precision is worsening ({change_pct:.1f}% worse)</span>"
             else:
-                trend_text = "<span style='color: blue;'>➡️ Stabil presisjon</span>"
+                trend_text = "<span style='color: blue;'>Stable precision</span>"
 
             insight = f"""
-<h3>📈 Trend-analyse</h3>
+<h3>Trend Analysis</h3>
 <p>{trend_text}</p>
-<p>Første økter: {start_avg:.1f} mm gjennomsnitt<br>
-Siste økter: {end_avg:.1f} mm gjennomsnitt</p>
+<p>Early sessions: {_format_group_mm(start_avg)} average<br>
+Latest sessions: {_format_group_mm(end_avg)} average</p>
             """
 
             self.trend_insights.setHtml(insight)
 
-        # Tegn trend-graf
+        # Draw trend chart
         dates = [
             datetime.strptime(row[0], "%Y-%m-%d") for row in data if row[3] is not None
         ]
@@ -571,7 +651,7 @@ Siste økter: {end_avg:.1f} mm gjennomsnitt</p>
         fig.clear()
         ax = fig.add_subplot(111)
 
-        ax.plot(dates, groups, "o", alpha=0.5, label="Faktisk")
+        ax.plot(dates, groups, "o", alpha=0.5, label="Actual")
 
         if len(moving_avg) > 0:
             ma_dates = dates[window - 1 :]
@@ -580,12 +660,12 @@ Siste økter: {end_avg:.1f} mm gjennomsnitt</p>
                 moving_avg,
                 "r-",
                 linewidth=2,
-                label=f"{window}-økters gj.snitt",
+                label=f"{window}-session moving average",
             )
 
-        ax.set_xlabel("Dato")
-        ax.set_ylabel("Gruppe (mm)")
-        ax.set_title("Presisjon-trend")
+        ax.set_xlabel("Date")
+        ax.set_ylabel(f"Group ({_group_unit_label()})")
+        ax.set_title("Precision Trend")
         ax.legend()
         ax.grid(True, alpha=0.3)
         fig.autofmt_xdate()
@@ -593,13 +673,13 @@ Siste økter: {end_avg:.1f} mm gjennomsnitt</p>
         self.trend_canvas.draw()
 
     def update_alerts(self, data):
-        """Oppdaterer varsler"""
+        """Update alerts."""
         if len(data) < 2:
             return
 
         alerts = []
 
-        # Sjekk for plutselig forverring
+        # Check for sudden deterioration
         recent_groups = [row[3] for row in data[-3:] if row[3] is not None]
         previous_groups = [row[3] for row in data[-6:-3] if row[3] is not None]
 
@@ -612,14 +692,14 @@ Siste økter: {end_avg:.1f} mm gjennomsnitt</p>
             if change_pct > 30:
                 alerts.append(
                     (
-                        "🔴 HØY",
-                        "Plutselig forverring",
+                        "🔴 HIGH",
+                        "Sudden Deterioration",
                         data[-1][1] or "N/A",
-                        f"Gruppe økt {change_pct:.0f}% siste 3 økter. Sjekk rifle/optikk!",
+                        f"Group size increased {change_pct:.0f}% over the last 3 sessions. Check rifle/optic!",
                     )
                 )
 
-        # Oppdater tabell
+        # Update table
         self.alerts_table.setRowCount(len(alerts))
 
         for i, (severity, alert_type, rifle_ammo, description) in enumerate(alerts):
@@ -628,9 +708,9 @@ Siste økter: {end_avg:.1f} mm gjennomsnitt</p>
             self.alerts_table.setItem(i, 2, QTableWidgetItem(rifle_ammo))
             self.alerts_table.setItem(i, 3, QTableWidgetItem(description))
 
-            # Fargelegg alvorlighet
+            # Color severity
             color = (
-                QColor(255, 200, 200) if "HØY" in severity else QColor(255, 255, 200)
+                QColor(255, 200, 200) if "HIGH" in severity else QColor(255, 255, 200)
             )
             for col in range(4):
                 self.alerts_table.item(i, col).setBackground(color)

@@ -1,11 +1,14 @@
 # Valkyrie Ballistics Logo Integration
-# This file provides a widget for displaying the Valkyrie Ballistics logo on the landing page and other places in the app.
+# This file provides a widget for displaying the Valkyrie Ballistics logo
+# on the landing page and other places in the app.
 
 import os
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from src.qt_compat import QPixmap, Qt, QtWidgets
+
+QLabel = QtWidgets.QLabel
+QVBoxLayout = QtWidgets.QVBoxLayout
+QWidget = QtWidgets.QWidget
 
 
 class ValkyrieLogo(QWidget):

@@ -1,6 +1,9 @@
 import importlib
 
+import pytest
 
+
+@pytest.mark.core
 def test_optional_deps_importable():
     mod = importlib.import_module("src.utils.optional_deps")
     # Should expose HAS_MPL and HAS_CV2 booleans
@@ -8,6 +11,7 @@ def test_optional_deps_importable():
     assert hasattr(mod, "HAS_CV2")
 
 
+@pytest.mark.core
 def test_figure_canvas_sanity():
     mod = importlib.import_module("src.utils.optional_deps")
     # Figure and FigureCanvas should exist (may be dummy implementations)

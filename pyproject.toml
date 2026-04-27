@@ -22,6 +22,15 @@ exclude = [
 extend-select = ["E", "F", "W", "C90"]
 extend-ignore = ["C901", "E402", "E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# _mlb_stats_mixin uses module-level __getattr__ to lazily pull helpers from
+# modern_load_builder at runtime — F821 false positives are expected here.
+"src/modules/_mlb_stats_mixin.py" = ["F821"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true

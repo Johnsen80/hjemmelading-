@@ -1,0 +1,48 @@
+{
+  "imports": {
+    "calibers.csv": {
+      "added_or_updated": 8,
+      "skipped": 0
+    },
+    "saami_rifle_standards.csv": {
+      "added_or_updated": 5,
+      "skipped": 0
+    },
+    "saami_newly_accepted_rifle_cartridges.csv": {
+      "added_or_updated": 8,
+      "skipped": 0
+    },
+    "saami_rifle_acceptance_announcements.csv": {
+      "added_or_updated": 15,
+      "skipped": 0
+    }
+  },
+  "counts": {
+    "total": 36,
+    "by_standard_body": {
+      "CIP": 7,
+      "SAAMI": 28,
+      "USER": 1
+    },
+    "by_source_kind": {
+      "reference_snapshot": 5,
+      "official_cip": 2,
+      "official_saami": 28,
+      "user_measurement": 1
+    },
+    "by_evidence_level": {
+      "imported_reference": 5,
+      "official_announcement": 15,
+      "official_prestandard": 8,
+      "official_standard": 7,
+      "user_reference": 1
+    },
+    "multi_standard_calibers": 1
+  },
+  "multi_standard_examples": {
+    "6.5 Creedmoor": [
+      "CIP",
+      "SAAMI"
+    ]
+  }
+}

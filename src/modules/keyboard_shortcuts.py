@@ -9,7 +9,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import QWidget
 
-from src.modules.user_mode import UserModeManager
+from .user_mode import UserModeManager
 
 
 class KeyboardShortcutsManager(QObject):
@@ -72,7 +72,7 @@ class KeyboardShortcutsManager(QObject):
 
         self.register_shortcut("ocw_test", "Ctrl+O", "Open OCW Test")
 
-        self.register_shortcut("batch_qc", "Ctrl+Q", "Open Batch QC")
+        self.register_shortcut("batch_workspace", "Ctrl+Q", "Open Batch Workspace")
 
         # Data entry shortcuts
         self.register_shortcut("add_shot", "Ctrl+Enter", "Add shot (in live testing)")
@@ -171,7 +171,7 @@ class ShortcutCheatSheet(QWidget):
         self.setLayout(layout)
 
         # Title
-        title = QLabel("⌨️ Keyboard Shortcuts")
+        title = QLabel("Keyboard Shortcuts")
         title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 10px;")
         layout.addWidget(title)
 
@@ -180,7 +180,7 @@ class ShortcutCheatSheet(QWidget):
             warning = QLabel(
                 """
             <div style='background-color: #f39c12; color: white; padding: 15px; border-radius: 5px;'>
-                <b>⚠️ Keyboard shortcuts are disabled</b><br>
+                <b>Keyboard shortcuts are disabled</b><br>
                 Switch to <b>Expert Mode</b> in Workflow Hub to enable shortcuts.
             </div>
             """
@@ -221,7 +221,7 @@ class ShortcutCheatSheet(QWidget):
             <tr><td colspan='2' class='section'>Workflows</td></tr>
             <tr><td><span class='key'>Ctrl+L</span></td><td>Open Ladder Test</td></tr>
             <tr><td><span class='key'>Ctrl+O</span></td><td>Open OCW Test</td></tr>
-            <tr><td><span class='key'>Ctrl+Q</span></td><td>Open Batch QC</td></tr>
+            <tr><td><span class='key'>Ctrl+Q</span></td><td>Open Batch Workspace</td></tr>
 
             <tr><td colspan='2' class='section'>Data Entry (Live Testing)</td></tr>
             <tr><td><span class='key'>Ctrl+Enter</span></td><td>Add shot</td></tr>
@@ -266,7 +266,7 @@ if __name__ == "__main__":
 
     # Connect signals
     def on_shortcut(shortcut_id):
-        from src.logging_config import configure_logging, get_logger
+        from ..logging_config import configure_logging, get_logger
 
         configure_logging()
         logger = get_logger(__name__)

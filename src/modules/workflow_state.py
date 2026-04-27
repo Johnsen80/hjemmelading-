@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.logging_config import configure_logging, get_logger
+from ..logging_config import configure_logging, get_logger
 
 # Configure logging for this module
 configure_logging()

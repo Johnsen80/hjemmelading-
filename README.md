@@ -22,10 +22,25 @@ Merk: Hvis du trenger Qt WebEngine-støtte, sørg for at `PyQt6-WebEngine` insta
 
 ```pwsh
 python tools/headless_smoke_test.py
-python -m pytest -q tests/test_imports.py
+python -m pytest -q -m core
 ```
 
-4) Hvordan håndtere store filer:
+Anbefalt kjernetestpakke for utvikling:
+
+```pwsh
+.\run_core_tests.ps1
+.github\.tool-venv\Scripts\python.exe -m pytest -q -m core
+```
+
+Denne kjører den stabile moderne kjernesuiten for imports, app-shell, ballistikk, chronograph, harmonikk, research og sentrale analyseflyter.
+
+4) Kjør programmet:
+
+```pwsh
+python main.py
+```
+
+5) Hvordan håndtere store filer:
 
 - Dette repoet sporer `data/GRT_reference.db` med Git LFS (hvis du vil gjøre lokal LFS-setup):
 
@@ -858,17 +873,6 @@ python main.py
 4. **Analyser resultater**:
    - Legg inn gruppestørrelser og hastigheter
    - La programmet finne optimale ladninger
-
-## Security / audit notes:
-- After `npm install` run `npm audit` and `npm audit fix` to automatically fix low- and moderate-level issues.
-- To attempt to fix all issues (may introduce breaking changes), run:
-
-```powershell
-npm audit fix --force
-```
-
-- I've upgraded `multer` to v2 and switched to `@electron/packager` to reduce known deprecation warnings. Some warnings are transitive (from sub-dependencies) and require upstream updates.
-- If you see many remaining warnings or vulnerabilities, run `npm audit` and paste the output here — I will propose the safest package updates.
 
 ## Sikkerhet
 

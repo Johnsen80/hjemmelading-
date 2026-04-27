@@ -1,6 +1,7 @@
-"""
-AI-assisted Rifle Specification Lookup
-Henter rifle-spesifikasjoner fra produsentens nettsider
+"""Automated rifle specification lookup.
+
+Fetches rifle specifications from manufacturer pages when possible and falls
+back to parsing the rifle name locally.
 """
 
 import logging
@@ -15,7 +16,7 @@ from HjemmeladingApp.utils.safe_logger import append_exception
 
 
 class RifleAILookup:
-    """AI-assistert rifle-søk"""
+    """Automated rifle specification lookup service."""
 
     def __init__(self):
         self.headers = {
@@ -173,16 +174,19 @@ class RifleAILookup:
                             return result
                     except Exception as e:
                         logger.debug(
-                            "AI lookup request failed for %s: %s", url, e, exc_info=True
+                            "Spec lookup request failed for %s: %s",
+                            url,
+                            e,
+                            exc_info=True,
                         )
                         try:
-                            append_exception(f"AI lookup request failed for {url}", e)
+                            append_exception(f"Spec lookup request failed for {url}", e)
                         except Exception:
                             pass
                         continue
 
         except Exception as e:
-            result["notes"] += f"\nAI Lookup feilet: {str(e)}"
+            result["notes"] += f"\nSpec lookup failed: {str(e)}"
 
         # Hvis vi ikke fant noe, fyll ut defaults basert på rifle-navn
         result = self._extract_from_name(rifle_name, result)
@@ -197,7 +201,7 @@ class RifleAILookup:
 
         result[
             "notes"
-        ] += "\n🤖 AI kunne ikke finne spesifikk produktside. Data ekstrahert fra navn."
+        ] += "\nNo specific product page was found. Data was extracted from the name."
         result["confidence"] = "low"
 
         return result

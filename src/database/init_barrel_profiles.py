@@ -3,16 +3,29 @@ Initialiserer predefinerte barrel profiles (løpsprofiler) i databasen.
 Disse brukes for harmonisk beregning og løpskarakteristikk.
 """
 
-from .database import get_database
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .database import Database
+
+_log = logging.getLogger(__name__)
 
 
-def initialize_barrel_profiles():
+def initialize_barrel_profiles(db: "Database | None" = None) -> None:
     """
     Legger til predefinerte barrel profiles basert på industristandarder.
     Disse er vanlige profiler fra produsenter som Bartlein, Krieger, Shilen, etc.
-    """
 
-    db = get_database()
+    Pass db directly when called from Database.__init__ to avoid recursive
+    get_database() calls that create hundreds of DB connections.
+    """
+    if db is None:
+        from .database import get_database
+
+        db = get_database()
 
     profiles = [
         {
@@ -286,8 +299,9 @@ def initialize_barrel_profiles():
     # Sjekk om det allerede finnes profiles
     existing = db.execute_query("SELECT COUNT(*) as count FROM barrel_profiles")
     if existing[0]["count"] > 0:
-        print(
-            f"Barrel profiles allerede initialisert ({existing[0]['count']} profiler funnet)"
+        _log.debug(
+            "Barrel profiles allerede initialisert (%d profiler funnet)",
+            existing[0]["count"],
         )
         return
 
@@ -295,16 +309,7 @@ def initialize_barrel_profiles():
     for profile in profiles:
         db.insert("barrel_profiles", profile)
 
-    print(f"✅ Initialisert {len(profiles)} barrel profiles")
-
-    # Vis oversikt
-    print("\n📊 Barrel Profiles:")
-    print("=" * 80)
-    for profile in profiles:
-        print(
-            f"  • {profile['name']:30s} - {profile['stiffness_rating']:12s} - {profile['category']}"
-        )
-    print("=" * 80)
+    _log.info("Initialisert %d barrel profiles", len(profiles))
 
 
 if __name__ == "__main__":
