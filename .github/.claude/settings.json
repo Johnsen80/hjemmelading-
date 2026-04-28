@@ -54,7 +54,14 @@
       "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe src/ tests/ scripts/ tools/ .github/tools/ .github/archive/ HjemmeladingApp/ main.py)",
       "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe --check-only src/ tests/ scripts/ .github/tools/ .github/archive/ HjemmeladingApp/ main.py)",
       "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe --check src/ tests/ scripts/ .github/tools/ .github/archive/ HjemmeladingApp/ main.py)",
-      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe src/ tests/ scripts/ .github/tools/ .github/archive/ HjemmeladingApp/ main.py)"
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe src/ tests/ scripts/ .github/tools/ .github/archive/ HjemmeladingApp/ main.py)",
+      "Read(//c/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/**)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe roadmap.md run_with_qt.py)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe run_with_qt.py)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe run_with_qt.py)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading"
     ]
   }
 }
