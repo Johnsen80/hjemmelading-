@@ -88,4 +88,4 @@ uiux_checklist.md
 .github/.pytest_tmp*/
 
 # Stray root-level dirs not part of src layout
-modules/
+/modules/

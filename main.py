@@ -90,9 +90,7 @@ def main():
         candidates = []
         # If frozen, check _MEIPASS siblings
         if getattr(sys, "frozen", False):
-            base = getattr(sys, "_MEIPASS", None) or os.path.dirname(
-                os.path.abspath(__file__)
-            )
+            base = getattr(sys, "_MEIPASS", None) or os.path.dirname(os.path.abspath(__file__))
             candidates += [
                 os.path.join(base, "Qt", "plugins"),
                 os.path.join(base, "plugins"),
@@ -116,12 +114,8 @@ def main():
         # sys.prefix (virtualenv) and common relative paths
         try:
             pref = Path(sys.prefix)
-            candidates.append(
-                str(pref / "Lib" / "site-packages" / "PyQt6" / "Qt" / "plugins")
-            )
-            candidates.append(
-                str(pref / "Lib" / "site-packages" / "PyQt6" / "Qt6" / "plugins")
-            )
+            candidates.append(str(pref / "Lib" / "site-packages" / "PyQt6" / "Qt" / "plugins"))
+            candidates.append(str(pref / "Lib" / "site-packages" / "PyQt6" / "Qt6" / "plugins"))
             candidates.append(str(pref / "Lib" / "site-packages" / "Qt" / "plugins"))
         except Exception:
             pass
@@ -159,9 +153,7 @@ def main():
                 f.write(f"VERSION: {sys.version}\n")
                 f.write(f"PWD: {os.getcwd()}\n")
                 f.write(f'PATH: {os.environ.get("PATH")[:4000]}\n')
-                f.write(
-                    f'QT_QPA_PLATFORM_PLUGIN_PATH: {os.environ.get("QT_QPA_PLATFORM_PLUGIN_PATH")}\n'
-                )
+                f.write(f'QT_QPA_PLATFORM_PLUGIN_PATH: {os.environ.get("QT_QPA_PLATFORM_PLUGIN_PATH")}\n')
                 f.write("-------------------------\n")
         except Exception:
             pass
@@ -169,9 +161,7 @@ def main():
     def _safe_append_debug_app_line(message: str) -> None:
         try:
             log_dir = get_log_dir()
-            with open(
-                os.path.join(log_dir, "debug_app.log"), "a", encoding="utf-8"
-            ) as f:
+            with open(os.path.join(log_dir, "debug_app.log"), "a", encoding="utf-8") as f:
                 f.write(message.rstrip() + "\n")
         except Exception:
             logger.debug("Skipping direct debug_app.log write: %s", message)
@@ -179,9 +169,7 @@ def main():
     # VIKTIG: High DPI støtte - sett FØR QApplication opprettes
     # PyQt6 har automatisk high DPI scaling, men vi setter noen attributter
     try:
-        QApplication.setHighDpiScaleFactorRoundingPolicy(
-            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-        )
+        QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     except Exception:
         pass  # Eldre PyQt6 versjoner
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
@@ -213,29 +201,45 @@ def main():
     def _global_excepthook(exc_type, exc_value, exc_traceback):
         try:
             tb = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-            logger.critical("Uncaught exception: %s", tb)
-            try:
-                append_exception("Uncaught exception", exc_value)
-            except Exception:
-                pass
-            # If a QApplication exists, show a simple dialog to inform the user.
-            try:
-                from PyQt6.QtWidgets import QApplication, QMessageBox
-
-                app_inst = QApplication.instance()
-                if app_inst is not None:
-                    try:
-                        QMessageBox.critical(
-                            None,
-                            "Uventet feil",
-                            "Et uventet problem oppstod. Se debug_err.log for detaljer.",
-                        )
-                    except Exception:
-                        pass
-            except Exception:
-                pass
         except Exception:
-            # Avoid any exceptions escaping the excepthook
+            tb = f"{exc_type}: {exc_value}"
+        # Write to err log first (most reliable path)
+        try:
+            append_exception("Uncaught exception", exc_value)
+        except Exception:
+            pass
+        # Write directly to err log file as fallback if append_exception failed
+        try:
+            from HjemmeladingApp.utils.safe_logger import get_debug_log_path
+
+            _err_path = get_debug_log_path()
+            with open(str(_err_path), "a", encoding="utf-8") as _fh:
+                import datetime as _dt
+
+                _fh.write(f"\n--- Uncaught exception (direct) @ {_dt.datetime.now().isoformat()}Z ---\n")
+                _fh.write(tb + "\n")
+        except Exception:
+            pass
+        # Also log via Python logger
+        try:
+            logger.critical("Uncaught exception: %s", tb)
+        except Exception:
+            pass
+        # If a QApplication exists, show a simple dialog to inform the user.
+        try:
+            from PyQt6.QtWidgets import QApplication, QMessageBox
+
+            app_inst = QApplication.instance()
+            if app_inst is not None:
+                try:
+                    QMessageBox.critical(
+                        None,
+                        "Uventet feil",
+                        "Et uventet problem oppstod. Se debug_err.log for detaljer.",
+                    )
+                except Exception:
+                    pass
+        except Exception:
             pass
 
     try:
@@ -253,9 +257,7 @@ def main():
         try:
             append_exception(err, e)
             try:
-                append_message(
-                    "QT_QPA_PLATFORM=" + str(os.environ.get("QT_QPA_PLATFORM"))
-                )
+                append_message("QT_QPA_PLATFORM=" + str(os.environ.get("QT_QPA_PLATFORM")))
                 append_message("PATH=" + str(os.environ.get("PATH")))
             except Exception:
                 pass
@@ -299,9 +301,7 @@ def main():
         if loaded:
             logger.info("Bundled fonts loaded: %s", loaded)
             try:
-                append_message(
-                    "Bundled fonts loaded: " + ", ".join([n for n, _ in loaded])
-                )
+                append_message("Bundled fonts loaded: " + ", ".join([n for n, _ in loaded]))
             except Exception:
                 pass
             # Also register the ttf files with matplotlib's font manager so
@@ -319,9 +319,7 @@ def main():
                 # Use the modern API when available: fontManager.addfont
                 for ttf_path in glob.glob(os.path.join(fonts_dir, "*.ttf")):
                     try:
-                        if hasattr(mfm, "fontManager") and hasattr(
-                            mfm.fontManager, "addfont"
-                        ):
+                        if hasattr(mfm, "fontManager") and hasattr(mfm.fontManager, "addfont"):
                             mfm.fontManager.addfont(ttf_path)
                         elif hasattr(mfm, "addfont"):
                             mfm.addfont(ttf_path)
@@ -335,9 +333,7 @@ def main():
                                 pass
                         logger.info("Registered font with matplotlib: %s", ttf_path)
                     except Exception as e:
-                        logger.exception(
-                            "Failed to register font with matplotlib: %s", e
-                        )
+                        logger.exception("Failed to register font with matplotlib: %s", e)
                         try:
                             append_exception(
                                 f"Failed to register font with matplotlib: {ttf_path}",
@@ -378,9 +374,7 @@ def main():
             except Exception:
                 # matplotlib not available or registration failed; continue
                 try:
-                    append_message(
-                        "matplotlib font registration skipped (matplotlib not installed)."
-                    )
+                    append_message("matplotlib font registration skipped (matplotlib not installed).")
                 except Exception:
                     pass
     except Exception:
@@ -432,9 +426,7 @@ def main():
         if getattr(sys, "frozen", False):
             # Running as a PyInstaller bundle: prefer plugin paths inside _MEIPASS
             base = getattr(sys, "_MEIPASS", None) or _base
-            logger.info(
-                "Detected frozen execution; checking Qt plugin paths under %s", base
-            )
+            logger.info("Detected frozen execution; checking Qt plugin paths under %s", base)
             # Common layout: <_MEIPASS>/Qt/plugins or <_MEIPASS>/platforms
             possible = [
                 os.path.join(base, "Qt", "plugins"),
@@ -461,22 +453,16 @@ def main():
             try:
                 spec = importlib.util.find_spec("PyQt6")
                 if spec and spec.origin:
-                    candidate = os.path.join(
-                        os.path.dirname(spec.origin), "..", "Qt", "plugins"
-                    )
+                    candidate = os.path.join(os.path.dirname(spec.origin), "..", "Qt", "plugins")
                     candidate = os.path.normpath(candidate)
                     if os.path.isdir(candidate):
                         logger.info("Running dev: adding Qt plugin path: %s", candidate)
                         try:
                             QCoreApplication.addLibraryPath(candidate)
-                            os.environ.setdefault(
-                                "QT_QPA_PLATFORM_PLUGIN_PATH", candidate
-                            )
+                            os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", candidate)
                             logger.info("Added Qt plugin path (dev): %s", candidate)
                         except Exception:
-                            logger.exception(
-                                "Failed to add Qt plugin path (dev): %s", candidate
-                            )
+                            logger.exception("Failed to add Qt plugin path (dev): %s", candidate)
             except Exception:
                 logger.exception("Error locating PyQt6 plugin path in dev env")
     except Exception:
@@ -518,9 +504,7 @@ def main():
     # Logg posisjon og størrelse
     try:
         try:
-            _safe_append_debug_app_line(
-                f"Splash pos: {splash.pos()}, size: {splash.size()}"
-            )
+            _safe_append_debug_app_line(f"Splash pos: {splash.pos()}, size: {splash.size()}")
         except Exception:
             logger.exception("Failed to write splash position to per-user log")
     except Exception:
@@ -533,9 +517,7 @@ def main():
     def still_waiting():
         if _startup_done[0]:
             return
-        splash_label.setText(
-            "Still waiting...\nIf no window appears, check debug_err.log."
-        )
+        splash_label.setText("Still waiting...\nIf no window appears, check debug_err.log.")
         if not splash.isVisible():
             splash.show()
         app.processEvents()
@@ -577,9 +559,7 @@ def main():
             pass
     except Exception as e:
 
-        error_msg = (
-            f"Det oppstod en feil under oppstart:\n{e}\n\n{traceback.format_exc()}"
-        )
+        error_msg = f"Det oppstod en feil under oppstart:\n{e}\n\n{traceback.format_exc()}"
         logger.exception("Oppstartsfeil: %s", e)
         try:
             append_exception(error_msg, e)
@@ -590,9 +570,7 @@ def main():
             splash_label.setText("Startup error:\nSee debug_err.log for details.")
             # Always-on-top and visible
             try:
-                splash.setWindowFlag(
-                    splash.windowFlags() | Qt.WindowType.WindowStaysOnTopHint
-                )
+                splash.setWindowFlag(splash.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
             except Exception:
                 pass
 

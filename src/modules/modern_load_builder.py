@@ -90,9 +90,7 @@ def show_basis_dialog():
     dlg = QDialog(None)
     dlg.setWindowTitle(tr("mlb_basis_dialog_title"))
     v = QVBoxLayout()
-    h = (
-        QVBoxLayout()
-    )  # Use QVBoxLayout for demonstration; replace with QHBoxLayout if needed
+    h = QVBoxLayout()  # Use QVBoxLayout for demonstration; replace with QHBoxLayout if needed
     show_basis_btn = QPushButton(tr("mlb_show_basis_plot"))
     h.addWidget(show_basis_btn)
     v.addLayout(h)
@@ -529,9 +527,7 @@ def build_learning_workflow_guidance(
         or ""
     ).strip()
     header_title_override = str(
-        rec_summary.get("header_title")
-        or recommendation_runtime.get("header_title")
-        or ""
+        rec_summary.get("header_title") or recommendation_runtime.get("header_title") or ""
     ).strip()
     pressure_level = str(
         _as_dict(context, "pressure_assessment").get("level")
@@ -552,13 +548,9 @@ def build_learning_workflow_guidance(
 
     smart_guidance_title = str(smart_guidance.get("title") or "").strip()
     smart_guidance_setup_line = str(smart_guidance.get("setup_line") or "").strip()
-    smart_next_test_action = str(
-        smart_next_test.get("recommended_action") or ""
-    ).strip()
+    smart_next_test_action = str(smart_next_test.get("recommended_action") or "").strip()
     smart_execution_summary = str(smart_execution_plan.get("summary") or "").strip()
-    smart_evidence_diag_action = str(
-        smart_evidence_diagnostics.get("suggested_action") or ""
-    ).strip()
+    smart_evidence_diag_action = str(smart_evidence_diagnostics.get("suggested_action") or "").strip()
     focus_labels = {
         "capture_measured_velocity": "capture measured velocity",
         "capture_group_validation": "capture group validation",
@@ -597,7 +589,9 @@ def build_learning_workflow_guidance(
 
     # --- Priority 3: signal_hint branches ---
     if signal_hint == "possible_shooter_or_setup_signal":
-        setup_line = "Test setup: repeat one controlled group before blaming the load. Rule out shooter or setup error first."
+        setup_line = (
+            "Test setup: repeat one controlled group before blaming the load. Rule out shooter or setup error first."
+        )
         header = "Learning priority: repeat before rejecting the load"
         if confidence_label:
             header += f" ({confidence_label})"
@@ -607,7 +601,9 @@ def build_learning_workflow_guidance(
         return {"header": header, "setup": setup_line, "card_hint": card_hint}
 
     if signal_hint == "ammo_or_process_signal":
-        setup_line = "Test setup: chrono every shot and check neck tension, primer seating depth, and case prep consistency."
+        setup_line = (
+            "Test setup: chrono every shot and check neck tension, primer seating depth, and case prep consistency."
+        )
         header = "Learning priority: confirm ammo and loading process"
         if confidence_label:
             header += f" ({confidence_label})"
@@ -638,22 +634,16 @@ def build_learning_workflow_guidance(
         bcmp_explanation = _as_dict(session_summary, "batch_comparison_explanation")
         bcmp_verdict = _as_dict(session_summary, "batch_comparison_verdict")
         bcmp_acceptance = _as_dict(session_summary, "batch_comparison_acceptance")
-        bcmp_progress = _as_dict(
-            session_summary, "batch_comparison_acceptance_progress"
-        )
+        bcmp_progress = _as_dict(session_summary, "batch_comparison_acceptance_progress")
         bcmp_next_test = _as_dict(session_summary, "batch_comparison_next_test")
         bcmp_board = _as_dict(session_summary, "batch_comparison_status_board")
-        bcmp_profile_prio = _as_dict(
-            session_summary, "batch_comparison_profile_priority"
-        )
+        bcmp_profile_prio = _as_dict(session_summary, "batch_comparison_profile_priority")
         bcmp_mission = _as_dict(session_summary, "batch_comparison_mission_brief")
         bcmp_portfolio = _as_dict(session_summary, "batch_comparison_portfolio")
         bcmp_strategy = _as_dict(session_summary, "batch_comparison_session_strategy")
         bcmp_campaign = _as_dict(session_summary, "batch_comparison_campaign_view")
         bcmp_action_plan = _as_dict(session_summary, "batch_comparison_action_plan")
-        bcmp_campaign_board = _as_dict(
-            session_summary, "batch_comparison_campaign_board"
-        )
+        bcmp_campaign_board = _as_dict(session_summary, "batch_comparison_campaign_board")
         bcmp_queue = _as_dict(session_summary, "batch_comparison_session_queue")
         bcmp_manifest = _as_dict(session_summary, "batch_comparison_session_manifest")
         bcmp_brief = _as_dict(session_summary, "batch_comparison_next_session_brief")
@@ -742,9 +732,7 @@ def build_learning_workflow_guidance(
             if _wc_parts:
                 setup_parts.append(f"Workboard counts: {' | '.join(_wc_parts)}")
         if _wb_lanes:
-            _wl_sums = [
-                str(ln.get("summary") or "") for ln in _wb_lanes if ln.get("summary")
-            ]
+            _wl_sums = [str(ln.get("summary") or "") for ln in _wb_lanes if ln.get("summary")]
             if _wl_sums:
                 setup_parts.append(f"Workboard lanes: {' | '.join(_wl_sums)}")
         if _ch_prio:
@@ -779,9 +767,7 @@ def build_learning_workflow_guidance(
         _cl_title = str(bsc_checklist.get("title") or "").strip()
         _cl_items = _as_list(bsc_checklist, "items")
         if _cl_title and _cl_items:
-            _item_labels = [
-                str(i.get("label") or "") for i in _cl_items if i.get("label")
-            ]
+            _item_labels = [str(i.get("label") or "") for i in _cl_items if i.get("label")]
             cb.append(f"Checklist: {_cl_title} -> {' | '.join(_item_labels)}")
         _val_label = str(bsc_validation.get("label") or "").strip()
         _val_score = _coerce_float(bsc_validation.get("readiness_score"))
@@ -903,14 +889,10 @@ def build_learning_workflow_guidance(
         if _mf_q_preview:
             cb.append(" | ".join(str(p) for p in _mf_q_preview))
         if _mf_lanes:
-            _lane_sums = [
-                str(ln.get("summary") or "") for ln in _mf_lanes if ln.get("summary")
-            ]
+            _lane_sums = [str(ln.get("summary") or "") for ln in _mf_lanes if ln.get("summary")]
             if _lane_sums:
                 cb.append(" | ".join(_lane_sums))
-            _lane_labels = [
-                f"lane {ln.get('bucket')}" for ln in _mf_lanes if ln.get("bucket")
-            ]
+            _lane_labels = [f"lane {ln.get('bucket')}" for ln in _mf_lanes if ln.get("bucket")]
             if _lane_labels:
                 cb.append(" | ".join(_lane_labels))
         _brief_title = str(bcmp_brief.get("title") or "").strip()
@@ -942,9 +924,7 @@ def build_learning_workflow_guidance(
             cb.append(_wb_status)
         _wb_lanes2 = _as_list(bcmp_workboard, "lane_summaries")
         if _wb_lanes2:
-            _wl2 = [
-                str(ln.get("summary") or "") for ln in _wb_lanes2 if ln.get("summary")
-            ]
+            _wl2 = [str(ln.get("summary") or "") for ln in _wb_lanes2 if ln.get("summary")]
             if _wl2:
                 cb.append(" | ".join(_wl2))
             _wll = [f"lane {ln.get('bucket')}" for ln in _wb_lanes2 if ln.get("bucket")]
@@ -1010,13 +990,9 @@ def build_learning_workflow_guidance(
         if _ret_charge.get("label"):
             setup_parts2.append(f"Charge target: {_ret_charge['label']}")
         if smart_baseline_control.get("active_return_line"):
-            setup_parts2.append(
-                f"Baseline control: {smart_baseline_control['active_return_line']}"
-            )
+            setup_parts2.append(f"Baseline control: {smart_baseline_control['active_return_line']}")
         setup_line = " ".join(setup_parts2)
-        _eff_header = (
-            smart_guidance_title or header_title_override or "Learning priority"
-        )
+        _eff_header = smart_guidance_title or header_title_override or "Learning priority"
         if _eff_header.lower() != "learning priority":
             header = f"Learning priority: {_eff_header}"
         else:
@@ -1029,11 +1005,7 @@ def build_learning_workflow_guidance(
         _nf2 = str(smart_candidate_profile.get("node_fit") or "").strip()
         _ht = str(smart_harmonics.get("stability_tier") or "").strip()
         if _rp or _nf2 or _ht:
-            data_bits2.append(
-                f"Engine robustness: {_rp}, node fit {_nf2}, harmonics {_ht}".strip(
-                    ", "
-                )
-            )
+            data_bits2.append(f"Engine robustness: {_rp}, node fit {_nf2}, harmonics {_ht}".strip(", "))
         if smart_next_test_action:
             data_bits2.append(f"Engine next test: {smart_next_test_action}")
         _vg_label = str(smart_validation_gate.get("label") or "").strip()
@@ -1050,14 +1022,10 @@ def build_learning_workflow_guidance(
         if blocked_by:
             _bl = blocked_by[0]
             if isinstance(_bl, dict):
-                data_bits2.append(
-                    f"Engine blocker: {_bl.get('title') or _bl.get('kind') or ''}"
-                )
+                data_bits2.append(f"Engine blocker: {_bl.get('title') or _bl.get('kind') or ''}")
         _rc_level = str(smart_recommendation_confidence.get("level") or "").strip()
         _rc_score = _coerce_float(smart_recommendation_confidence.get("score"))
-        _rc_uncertainty = str(
-            smart_recommendation_confidence.get("uncertainty") or ""
-        ).strip()
+        _rc_uncertainty = str(smart_recommendation_confidence.get("uncertainty") or "").strip()
         if _rc_level:
             _rcs = f"Engine confidence: {_rc_level}"
             if _rc_score is not None:
@@ -1083,20 +1051,14 @@ def build_learning_workflow_guidance(
         if _branch_disp:
             data_bits2.append(f"Engine branch: {_branch_disp}")
         if smart_baseline_control.get("active_return_line"):
-            data_bits2.append(
-                f"Engine baseline control: {smart_baseline_control['active_return_line']}"
-            )
+            data_bits2.append(f"Engine baseline control: {smart_baseline_control['active_return_line']}")
         if data_bits2:
             card_hint += " " + " | ".join(data_bits2) + "."
         return {"header": header, "setup": setup_line, "card_hint": card_hint}
 
     # --- Default: next_focus / weakest_link branches ---
     setup_line = ""
-    if (
-        not setup_line
-        and smart_execution_summary
-        and pressure_level not in {"critical", "warning"}
-    ):
+    if not setup_line and smart_execution_summary and pressure_level not in {"critical", "warning"}:
         setup_line = f"Test setup: {smart_execution_summary}"
     if not setup_line and next_focus == "capture_measured_velocity":
         setup_line = "Test setup: run a 5-shot chrono confirmation at the current seating before using new grouping results as the node signal."
@@ -1127,9 +1089,7 @@ def build_learning_workflow_guidance(
     if next_focus:
         title_parts.append(focus_labels.get(next_focus, next_focus.replace("_", " ")))
     if weakest_link:
-        title_parts.append(
-            f"weakest link {weakest_labels.get(weakest_link, weakest_link)}"
-        )
+        title_parts.append(f"weakest link {weakest_labels.get(weakest_link, weakest_link)}")
     header = "Learning priority"
     if header_title_override:
         header += ": " + header_title_override
@@ -1145,9 +1105,7 @@ def build_learning_workflow_guidance(
     _nf3 = str(smart_candidate_profile.get("node_fit") or "").strip()
     _ht3 = str(smart_harmonics.get("stability_tier") or "").strip()
     if _rp3 or _nf3 or _ht3:
-        data_bits3.append(
-            f"Engine robustness: {_rp3}, node fit {_nf3}, harmonics {_ht3}".strip(", ")
-        )
+        data_bits3.append(f"Engine robustness: {_rp3}, node fit {_nf3}, harmonics {_ht3}".strip(", "))
     if smart_next_test_action:
         data_bits3.append(f"Engine next test: {smart_next_test_action}")
     _conf_level3 = str(smart_recommendation_confidence.get("level") or "").strip()
@@ -1210,57 +1168,23 @@ def build_setup_line(
     smart_recommendation_confidence=None,
 ):
     # Definer alle variabler som brukes nedenfor, hvis de ikke allerede er definert
-    comparison_session_manifest_bucket = str(
-        batch_comparison_session_manifest.get("primary_bucket") or ""
-    ).strip()
-    comparison_session_manifest_first = str(
-        batch_comparison_session_manifest.get("first_batch_name") or ""
-    ).strip()
-    comparison_session_manifest_preview = _as_list(
-        batch_comparison_session_manifest, "queue_preview"
-    )
-    comparison_session_manifest_lanes = _as_list(
-        batch_comparison_session_manifest, "lane_summaries"
-    )
-    comparison_next_session_brief_title = str(
-        batch_comparison_next_session_brief.get("title") or ""
-    ).strip()
-    comparison_next_session_brief_summary = str(
-        batch_comparison_next_session_brief.get("summary") or ""
-    ).strip()
-    comparison_next_session_brief_action = str(
-        batch_comparison_next_session_brief.get("primary_action") or ""
-    ).strip()
-    comparison_next_session_brief_hold = str(
-        batch_comparison_next_session_brief.get("hold_back") or ""
-    ).strip()
-    comparison_today_plan_title = str(
-        batch_comparison_today_plan.get("title") or ""
-    ).strip()
-    comparison_today_plan_summary = str(
-        batch_comparison_today_plan.get("summary") or ""
-    ).strip()
-    comparison_today_plan_action = str(
-        batch_comparison_today_plan.get("primary_action") or ""
-    ).strip()
-    comparison_workboard_title = str(
-        batch_comparison_workboard.get("title") or ""
-    ).strip()
-    comparison_workboard_summary = str(
-        batch_comparison_workboard.get("summary") or ""
-    ).strip()
-    comparison_workboard_status = str(
-        batch_comparison_workboard.get("status_label") or ""
-    ).strip()
-    comparison_workboard_action = str(
-        batch_comparison_workboard.get("primary_action") or ""
-    ).strip()
-    comparison_workboard_first = str(
-        batch_comparison_workboard.get("first_batch_name") or ""
-    ).strip()
-    comparison_workboard_bucket = str(
-        batch_comparison_workboard.get("primary_bucket") or ""
-    ).strip()
+    comparison_session_manifest_bucket = str(batch_comparison_session_manifest.get("primary_bucket") or "").strip()
+    comparison_session_manifest_first = str(batch_comparison_session_manifest.get("first_batch_name") or "").strip()
+    comparison_session_manifest_preview = _as_list(batch_comparison_session_manifest, "queue_preview")
+    comparison_session_manifest_lanes = _as_list(batch_comparison_session_manifest, "lane_summaries")
+    comparison_next_session_brief_title = str(batch_comparison_next_session_brief.get("title") or "").strip()
+    comparison_next_session_brief_summary = str(batch_comparison_next_session_brief.get("summary") or "").strip()
+    comparison_next_session_brief_action = str(batch_comparison_next_session_brief.get("primary_action") or "").strip()
+    comparison_next_session_brief_hold = str(batch_comparison_next_session_brief.get("hold_back") or "").strip()
+    comparison_today_plan_title = str(batch_comparison_today_plan.get("title") or "").strip()
+    comparison_today_plan_summary = str(batch_comparison_today_plan.get("summary") or "").strip()
+    comparison_today_plan_action = str(batch_comparison_today_plan.get("primary_action") or "").strip()
+    comparison_workboard_title = str(batch_comparison_workboard.get("title") or "").strip()
+    comparison_workboard_summary = str(batch_comparison_workboard.get("summary") or "").strip()
+    comparison_workboard_status = str(batch_comparison_workboard.get("status_label") or "").strip()
+    comparison_workboard_action = str(batch_comparison_workboard.get("primary_action") or "").strip()
+    comparison_workboard_first = str(batch_comparison_workboard.get("first_batch_name") or "").strip()
+    comparison_workboard_bucket = str(batch_comparison_workboard.get("primary_bucket") or "").strip()
     comparison_workboard_counts = _as_dict(batch_comparison_workboard, "counts")
     comparison_workboard_counts_text = " | ".join(
         f"{bucket} {int(value)}"
@@ -1289,9 +1213,7 @@ def build_setup_line(
         charges.append(c)
         velocities.append(v)
     if not charges:
-        QMessageBox.information(
-            self, tr("mlb_no_data_title"), tr("mlb_no_test_results_refit")
-        )
+        QMessageBox.information(self, tr("mlb_no_data_title"), tr("mlb_no_test_results_refit"))
         return
     from ..utils.gp_optimizer import suggest_next_charge
 
@@ -1321,9 +1243,7 @@ def build_setup_line(
         sc2 = r[1]
         cd2 = r[2]
         basis2 = (r[3] or "")[:200]
-        item2 = QListWidgetItem(
-            f"#{sid2} — {format_weight_grains(sc2, 'powder')} — {cd2} — {basis2}"
-        )
+        item2 = QListWidgetItem(f"#{sid2} — {format_weight_grains(sc2, 'powder')} — {cd2} — {basis2}")
         item2.setData(Qt.ItemDataRole.UserRole, sid2)
         listw.addItem(item2)
 
@@ -1389,21 +1309,13 @@ def build_setup_line(
         if smart_validation_next_gate:
             setup_line += f" Validation gate: {smart_validation_next_gate}"
         first_keep_constant = next(
-            (
-                str(item).strip()
-                for item in smart_execution_keep_constant
-                if str(item).strip()
-            ),
+            (str(item).strip() for item in smart_execution_keep_constant if str(item).strip()),
             "",
         )
         if first_keep_constant:
             setup_line += f" Keep constant: {first_keep_constant}"
         first_capture = next(
-            (
-                str(item).strip()
-                for item in smart_execution_capture
-                if str(item).strip()
-            ),
+            (str(item).strip() for item in smart_execution_capture if str(item).strip()),
             "",
         )
         if first_capture:
@@ -1436,9 +1348,7 @@ def build_setup_line(
     if next_focus:
         title_parts.append(focus_labels.get(next_focus, next_focus.replace("_", " ")))
     if weakest_link:
-        title_parts.append(
-            f"weakest link {weakest_labels.get(weakest_link, weakest_link)}"
-        )
+        title_parts.append(f"weakest link {weakest_labels.get(weakest_link, weakest_link)}")
 
     if not setup_line and next_focus == "capture_measured_velocity":
         setup_line = "Test setup: run a 5-shot chrono confirmation at the current seating before using new grouping results as the node signal."
@@ -1475,9 +1385,7 @@ def build_setup_line(
 
     data_bits = []
     if chrono_count or test_count:
-        data_bits.append(
-            f"Data foundation: {chrono_count} chrono, {test_count} validation tests"
-        )
+        data_bits.append(f"Data foundation: {chrono_count} chrono, {test_count} validation tests")
     if pressure_level in {"critical", "warning"}:
         data_bits.append(f"Pressure state: {pressure_level}")
     elif input_quality_level:
@@ -1540,11 +1448,7 @@ def build_setup_line(
             engine_plan_text += f" [{smart_execution_session_type}]"
         data_bits.append(engine_plan_text)
     first_engine_keep_constant = next(
-        (
-            str(item).strip()
-            for item in smart_execution_keep_constant
-            if str(item).strip()
-        ),
+        (str(item).strip() for item in smart_execution_keep_constant if str(item).strip()),
         "",
     )
     if first_engine_keep_constant:
@@ -1565,8 +1469,7 @@ def build_setup_line(
         (
             str(item.get("title") or item.get("kind") or "").strip()
             for item in smart_blocked_by
-            if isinstance(item, dict)
-            and str(item.get("title") or item.get("kind") or "").strip()
+            if isinstance(item, dict) and str(item.get("title") or item.get("kind") or "").strip()
         ),
         "",
     )
@@ -1590,9 +1493,7 @@ def build_setup_line(
         if first_evidence_item:
             evidence_text += f" - {first_evidence_item}"
         data_bits.append(evidence_text)
-    first_evidence_focus = next(
-        (str(item).strip() for item in smart_evidence_focus if str(item).strip()), ""
-    )
+    first_evidence_focus = next((str(item).strip() for item in smart_evidence_focus if str(item).strip()), "")
     if first_evidence_focus:
         data_bits.append(f"Engine evidence focus: {first_evidence_focus}")
     if smart_branch_display_line:
@@ -1666,10 +1567,7 @@ def build_setup_line(
         progress_text = f"Acceptance progress: {comparison_acceptance_progress_level}"
         if comparison_acceptance_progress_score is not None:
             progress_text += f" ({comparison_acceptance_progress_score:.1f}/100)"
-        if (
-            comparison_acceptance_progress_passed is not None
-            and comparison_acceptance_progress_total is not None
-        ):
+        if comparison_acceptance_progress_passed is not None and comparison_acceptance_progress_total is not None:
             progress_text += f" {comparison_acceptance_progress_passed}/{comparison_acceptance_progress_total}"
         if comparison_acceptance_progress_summary:
             progress_text += f" - {comparison_acceptance_progress_summary}"
@@ -1728,9 +1626,7 @@ def build_setup_line(
             board2_text += f" - {comparison_campaign_board_summary}"
         if comparison_campaign_board_preview:
             board2_text += " - " + " | ".join(
-                str(item).strip()
-                for item in comparison_campaign_board_preview[:3]
-                if str(item).strip()
+                str(item).strip() for item in comparison_campaign_board_preview[:3] if str(item).strip()
             )
         data_bits.append(board2_text)
     if comparison_session_queue_title:
@@ -1739,9 +1635,7 @@ def build_setup_line(
             queue_text += f" - first {comparison_session_queue_first}"
         if comparison_session_queue_preview:
             queue_text += " - " + " | ".join(
-                str(item).strip()
-                for item in comparison_session_queue_preview[:3]
-                if str(item).strip()
+                str(item).strip() for item in comparison_session_queue_preview[:3] if str(item).strip()
             )
         data_bits.append(queue_text)
     if comparison_session_manifest_title:
@@ -1752,9 +1646,7 @@ def build_setup_line(
             manifest_text += f" - {comparison_session_manifest_summary}"
         if comparison_session_manifest_preview:
             manifest_text += " - " + " | ".join(
-                str(item).strip()
-                for item in comparison_session_manifest_preview[:3]
-                if str(item).strip()
+                str(item).strip() for item in comparison_session_manifest_preview[:3] if str(item).strip()
             )
         if comparison_session_manifest_lanes:
             manifest_text += " - " + " | ".join(
@@ -1854,46 +1746,21 @@ def summarize_runtime_primer_review(runtime: dict | None) -> dict[str, Any]:
         barrel_label = setup_label
     barrel_context = f" for barrel {barrel_label}" if barrel_label else ""
 
-    status = (
-        str(
-            primer_review.get("status") or summary.get("primer_review_status") or "none"
-        )
-        .strip()
-        .lower()
-    )
+    status = str(primer_review.get("status") or summary.get("primer_review_status") or "none").strip().lower()
     enabled_count = (
-        _coerce_int(
-            primer_review.get("enabled_session_count")
-            or summary.get("primer_review_enabled_session_count")
-        )
+        _coerce_int(primer_review.get("enabled_session_count") or summary.get("primer_review_enabled_session_count"))
         or 0
     )
     disabled_count = (
-        _coerce_int(
-            primer_review.get("disabled_session_count")
-            or summary.get("primer_review_disabled_session_count")
-        )
+        _coerce_int(primer_review.get("disabled_session_count") or summary.get("primer_review_disabled_session_count"))
         or 0
     )
     reviewed_count = (
-        _coerce_int(
-            primer_review.get("reviewed_session_count")
-            or summary.get("primer_review_session_count")
-        )
-        or 0
+        _coerce_int(primer_review.get("reviewed_session_count") or summary.get("primer_review_session_count")) or 0
     )
-    image_count = (
-        _coerce_int(
-            primer_review.get("review_image_count")
-            or summary.get("primer_review_image_count")
-        )
-        or 0
-    )
+    image_count = _coerce_int(primer_review.get("review_image_count") or summary.get("primer_review_image_count")) or 0
     pressure_review_count = (
-        _coerce_int(
-            primer_review.get("pressure_sign_review_count")
-            or summary.get("pressure_sign_primer_review_count")
-        )
+        _coerce_int(primer_review.get("pressure_sign_review_count") or summary.get("pressure_sign_primer_review_count"))
         or 0
     )
 
@@ -1908,9 +1775,7 @@ def summarize_runtime_primer_review(runtime: dict | None) -> dict[str, Any]:
     if status == "captured":
         review_bits = []
         if reviewed_count:
-            review_bits.append(
-                f"{reviewed_count} reviewed session{'s' if reviewed_count != 1 else ''}"
-            )
+            review_bits.append(f"{reviewed_count} reviewed session{'s' if reviewed_count != 1 else ''}")
         if image_count:
             review_bits.append(f"{image_count} image{'s' if image_count != 1 else ''}")
         if pressure_review_count:
@@ -1983,15 +1848,9 @@ def build_runtime_analysis_context(
     return {
         "pressure_assessment": pressure_assessment,
         "internal_ballistics": internal_ballistics,
-        "brass_context": resolve_runtime_learning_context(
-            runtime, fallback, "brass_context"
-        ),
-        "barrel_context": resolve_runtime_learning_context(
-            runtime, fallback, "barrel_context"
-        ),
-        "stability_assessment": resolve_runtime_learning_context(
-            runtime, fallback, "stability_assessment"
-        ),
+        "brass_context": resolve_runtime_learning_context(runtime, fallback, "brass_context"),
+        "barrel_context": resolve_runtime_learning_context(runtime, fallback, "barrel_context"),
+        "stability_assessment": resolve_runtime_learning_context(runtime, fallback, "stability_assessment"),
         "primer_review": summarize_runtime_primer_review(runtime),
     }
 
@@ -2026,21 +1885,13 @@ def summarize_charge_promotion_candidate(
     suggested_charge = _coerce_float(result.get("suggested_charge"))
     model = _as_dict(result, "model")
     _observed_range_raw = result.get("observed_range")
-    observed_range: list[Any] = (
-        list(_observed_range_raw)
-        if isinstance(_observed_range_raw, (tuple, list))
-        else []
-    )
+    observed_range: list[Any] = list(_observed_range_raw) if isinstance(_observed_range_raw, (tuple, list)) else []
     sample_count = _coerce_int(result.get("sample_count")) or 0
     current_charge = _coerce_float(current_charge_gr)
     model_a = _coerce_float(model.get("a"))
     model_r2 = _coerce_float(model.get("r2"))
-    observed_min = (
-        _coerce_float(observed_range[0]) if len(observed_range) == 2 else None
-    )
-    observed_max = (
-        _coerce_float(observed_range[1]) if len(observed_range) == 2 else None
-    )
+    observed_min = _coerce_float(observed_range[0]) if len(observed_range) == 2 else None
+    observed_max = _coerce_float(observed_range[1]) if len(observed_range) == 2 else None
     observed_span = None
     if observed_min is not None and observed_max is not None:
         observed_span = round(observed_max - observed_min, 2)
@@ -2068,9 +1919,7 @@ def summarize_charge_promotion_candidate(
             "model_r2": model_r2,
             "sample_count": sample_count,
             "observed_range_gr": (
-                [observed_min, observed_max]
-                if observed_min is not None and observed_max is not None
-                else None
+                [observed_min, observed_max] if observed_min is not None and observed_max is not None else None
             ),
             "charge_delta_gr": charge_delta,
         }
@@ -2088,9 +1937,7 @@ def summarize_charge_promotion_candidate(
         "model_r2": model_r2,
         "sample_count": sample_count,
         "observed_range_gr": (
-            [observed_min, observed_max]
-            if observed_min is not None and observed_max is not None
-            else None
+            [observed_min, observed_max] if observed_min is not None and observed_max is not None else None
         ),
         "charge_delta_gr": charge_delta,
     }
@@ -2128,11 +1975,7 @@ def build_evidence_recommendation_baseline(
     baseline_readiness = _as_dict(recommendation, "baseline_readiness")
     promotion_candidate = _as_dict(_seating, "promotion_candidate")
     best_known_evidence = _as_dict(_seating, "best_known_evidence")
-    _cpq: dict[str, Any] = (
-        charge_promotion_candidate
-        if isinstance(charge_promotion_candidate, dict)
-        else {}
-    )
+    _cpq: dict[str, Any] = charge_promotion_candidate if isinstance(charge_promotion_candidate, dict) else {}
     charge_promotion_candidate = _cpq
     quality_level = str(input_quality.get("level") or "").strip().lower()
     quality_score = _coerce_float(input_quality.get("score")) or 0.0
@@ -2142,26 +1985,14 @@ def build_evidence_recommendation_baseline(
     allow_recommended_seating = bool(baseline_readiness.get("seating_can_freeze"))
     if not baseline_readiness:
         allow_recommended_charge = (
-            quality_level in {"medium", "high"}
-            and quality_score >= 2.5
-            and (chrono_count >= 1 or accuracy_count >= 1)
+            quality_level in {"medium", "high"} and quality_score >= 2.5 and (chrono_count >= 1 or accuracy_count >= 1)
         )
-        allow_recommended_seating = (
-            quality_level in {"medium", "high"}
-            and quality_score >= 2.5
-            and accuracy_count >= 1
-        )
+        allow_recommended_seating = quality_level in {"medium", "high"} and quality_score >= 2.5 and accuracy_count >= 1
 
     barrel_name = str(rifle_context.get("barrel_name") or "").strip()
-    barrel_configuration_id = str(
-        rifle_context.get("barrel_configuration_id") or ""
-    ).strip()
-    barrel_configuration_name = str(
-        rifle_context.get("barrel_configuration_name") or ""
-    ).strip()
-    setup_label = _format_barrel_configuration_label(
-        barrel_configuration_name, barrel_name
-    )
+    barrel_configuration_id = str(rifle_context.get("barrel_configuration_id") or "").strip()
+    barrel_configuration_name = str(rifle_context.get("barrel_configuration_name") or "").strip()
+    setup_label = _format_barrel_configuration_label(barrel_configuration_name, barrel_name)
 
     baseline: dict[str, Any] = {
         "available": False,
@@ -2172,28 +2003,21 @@ def build_evidence_recommendation_baseline(
         "charge_source": "current",
         "seating_source": "current",
         "trust_score": _coerce_float(input_quality.get("score")),
-        "trust_label": str(input_quality.get("level") or "unknown").strip().lower()
-        or "unknown",
+        "trust_label": str(input_quality.get("level") or "unknown").strip().lower() or "unknown",
         "barrel_name": barrel_name,
         "barrel_configuration_id": barrel_configuration_id or None,
         "barrel_configuration_name": barrel_configuration_name,
         "setup_label": setup_label,
     }
 
-    promoted_charge = _coerce_float(
-        charge_promotion_candidate.get("promoted_charge_gr")
-    )
+    promoted_charge = _coerce_float(charge_promotion_candidate.get("promoted_charge_gr"))
     if charge_promotion_candidate.get("eligible") and promoted_charge is not None:
         baseline["available"] = True
         baseline["charge_gr"] = round(promoted_charge, 2)
         baseline["charge_source"] = "learned"
         baseline["charge_source_detail"] = "history"
     charge_window = _as_list(recommendation, "charge_window_gr")
-    if (
-        baseline.get("charge_source") != "learned"
-        and allow_recommended_charge
-        and len(charge_window) == 2
-    ):
+    if baseline.get("charge_source") != "learned" and allow_recommended_charge and len(charge_window) == 2:
         charge_min = _coerce_float(charge_window[0])
         charge_max = _coerce_float(charge_window[1])
         if charge_min is not None and charge_max is not None:
@@ -2208,9 +2032,7 @@ def build_evidence_recommendation_baseline(
         seat_max = _coerce_float(seating_window[1])
         if seat_min is not None and seat_max is not None:
             baseline["available"] = True
-            baseline["coal_mm"] = round(
-                float(coal_mm) + ((seat_min + seat_max) / 2.0), 2
-            )
+            baseline["coal_mm"] = round(float(coal_mm) + ((seat_min + seat_max) / 2.0), 2)
             baseline["seating_window_mm"] = [seat_min, seat_max]
             baseline["seating_source"] = "recommended"
 
@@ -2222,9 +2044,7 @@ def build_evidence_recommendation_baseline(
         baseline["seating_source"] = "learned"
         seating_source_detail = "sweet_spot"
     else:
-        evidence_confidence = (
-            str(best_known_evidence.get("confidence") or "").strip().lower()
-        )
+        evidence_confidence = str(best_known_evidence.get("confidence") or "").strip().lower()
         evidence_cbto = _coerce_float(best_known_evidence.get("cbto_mm"))
         if evidence_confidence == "high" and evidence_cbto is not None:
             target_cbto = evidence_cbto
@@ -2236,30 +2056,16 @@ def build_evidence_recommendation_baseline(
         baseline["cbto_mm"] = round(target_cbto, 2)
         baseline["seating_source_detail"] = seating_source_detail
         if coal_mm is not None and cbto_mm is not None:
-            baseline["coal_mm"] = round(
-                float(coal_mm) + (target_cbto - float(cbto_mm)), 2
-            )
+            baseline["coal_mm"] = round(float(coal_mm) + (target_cbto - float(cbto_mm)), 2)
 
     summary_bits: list[str] = []
-    if (
-        baseline.get("charge_source") == "learned"
-        and baseline.get("charge_gr") is not None
-    ):
+    if baseline.get("charge_source") == "learned" and baseline.get("charge_gr") is not None:
         summary_bits.append(f"learned charge {float(baseline['charge_gr']):.2f} gr")
-    elif (
-        baseline.get("charge_source") == "recommended"
-        and baseline.get("charge_gr") is not None
-    ):
+    elif baseline.get("charge_source") == "recommended" and baseline.get("charge_gr") is not None:
         summary_bits.append(f"charge {float(baseline['charge_gr']):.2f} gr")
-    if (
-        baseline.get("seating_source") == "learned"
-        and baseline.get("cbto_mm") is not None
-    ):
+    if baseline.get("seating_source") == "learned" and baseline.get("cbto_mm") is not None:
         summary_bits.append(f"learned seating {float(baseline['cbto_mm']):.2f} mm CBTO")
-    elif (
-        baseline.get("seating_source") == "recommended"
-        and baseline.get("coal_mm") is not None
-    ):
+    elif baseline.get("seating_source") == "recommended" and baseline.get("coal_mm") is not None:
         summary_bits.append(f"seating {float(baseline['coal_mm']):.2f} mm COAL")
     if setup_label:
         summary_bits.append(f"setup {setup_label}")
@@ -2304,9 +2110,7 @@ def build_recommendation_control_state(
         charge_state = "learned" if charge_aligned else "custom"
     else:
         charge_state = "recommended" if charge_aligned else "custom"
-    seating_source = (
-        str(baseline.get("seating_source") or "recommended").strip().lower()
-    )
+    seating_source = str(baseline.get("seating_source") or "recommended").strip().lower()
     if seating_source == "learned":
         seating_state = "learned" if seating_aligned else "custom"
     else:
@@ -2387,12 +2191,8 @@ def summarize_recommendation_evidence_basis(
     chrono_count = int(observation_summary.get("chrono_count") or 0)
     accuracy_count = int(observation_summary.get("accuracy_count") or 0)
     quality_title = str(input_quality.get("title") or "Input quality unknown").strip()
-    quality_level = (
-        str(input_quality.get("level") or "unknown").strip().lower() or "unknown"
-    )
-    setup_label = str(
-        _baseline.get("setup_label") or ""
-    ).strip() or _format_barrel_configuration_label(
+    quality_level = str(input_quality.get("level") or "unknown").strip().lower() or "unknown"
+    setup_label = str(_baseline.get("setup_label") or "").strip() or _format_barrel_configuration_label(
         str(rifle_context.get("barrel_configuration_name") or "").strip(),
         str(rifle_context.get("barrel_name") or "").strip(),
     )
@@ -2406,9 +2206,7 @@ def summarize_recommendation_evidence_basis(
     else:
         measured_parts.append("no chrono series support charge guidance yet")
     if accuracy_count > 0:
-        measured_parts.append(
-            f"{accuracy_count} accuracy/group sessions support seating guidance"
-        )
+        measured_parts.append(f"{accuracy_count} accuracy/group sessions support seating guidance")
     else:
         measured_parts.append("no group data supports seating guidance yet")
 
@@ -2429,17 +2227,13 @@ def summarize_recommendation_evidence_basis(
     if charge_source == "learned":
         learned_parts.append("charge baseline is learned from history")
     elif baseline_readiness.get("charge_can_freeze"):
-        learned_parts.append(
-            "charge baseline has measured support but is not learned history yet"
-        )
+        learned_parts.append("charge baseline has measured support but is not learned history yet")
     else:
         learned_parts.append("charge baseline is still modeled only")
     if seating_source == "learned":
         learned_parts.append("seating baseline is learned from history")
     elif baseline_readiness.get("seating_can_freeze"):
-        learned_parts.append(
-            "seating baseline has measured support but is not learned history yet"
-        )
+        learned_parts.append("seating baseline has measured support but is not learned history yet")
     else:
         learned_parts.append("seating baseline is still modeled only")
 
@@ -2456,9 +2250,7 @@ def summarize_recommendation_evidence_basis(
     compact_parts.append(
         f"Modeled: charge {'yes' if len(charge_window) == 2 else 'no'}, seating {'yes' if len(seating_window) == 2 else 'no'}"
     )
-    compact_parts.append(
-        f"Learned: charge {charge_source or 'none'}, seating {seating_source or 'none'}"
-    )
+    compact_parts.append(f"Learned: charge {charge_source or 'none'}, seating {seating_source or 'none'}")
     compact = " | ".join(compact_parts)
     return {
         "title": "Recommendation Basis",
@@ -2477,10 +2269,7 @@ def summarize_recommendation_return_targets(
         return []
 
     target_lines: list[str] = []
-    charge_source = (
-        str(baseline.get("charge_source") or "recommended").strip().lower()
-        or "recommended"
-    )
+    charge_source = str(baseline.get("charge_source") or "recommended").strip().lower() or "recommended"
     charge_source_label = (
         "learned baseline"
         if charge_source == "learned"
@@ -2490,14 +2279,9 @@ def summarize_recommendation_return_targets(
     if charge_target is None:
         charge_target = _coerce_float(baseline.get("charge_gr"))
     if charge_target is not None:
-        target_lines.append(
-            f"Charge target ({charge_source_label}): {charge_target:.2f} gr"
-        )
+        target_lines.append(f"Charge target ({charge_source_label}): {charge_target:.2f} gr")
 
-    seating_source = (
-        str(baseline.get("seating_source") or "recommended").strip().lower()
-        or "recommended"
-    )
+    seating_source = str(baseline.get("seating_source") or "recommended").strip().lower() or "recommended"
     seating_source_label = (
         "learned baseline"
         if seating_source == "learned"
@@ -2510,13 +2294,9 @@ def summarize_recommendation_return_targets(
     if coal_target is None:
         coal_target = _coerce_float(baseline.get("coal_mm"))
     if cbto_target is not None:
-        target_lines.append(
-            f"Seating target ({seating_source_label}): {cbto_target:.2f} mm CBTO"
-        )
+        target_lines.append(f"Seating target ({seating_source_label}): {cbto_target:.2f} mm CBTO")
     elif coal_target is not None:
-        target_lines.append(
-            f"Seating target ({seating_source_label}): {coal_target:.2f} mm COAL"
-        )
+        target_lines.append(f"Seating target ({seating_source_label}): {coal_target:.2f} mm COAL")
 
     return target_lines
 
@@ -2565,11 +2345,7 @@ def summarize_pressure_risk(result: dict) -> dict[str, Any]:
         "high pressure",
         "danger:",
     )
-    spike_warnings = [
-        warning
-        for warning in warnings
-        if any(term in warning.lower() for term in spike_terms)
-    ]
+    spike_warnings = [warning for warning in warnings if any(term in warning.lower() for term in spike_terms)]
 
     if spike_warnings:
         return {
@@ -2627,9 +2403,7 @@ def _status_pill(label: str, level: str | None) -> str:
         "unknown": ("#1a2035", "#8a9ec0"),
         "neutral": ("#1a2035", "#8a9ec0"),
     }
-    bg, fg = palette.get(
-        str(level or "unknown").strip().lower(), ("#1a2035", "#8a9ec0")
-    )
+    bg, fg = palette.get(str(level or "unknown").strip().lower(), ("#1a2035", "#8a9ec0"))
     return (
         f"<span style='display:inline-block; margin:0 6px 4px 0; padding:2px 8px; "
         f"border-radius:999px; background:{bg}; color:{fg}; font-size:8pt; font-weight:700;'>{label}</span>"
@@ -2670,9 +2444,7 @@ def summarize_stability_advisor(
         }
 
     result_data = result or {}
-    velocity_fps = _coerce_float(
-        result_data.get("muzzle_velocity_fps", stability.get("velocity_fps"))
-    )
+    velocity_fps = _coerce_float(result_data.get("muzzle_velocity_fps", stability.get("velocity_fps")))
 
     muzzle_device = (
         str(
@@ -2684,9 +2456,7 @@ def summarize_stability_advisor(
         .strip()
         .lower()
     )
-    has_suppressor = any(
-        token in muzzle_device for token in ("suppressor", "moderator", "demper")
-    )
+    has_suppressor = any(token in muzzle_device for token in ("suppressor", "moderator", "demper"))
 
     checks: list[str] = []
     level = "ok"
@@ -2704,9 +2474,7 @@ def summarize_stability_advisor(
     elif sg < 1.3:
         level = "warning"
         title = "Marginal stability"
-        message = (
-            f"Sg {sg:.2f} is marginal. Watch groups, yaw signs, and keyholing closely."
-        )
+        message = f"Sg {sg:.2f} is marginal. Watch groups, yaw signs, and keyholing closely."
     elif sg < 1.5:
         level = "warning"
         title = "Usable but not roomy stability"
@@ -2715,34 +2483,26 @@ def summarize_stability_advisor(
     if velocity_fps is not None:
         checks.append(f"Modeled velocity {format_velocity_fps(velocity_fps)}.")
     if twist_inches:
-        checks.append(
-            f"Twist 1:{twist_inches:.1f} is evaluated against the selected bullet."
-        )
+        checks.append(f"Twist 1:{twist_inches:.1f} is evaluated against the selected bullet.")
 
     bullet_length = _coerce_float(bullet.get("length_mm"))
     if bullet_length is not None:
-        checks.append(
-            f"Bullet length {format_length_mm(bullet_length)} is included in the stability estimate."
-        )
+        checks.append(f"Bullet length {format_length_mm(bullet_length)} is included in the stability estimate.")
 
     if has_suppressor and sg < 1.3:
-        checks.append(
-            "Suppressor registered: marginal stability adds extra risk of yaw and possible baffle contact."
-        )
+        checks.append("Suppressor registered: marginal stability adds extra risk of yaw and possible baffle contact.")
         if level != "critical":
             level = "critical" if subsonic_mode else "warning"
             if level == "critical":
                 title = "Suppressor risk from low stability"
-                message = f"Sg {sg:.2f} is marginal with a suppressor in the setup. Verify without the suppressor first."
+                message = (
+                    f"Sg {sg:.2f} is marginal with a suppressor in the setup. Verify without the suppressor first."
+                )
     elif has_suppressor:
-        checks.append(
-            "Suppressor registered: good stability margin is especially important before further testing."
-        )
+        checks.append("Suppressor registered: good stability margin is especially important before further testing.")
 
     if subsonic_mode:
-        checks.append(
-            "Subsonic mode active: stability is weighted more strictly than in the normal velocity range."
-        )
+        checks.append("Subsonic mode active: stability is weighted more strictly than in the normal velocity range.")
 
     return {
         "level": level,
@@ -2767,9 +2527,7 @@ def summarize_bullet_fit_advisor(
         bullet=bullet if isinstance(bullet, dict) else None,
         bullet_geometry=bullet_geometry if isinstance(bullet_geometry, dict) else None,
         stability=stability if isinstance(stability, dict) else None,
-        stability_assessment=(
-            stability_assessment if isinstance(stability_assessment, dict) else None
-        ),
+        stability_assessment=(stability_assessment if isinstance(stability_assessment, dict) else None),
         harmonics=harmonics if isinstance(harmonics, dict) else None,
         twist_inches=twist_inches,
         result=result if isinstance(result, dict) else None,
@@ -2783,9 +2541,7 @@ def summarize_game_suitability_advisor(
 ) -> dict[str, Any]:
     return build_game_suitability_summary(
         usage_profile=usage_profile,
-        terminal_summary=(
-            terminal_summary if isinstance(terminal_summary, dict) else None
-        ),
+        terminal_summary=(terminal_summary if isinstance(terminal_summary, dict) else None),
     )
 
 
@@ -2819,9 +2575,7 @@ def summarize_subsonic_advisor(
 
     target_velocity_fps = float(target_velocity_fps or 1050.0)
     margin_fps = target_velocity_fps - velocity_fps
-    checks = [
-        f"Target {format_velocity_fps(target_velocity_fps)}, modeled {format_velocity_fps(velocity_fps)}."
-    ]
+    checks = [f"Target {format_velocity_fps(target_velocity_fps)}, modeled {format_velocity_fps(velocity_fps)}."]
 
     level = "ok"
     title = "Subsonic window looks usable"
@@ -2849,7 +2603,9 @@ def summarize_subsonic_advisor(
         if load_density < 50.0:
             level = "critical"
             title = "Low fill risk in subsonic mode"
-            message = "Very low fill ratio can give uneven ignition, large velocity spread, or in the worst case squib risk."
+            message = (
+                "Very low fill ratio can give uneven ignition, large velocity spread, or in the worst case squib risk."
+            )
         elif load_density < 65.0 and level != "critical":
             if level == "ok":
                 level = "warning"
@@ -2919,19 +2675,11 @@ def summarize_subsonic_history_advisory(
 
     for row in rows or []:
         batch_analysis = _safe_json_loads((row or {}).get("batch_analysis_json"))
-        sub_ctx = (
-            batch_analysis.get("subsonic_context")
-            if isinstance(batch_analysis, dict)
-            else None
-        )
+        sub_ctx = batch_analysis.get("subsonic_context") if isinstance(batch_analysis, dict) else None
         if not isinstance(sub_ctx, dict) or not sub_ctx.get("enabled"):
             continue
         session_analysis = _safe_json_loads((row or {}).get("session_analysis_json"))
-        observations = (
-            session_analysis.get("subsonic_observations")
-            if isinstance(session_analysis, dict)
-            else None
-        )
+        observations = session_analysis.get("subsonic_observations") if isinstance(session_analysis, dict) else None
         if not isinstance(observations, dict):
             continue
         total += 1
@@ -3045,19 +2793,11 @@ def get_subsonic_history_windows(
 
     for row in rows or []:
         batch_analysis = _safe_json_loads((row or {}).get("batch_analysis_json"))
-        sub_ctx = (
-            batch_analysis.get("subsonic_context")
-            if isinstance(batch_analysis, dict)
-            else None
-        )
+        sub_ctx = batch_analysis.get("subsonic_context") if isinstance(batch_analysis, dict) else None
         if not isinstance(sub_ctx, dict) or not sub_ctx.get("enabled"):
             continue
         session_analysis = _safe_json_loads((row or {}).get("session_analysis_json"))
-        observations = (
-            session_analysis.get("subsonic_observations")
-            if isinstance(session_analysis, dict)
-            else None
-        )
+        observations = session_analysis.get("subsonic_observations") if isinstance(session_analysis, dict) else None
         if not isinstance(observations, dict):
             continue
 
@@ -3188,9 +2928,7 @@ def summarize_model_vs_measured_advisory(
             if not isinstance(seating_context, dict):
                 seating_context = {}
             powder_lot_number = str(
-                powder_entry.get("lot_number")
-                or powder_entry.get("selected_lot_number")
-                or ""
+                powder_entry.get("lot_number") or powder_entry.get("selected_lot_number") or ""
             ).strip()
             entry = {
                 "batch_id": batch_id,
@@ -3210,11 +2948,7 @@ def summarize_model_vs_measured_advisory(
         if resolved_session_id is not None:
             entry["session_ids"].add(resolved_session_id)
         session_analysis = _safe_json_loads(row.get("session_analysis_json"))
-        stats_raw = (
-            session_analysis.get("stats")
-            if isinstance(session_analysis, dict)
-            else None
-        )
+        stats_raw = session_analysis.get("stats") if isinstance(session_analysis, dict) else None
         stats = stats_raw if isinstance(stats_raw, dict) else {}
         avg_velocity = _coerce_float(stats.get("avg"))
         if avg_velocity is None:
@@ -3261,11 +2995,7 @@ def summarize_model_vs_measured_advisory(
         if groups:
             score += max(0.0, 10.0 - min(groups) * 4.0)
         if subsonic_mode is not None and entry.get("subsonic_enabled") is not None:
-            score += (
-                8.0
-                if bool(entry.get("subsonic_enabled")) == bool(subsonic_mode)
-                else 0.0
-            )
+            score += 8.0 if bool(entry.get("subsonic_enabled")) == bool(subsonic_mode) else 0.0
         if current_powder_lot_number:
             stored_lot = str(entry.get("powder_lot_number") or "").strip()
             if stored_lot and stored_lot == str(current_powder_lot_number).strip():
@@ -3330,22 +3060,14 @@ def summarize_model_vs_measured_advisory(
     delta = best.get("velocity_delta_fps")
     checks: list[str] = []
     if isinstance(best.get("avg_measured_velocity_fps"), (int, float)):
-        checks.append(
-            f"A similar batch was measured around {format_velocity_fps(best['avg_measured_velocity_fps'])}."
-        )
+        checks.append(f"A similar batch was measured around {format_velocity_fps(best['avg_measured_velocity_fps'])}.")
     if isinstance(delta, (int, float)):
-        checks.append(
-            f"The deviation from the model is about {format_velocity_delta_fps(float(delta)).lstrip('+')}."
-        )
+        checks.append(f"The deviation from the model is about {format_velocity_delta_fps(float(delta)).lstrip('+')}.")
     if isinstance(bias_fps, (int, float)):
         if bias_direction == "measured_higher":
-            checks.append(
-                f"The history suggests the model is often about {abs(float(bias_fps)):.0f} fps low."
-            )
+            checks.append(f"The history suggests the model is often about {abs(float(bias_fps)):.0f} fps low.")
         elif bias_direction == "model_higher":
-            checks.append(
-                f"The history suggests the model is often about {abs(float(bias_fps)):.0f} fps high."
-            )
+            checks.append(f"The history suggests the model is often about {abs(float(bias_fps)):.0f} fps high.")
         else:
             checks.append("The history shows no clear systematic model bias right now.")
     if best.get("matches_powder_lot"):
@@ -3355,17 +3077,13 @@ def summarize_model_vs_measured_advisory(
             f"The charge difference from the reference is {format_weight_grains(best['charge_delta_grains'], 'powder')}."
         )
     if isinstance(best.get("cbto_delta_mm"), (int, float)):
-        checks.append(
-            f"The CBTO difference from the reference is {format_length_delta_mm(best['cbto_delta_mm'])}."
-        )
+        checks.append(f"The CBTO difference from the reference is {format_length_delta_mm(best['cbto_delta_mm'])}.")
     if isinstance(best.get("temperature_delta_c"), (int, float)):
         checks.append(
             f"The temperature difference from the reference is {format_temperature_delta_c(best['temperature_delta_c']).lstrip('+')}."
         )
     if isinstance(best.get("best_group_moa"), (int, float)):
-        checks.append(
-            f"The best recorded group in the reference is {best['best_group_moa']:.2f} MOA."
-        )
+        checks.append(f"The best recorded group in the reference is {best['best_group_moa']:.2f} MOA.")
 
     level = "unknown"
     title = "Model vs Measured"
@@ -3378,7 +3096,9 @@ def summarize_model_vs_measured_advisory(
         elif float(delta) <= 30.0:
             level = "warning"
             title = "The Model Needs Confirmation"
-            message = "The predicted velocity is usable, but it differs enough that a chronograph should confirm this series."
+            message = (
+                "The predicted velocity is usable, but it differs enough that a chronograph should confirm this series."
+            )
         else:
             level = "critical"
             title = "The Model Differs from Measured Data"
@@ -3396,9 +3116,7 @@ def summarize_model_vs_measured_advisory(
         "reference": best,
         "candidate_count": len(candidates),
         "evidence_count": best.get("evidence_count") or 0,
-        "bias_fps": (
-            round(float(bias_fps), 1) if isinstance(bias_fps, (int, float)) else None
-        ),
+        "bias_fps": (round(float(bias_fps), 1) if isinstance(bias_fps, (int, float)) else None),
         "bias_direction": bias_direction or None,
     }
 
@@ -3474,9 +3192,7 @@ def _build_cartridge_geometry_visual_html(
         if value is None:
             return None
         try:
-            return max(
-                0, min(width - 1, int(round((float(value) / total_mm) * (width - 1))))
-            )
+            return max(0, min(width - 1, int(round((float(value) / total_mm) * (width - 1)))))
         except Exception:
             return None
 
@@ -3556,9 +3272,7 @@ def _build_cartridge_geometry_visual_html(
             "unknown": ("#1a2035", "#8a9ec0"),
             "neutral": ("#1a2035", "#8a9ec0"),
         }
-        bg, fg = palette.get(
-            str(level or "unknown").strip().lower(), ("#1a2035", "#8a9ec0")
-        )
+        bg, fg = palette.get(str(level or "unknown").strip().lower(), ("#1a2035", "#8a9ec0"))
         return (
             f"<span style='display:inline-block; margin:0 6px 4px 0; padding:2px 8px; "
             f"border-radius:999px; background:{bg}; color:{fg}; font-size:8pt; font-weight:700;'>{label}</span>"
@@ -3575,11 +3289,7 @@ def _build_cartridge_geometry_visual_html(
         pills.append(
             _pill(
                 "Suppressor",
-                (
-                    "warning"
-                    if str(stability_level or "").lower() in {"critical", "warning"}
-                    else "ok"
-                ),
+                ("warning" if str(stability_level or "").lower() in {"critical", "warning"} else "ok"),
             )
         )
 
@@ -3607,11 +3317,7 @@ def _seating_history_visualization_html(
 ) -> str:
     if best_cbto_mm in (None, ""):
         return ""
-    values = [
-        float(value)
-        for value in (current_cbto_mm, best_cbto_mm, jam_cbto_mm)
-        if value not in (None, "")
-    ]
+    values = [float(value) for value in (current_cbto_mm, best_cbto_mm, jam_cbto_mm) if value not in (None, "")]
     candidate_values = []
     for item in ranked_candidates or []:
         if isinstance(item, dict) and item.get("cbto_mm") not in (None, ""):
@@ -3639,9 +3345,7 @@ def _seating_history_visualization_html(
     sweet_min = None
     sweet_max = None
     if candidate_values:
-        top_values = sorted(
-            candidate_values[:3] if len(candidate_values) >= 3 else candidate_values
-        )
+        top_values = sorted(candidate_values[:3] if len(candidate_values) >= 3 else candidate_values)
         sweet_min = _pos(min(top_values))
         sweet_max = _pos(max(top_values))
 
@@ -3718,11 +3422,7 @@ def _seating_confidence_html(best_known_evidence: dict[str, Any] | None) -> str:
     return (
         f"<div style='margin-top:4px; padding:6px 8px; border-radius:6px; background:{bg}; color:{fg};'>"
         f"<b>{label}</b>"
-        + (
-            f"<br><span style='font-weight:400'>{' | '.join(facts)}</span>"
-            if facts
-            else ""
-        )
+        + (f"<br><span style='font-weight:400'>{' | '.join(facts)}</span>" if facts else "")
         + "</div>"
     )
 
@@ -3830,9 +3530,7 @@ def build_seating_sandbox_html(
         except Exception:
             continue
     if candidate_values:
-        top_values = sorted(
-            candidate_values[:3] if len(candidate_values) >= 3 else candidate_values
-        )
+        top_values = sorted(candidate_values[:3] if len(candidate_values) >= 3 else candidate_values)
         sweet_min = min(top_values)
         sweet_max = max(top_values)
     successful_cbto_range = None
@@ -3877,9 +3575,7 @@ def build_seating_sandbox_html(
             and len(successful_cbto_range) == 2
             and successful_cbto_range[0] is not None
             and successful_cbto_range[1] is not None
-            and float(successful_cbto_range[0])
-            <= trial_cbto
-            <= float(successful_cbto_range[1])
+            and float(successful_cbto_range[0]) <= trial_cbto <= float(successful_cbto_range[1])
         ):
             history_status = "Similar to a Working Sub"
         elif (
@@ -3887,9 +3583,7 @@ def build_seating_sandbox_html(
             and len(problem_cbto_range) == 2
             and problem_cbto_range[0] is not None
             and problem_cbto_range[1] is not None
-            and float(problem_cbto_range[0])
-            <= trial_cbto
-            <= float(problem_cbto_range[1])
+            and float(problem_cbto_range[0]) <= trial_cbto <= float(problem_cbto_range[1])
         ):
             history_status = "Near a Known Problem Area"
         rows.append(
@@ -3905,8 +3599,7 @@ def build_seating_sandbox_html(
         )
     history_hint = ""
     if isinstance(subsonic_history, dict) and (
-        subsonic_history.get("successful_count")
-        or subsonic_history.get("problem_count")
+        subsonic_history.get("successful_count") or subsonic_history.get("problem_count")
     ):
         history_hint = " The history column shows whether a seating value resembles earlier subsonic setups that worked or caused problems."
     return (
@@ -3922,9 +3615,7 @@ def build_seating_sandbox_html(
         "<th style='text-align:left; padding:2px 6px;'>Barrel time</th>"
         "<th style='text-align:left; padding:2px 6px;'>Jump</th>"
         "<th style='text-align:left; padding:2px 6px;'>Sweet spot</th>"
-        "<th style='text-align:left; padding:2px 6px;'>History</th></tr>"
-        + "".join(rows)
-        + "</table></div>"
+        "<th style='text-align:left; padding:2px 6px;'>History</th></tr>" + "".join(rows) + "</table></div>"
     )
 
 
@@ -3953,33 +3644,18 @@ def get_published_powder_charge_window(
         return None
     filtered = list(rows)
     if bullet_id:
-        filtered = [
-            row for row in filtered if row.get("bullet_id") == bullet_id
-        ] or filtered
+        filtered = [row for row in filtered if row.get("bullet_id") == bullet_id] or filtered
     if bullet_weight_gr not in (None, ""):
         narrowed = []
         for row in filtered:
             try:
-                if (
-                    abs(
-                        float(row.get("bullet_weight_grains")) - float(bullet_weight_gr)
-                    )
-                    <= 3.0
-                ):
+                if abs(float(row.get("bullet_weight_grains")) - float(bullet_weight_gr)) <= 3.0:
                     narrowed.append(row)
             except Exception:
                 continue
         filtered = narrowed or filtered
-    min_values = [
-        float(row["min_charge_grains"])
-        for row in filtered
-        if row.get("min_charge_grains") not in (None, "")
-    ]
-    max_values = [
-        float(row["max_charge_grains"])
-        for row in filtered
-        if row.get("max_charge_grains") not in (None, "")
-    ]
+    min_values = [float(row["min_charge_grains"]) for row in filtered if row.get("min_charge_grains") not in (None, "")]
+    max_values = [float(row["max_charge_grains"]) for row in filtered if row.get("max_charge_grains") not in (None, "")]
     if not min_values or not max_values:
         return None
     return {
@@ -3989,9 +3665,7 @@ def get_published_powder_charge_window(
         "min_charge_floor_grains": min(min_values),
         "max_charge_ceiling_grains": max(max_values),
         "sources": [
-            str(row.get("source") or "").strip()
-            for row in filtered[:3]
-            if str(row.get("source") or "").strip()
+            str(row.get("source") or "").strip() for row in filtered[:3] if str(row.get("source") or "").strip()
         ],
     }
 
@@ -4118,9 +3792,7 @@ def build_powder_sandbox_html(
             and len(successful_charge_range) == 2
             and successful_charge_range[0] is not None
             and successful_charge_range[1] is not None
-            and float(successful_charge_range[0])
-            <= trial_charge
-            <= float(successful_charge_range[1])
+            and float(successful_charge_range[0]) <= trial_charge <= float(successful_charge_range[1])
         ):
             history_status = "Similar to a Working Sub"
         elif (
@@ -4128,9 +3800,7 @@ def build_powder_sandbox_html(
             and len(problem_charge_range) == 2
             and problem_charge_range[0] is not None
             and problem_charge_range[1] is not None
-            and float(problem_charge_range[0])
-            <= trial_charge
-            <= float(problem_charge_range[1])
+            and float(problem_charge_range[0]) <= trial_charge <= float(problem_charge_range[1])
         ):
             history_status = "Near a Known Problem Area"
         rows.append(
@@ -4147,13 +3817,10 @@ def build_powder_sandbox_html(
         return ""
     published_hint = ""
     if avg_min is not None and avg_max is not None:
-        published_hint = (
-            " Published window about " f"{avg_min:.2f} gr" "-" f"{avg_max:.2f} gr."
-        )
+        published_hint = " Published window about " f"{avg_min:.2f} gr" "-" f"{avg_max:.2f} gr."
     history_hint = ""
     if isinstance(subsonic_history, dict) and (
-        subsonic_history.get("successful_count")
-        or subsonic_history.get("problem_count")
+        subsonic_history.get("successful_count") or subsonic_history.get("problem_count")
     ):
         history_hint = " The history column shows whether a load resembles earlier subsonic sessions that worked or caused problems."
     return (
@@ -4169,9 +3836,7 @@ def build_powder_sandbox_html(
         "<th style='text-align:left; padding:2px 6px;'>Velocity</th>"
         "<th style='text-align:left; padding:2px 6px;'>Fill</th>"
         "<th style='text-align:left; padding:2px 6px;'>Status</th>"
-        "<th style='text-align:left; padding:2px 6px;'>History</th></tr>"
-        + "".join(rows)
-        + "</table></div>"
+        "<th style='text-align:left; padding:2px 6px;'>History</th></tr>" + "".join(rows) + "</table></div>"
     )
 
 
@@ -4179,11 +3844,7 @@ def _seating_trend_summary_html(best_known_evidence: dict[str, Any] | None) -> s
     if not isinstance(best_known_evidence, dict):
         return ""
     ranked_source = best_known_evidence.get("ranked_candidates")
-    ranked = (
-        [item for item in ranked_source if isinstance(item, dict)]
-        if isinstance(ranked_source, list)
-        else []
-    )
+    ranked = [item for item in ranked_source if isinstance(item, dict)] if isinstance(ranked_source, list) else []
     if len(ranked) < 2:
         return ""
     cbto_values = []
@@ -4204,9 +3865,7 @@ def _seating_trend_summary_html(best_known_evidence: dict[str, Any] | None) -> s
     spread = max(cbto_values) - min(cbto_values) if len(cbto_values) > 1 else 0.0
     group_hint = ""
     if group_values:
-        group_hint = (
-            f" | best groups {min(group_values):.2f}-{max(group_values):.2f} MOA"
-        )
+        group_hint = f" | best groups {min(group_values):.2f}-{max(group_values):.2f} MOA"
     return (
         "<div style='margin-top:4px; font-size:8pt; color:#374151;'>"
         f"Trend window: {min(cbto_values):.2f}-{max(cbto_values):.2f} mm CBTO"
@@ -4233,11 +3892,7 @@ def _summarize_seating_promotion_candidate(
         return {"eligible": False}
 
     ranked_source = best_known_evidence.get("ranked_candidates")
-    ranked = (
-        [item for item in ranked_source if isinstance(item, dict)]
-        if isinstance(ranked_source, list)
-        else []
-    )
+    ranked = [item for item in ranked_source if isinstance(item, dict)] if isinstance(ranked_source, list) else []
     ranked_cbto = []
     for item in ranked[:3]:
         if item.get("cbto_mm") not in (None, ""):
@@ -4302,19 +3957,13 @@ def summarize_seating_depth_advisor(
     current_throat_erosion_mm = None
     try:
         _throat_val = (
-            barrel.get("throat_erosion_mm")
-            or rifle.get("throat_erosion_mm")
-            or details.get("throat_erosion_mm")
+            barrel.get("throat_erosion_mm") or rifle.get("throat_erosion_mm") or details.get("throat_erosion_mm")
         )
-        current_throat_erosion_mm = (
-            float(_throat_val) if _throat_val is not None else None
-        )
+        current_throat_erosion_mm = float(_throat_val) if _throat_val is not None else None
     except Exception:
         current_throat_erosion_mm = None
 
-    caliber = str(
-        rifle.get("caliber") or bullet.get("caliber") or barrel.get("caliber") or ""
-    ).strip()
+    caliber = str(rifle.get("caliber") or bullet.get("caliber") or barrel.get("caliber") or "").strip()
     standard = find_best_cartridge_standard(db, caliber) if caliber else None
     standard_oal_mm = standard.get("oal_mm") if isinstance(standard, dict) else None
     chamber_comparison = {}
@@ -4324,16 +3973,13 @@ def summarize_seating_depth_advisor(
                 db,
                 caliber,
                 {
-                    "freebore_mm": barrel.get("freebore_mm")
-                    or rifle.get("freebore_mm"),
-                    "throat_angle_deg": barrel.get("throat_angle_deg")
-                    or rifle.get("throat_angle_deg"),
+                    "freebore_mm": barrel.get("freebore_mm") or rifle.get("freebore_mm"),
+                    "throat_angle_deg": barrel.get("throat_angle_deg") or rifle.get("throat_angle_deg"),
                     "throat_erosion_mm": barrel.get("throat_erosion_mm")
                     or rifle.get("throat_erosion_mm")
                     or details.get("throat_erosion_mm"),
                     "chamber_neck_diameter_mm": (
-                        details.get("chamber_neck_diameter_mm")
-                        or barrel.get("chamber_neck_diameter_mm")
+                        details.get("chamber_neck_diameter_mm") or barrel.get("chamber_neck_diameter_mm")
                     ),
                     "trim_length_mm": barrel.get("trim_length_mm"),
                 },
@@ -4413,11 +4059,7 @@ def summarize_seating_depth_advisor(
                 jam_cbto_mm = float(rows[0]["jam_cbto_mm"])
         except Exception:
             jam_cbto_mm = None
-    if (
-        jam_cbto_mm is None
-        and seating_profile
-        and seating_profile.get("jam_cbto_mm") not in (None, "")
-    ):
+    if jam_cbto_mm is None and seating_profile and seating_profile.get("jam_cbto_mm") not in (None, ""):
         try:
             jam_cbto_mm = float(seating_profile.get("jam_cbto_mm"))
         except Exception:
@@ -4438,9 +4080,7 @@ def summarize_seating_depth_advisor(
     if jump_mm is not None:
         seating_sensitivity = None
         try:
-            seating_sensitivity = float(
-                (harmonics or {}).get("sensitivity", {}).get("seating_depth")
-            )
+            seating_sensitivity = float((harmonics or {}).get("sensitivity", {}).get("seating_depth"))
         except Exception:
             seating_sensitivity = None
         throat_erosion = current_throat_erosion_mm
@@ -4462,31 +4102,25 @@ def summarize_seating_depth_advisor(
             level = "warning"
             title = "Seating Depth: Tight Jump"
             message = f"Jump {float(jump_mm):.2f} mm sits in a tight window. Good for fine-tuning, but sensitive to throat and lot changes."
-            checks.append(
-                "Confirm seating with a control series after bullet-lot or throat changes."
-            )
+            checks.append("Confirm seating with a control series after bullet-lot or throat changes.")
         elif jump_mm <= 1.20:
             level = "ok"
             title = "Seating Depth: Working Window"
-            message = f"Jump {float(jump_mm):.2f} mm sits in a robust working window for further testing and harmonics work."
+            message = (
+                f"Jump {float(jump_mm):.2f} mm sits in a robust working window for further testing and harmonics work."
+            )
             checks.append("Use this as a stable baseline for charge and node work.")
         else:
             level = "neutral"
             title = "Seating Depth: Long Jump"
             message = f"Jump {float(jump_mm):.2f} mm is relatively long. Often robust and safe, but not always optimal for best precision."
-            checks.append(
-                "Consider testing a shorter jump if precision is the primary goal."
-            )
+            checks.append("Consider testing a shorter jump if precision is the primary goal.")
 
         if seating_sensitivity is not None:
             if seating_sensitivity >= 1.5:
-                checks.append(
-                    f"The harmonics model rates seating sensitivity as high ({seating_sensitivity:.2f})."
-                )
+                checks.append(f"The harmonics model rates seating sensitivity as high ({seating_sensitivity:.2f}).")
             elif seating_sensitivity >= 1.1:
-                checks.append(
-                    f"The harmonics model rates seating sensitivity as moderate ({seating_sensitivity:.2f})."
-                )
+                checks.append(f"The harmonics model rates seating sensitivity as moderate ({seating_sensitivity:.2f}).")
             else:
                 checks.append(
                     f"The harmonics model rates seating sensitivity as relatively robust ({seating_sensitivity:.2f})."
@@ -4497,9 +4131,7 @@ def summarize_seating_depth_advisor(
             )
     else:
         if jam_cbto_mm is None:
-            checks.append(
-                "Missing measured jam/CBTO for the selected bullet in this firearm."
-            )
+            checks.append("Missing measured jam/CBTO for the selected bullet in this firearm.")
 
     if standard_oal_mm not in (None, "") and coal_mm is not None:
         try:
@@ -4514,82 +4146,49 @@ def summarize_seating_depth_advisor(
         freebore_delta = chamber_comparison.get("freebore_delta_mm")
         if neck_clearance not in (None, ""):
             try:
-                checks.append(
-                    f"Indicative neck clearance {float(neck_clearance):+.3f} mm versus cartridge standard."
-                )
+                checks.append(f"Indicative neck clearance {float(neck_clearance):+.3f} mm versus cartridge standard.")
             except Exception:
                 pass
         if freebore_delta not in (None, ""):
             try:
-                checks.append(
-                    f"Freebore deviation versus standard {float(freebore_delta):+.3f} mm."
-                )
+                checks.append(f"Freebore deviation versus standard {float(freebore_delta):+.3f} mm.")
             except Exception:
                 pass
 
     if seating_profile:
         profile_bits = []
         if seating_profile.get("preferred_jump_mm") not in (None, ""):
-            profile_bits.append(
-                f"preferred jump {float(seating_profile['preferred_jump_mm']):.2f} mm"
-            )
+            profile_bits.append(f"preferred jump {float(seating_profile['preferred_jump_mm']):.2f} mm")
         if seating_profile.get("preferred_cbto_mm") not in (None, ""):
-            profile_bits.append(
-                f"profile CBTO {float(seating_profile['preferred_cbto_mm']):.2f} mm"
-            )
+            profile_bits.append(f"profile CBTO {float(seating_profile['preferred_cbto_mm']):.2f} mm")
         lot_hint = ""
         if bullet.get("selected_lot_number"):
             lot_hint = f" for lot {bullet.get('selected_lot_number')}"
         if profile_bits:
-            checks.append(
-                "Stored seating profile"
-                + lot_hint
-                + ": "
-                + ", ".join(profile_bits)
-                + "."
-            )
-            checks[-1] = (
-                "Lagret seating-profil"
-                + lot_hint
-                + ": "
-                + ", ".join(profile_bits)
-                + "."
-            )
+            checks.append("Stored seating profile" + lot_hint + ": " + ", ".join(profile_bits) + ".")
+            checks[-1] = "Lagret seating-profil" + lot_hint + ": " + ", ".join(profile_bits) + "."
 
     if isinstance(best_known_evidence, dict):
         evidence_bits = []
         if best_known_evidence.get("cbto_mm") not in (None, ""):
             evidence_bits.append(f"CBTO {float(best_known_evidence['cbto_mm']):.2f} mm")
         if best_known_evidence.get("best_group_moa") not in (None, ""):
-            evidence_bits.append(
-                f"best group {float(best_known_evidence['best_group_moa']):.2f} MOA"
-            )
+            evidence_bits.append(f"best group {float(best_known_evidence['best_group_moa']):.2f} MOA")
         if best_known_evidence.get("best_es_fps") not in (None, ""):
-            evidence_bits.append(
-                f"ES {format_velocity_fps(float(best_known_evidence['best_es_fps']))}"
-            )
+            evidence_bits.append(f"ES {format_velocity_fps(float(best_known_evidence['best_es_fps']))}")
         if best_known_evidence.get("best_sd_fps") not in (None, ""):
-            evidence_bits.append(
-                f"SD {format_velocity_fps(float(best_known_evidence['best_sd_fps']))}"
-            )
+            evidence_bits.append(f"SD {format_velocity_fps(float(best_known_evidence['best_sd_fps']))}")
         confidence = str(best_known_evidence.get("confidence") or "").strip()
         lot_ref = str(best_known_evidence.get("lot_number") or "").strip()
-        source_hint = (
-            "from active lot"
-            if best_known_evidence.get("matches_selected_lot")
-            else "from history"
-        )
+        source_hint = "from active lot" if best_known_evidence.get("matches_selected_lot") else "from history"
         if lot_ref and not best_known_evidence.get("matches_selected_lot"):
             source_hint += f" (lot {lot_ref})"
         elif lot_ref and best_known_evidence.get("matches_selected_lot"):
             source_hint = f"from active lot {lot_ref}"
-        evidence_text = (
-            ", ".join(evidence_bits) if evidence_bits else "measured batch data"
-        )
+        evidence_text = ", ".join(evidence_bits) if evidence_bits else "measured batch data"
         source_text = source_hint or "from history"
         checks.append(
-            f"Best known seating {source_text}: {evidence_text}."
-            + (f" Evidens {confidence}." if confidence else "")
+            f"Best known seating {source_text}: {evidence_text}." + (f" Evidens {confidence}." if confidence else "")
         )
         if cbto_mm is not None and best_known_evidence.get("cbto_mm") not in (None, ""):
             cbto_delta = float(cbto_mm) - float(best_known_evidence["cbto_mm"])
@@ -4610,9 +4209,7 @@ def summarize_seating_depth_advisor(
                 f"Throat erosion versus history: {float(best_known_evidence['throat_delta_mm']):.2f} mm deviation."
             )
 
-    promotion_candidate = _summarize_seating_promotion_candidate(
-        best_known_evidence, cbto_mm
-    )
+    promotion_candidate = _summarize_seating_promotion_candidate(best_known_evidence, cbto_mm)
     if promotion_candidate.get("eligible"):
         checks.append(
             f"{str(promotion_candidate.get('title') or 'Sweet spot')}: "
@@ -4627,15 +4224,9 @@ def summarize_seating_depth_advisor(
     if coal_mm is not None:
         summary_bits.append(f"COAL {float(coal_mm):.2f} mm")
     if seating_profile and seating_profile.get("preferred_jump_mm") not in (None, ""):
-        summary_bits.append(
-            f"Profile jump {float(seating_profile['preferred_jump_mm']):.2f} mm"
-        )
-    if isinstance(best_known_evidence, dict) and best_known_evidence.get(
-        "cbto_mm"
-    ) not in (None, ""):
-        summary_bits.append(
-            f"Best known CBTO {float(best_known_evidence['cbto_mm']):.2f} mm"
-        )
+        summary_bits.append(f"Profile jump {float(seating_profile['preferred_jump_mm']):.2f} mm")
+    if isinstance(best_known_evidence, dict) and best_known_evidence.get("cbto_mm") not in (None, ""):
+        summary_bits.append(f"Best known CBTO {float(best_known_evidence['cbto_mm']):.2f} mm")
     if promotion_candidate.get("eligible"):
         summary_bits.append("Sweet spot ready")
 
@@ -4644,65 +4235,36 @@ def summarize_seating_depth_advisor(
         cbto_mm=cbto_mm,
         jam_cbto_mm=jam_cbto_mm,
         jump_mm=jump_mm,
-        standard_oal_mm=(
-            float(standard_oal_mm) if standard_oal_mm not in (None, "") else None
-        ),
+        standard_oal_mm=(float(standard_oal_mm) if standard_oal_mm not in (None, "") else None),
         case_length_mm=(
             float(standard.get("case_length_mm") or 0)
-            if isinstance(standard, dict)
-            and standard.get("case_length_mm") not in (None, "")
+            if isinstance(standard, dict) and standard.get("case_length_mm") not in (None, "")
             else None
         ),
-        bullet_length_mm=(
-            float(bullet.get("length_mm") or 0)
-            if bullet.get("length_mm") not in (None, "")
-            else None
-        ),
+        bullet_length_mm=(float(bullet.get("length_mm") or 0) if bullet.get("length_mm") not in (None, "") else None),
         throat_erosion_mm=current_throat_erosion_mm,
         neck_clearance_mm=(
-            chamber_comparison.get("neck_clearance_mm")
-            if isinstance(chamber_comparison, dict)
-            else None
+            chamber_comparison.get("neck_clearance_mm") if isinstance(chamber_comparison, dict) else None
         ),
         neck_clearance_basis=(
-            chamber_comparison.get("neck_clearance_basis")
-            if isinstance(chamber_comparison, dict)
-            else None
+            chamber_comparison.get("neck_clearance_basis") if isinstance(chamber_comparison, dict) else None
         ),
         freebore_delta_mm=(
-            chamber_comparison.get("freebore_delta_mm")
-            if isinstance(chamber_comparison, dict)
-            else None
+            chamber_comparison.get("freebore_delta_mm") if isinstance(chamber_comparison, dict) else None
         ),
-        standard_body=(
-            chamber_comparison.get("standard_body")
-            if isinstance(chamber_comparison, dict)
-            else None
-        ),
+        standard_body=(chamber_comparison.get("standard_body") if isinstance(chamber_comparison, dict) else None),
         subsonic_mode=subsonic_mode,
         stability_tier=(
             f"seat sens {float((harmonics or {}).get('sensitivity', {}).get('seating_depth')):.2f}"
-            if (harmonics or {}).get("sensitivity", {}).get("seating_depth")
-            not in (None, "")
+            if (harmonics or {}).get("sensitivity", {}).get("seating_depth") not in (None, "")
             else None
         ),
-        stability_level=(
-            str((stability_context or {}).get("level") or "").strip().lower() or None
-        ),
-        subsonic_level=(
-            str((subsonic_context or {}).get("level") or "").strip().lower() or None
-        ),
-        subsonic_history_level=(
-            str((subsonic_history or {}).get("level") or "").strip().lower() or None
-        ),
+        stability_level=(str((stability_context or {}).get("level") or "").strip().lower() or None),
+        subsonic_level=(str((subsonic_context or {}).get("level") or "").strip().lower() or None),
+        subsonic_history_level=(str((subsonic_history or {}).get("level") or "").strip().lower() or None),
         has_suppressor=any(
             token
-            in str(
-                barrel.get("muzzle_device_type")
-                or barrel.get("muzzle_device")
-                or rifle.get("muzzle_device")
-                or ""
-            )
+            in str(barrel.get("muzzle_device_type") or barrel.get("muzzle_device") or rifle.get("muzzle_device") or "")
             .strip()
             .lower()
             for token in ("suppressor", "moderator", "demper")
@@ -4724,17 +4286,9 @@ def summarize_seating_depth_advisor(
         "visualization_html": _seating_visualization_html(jump_mm) + geometry_html,
         "history_visualization_html": _seating_history_visualization_html(
             cbto_mm,
-            (
-                best_known_evidence.get("cbto_mm")
-                if isinstance(best_known_evidence, dict)
-                else None
-            ),
+            (best_known_evidence.get("cbto_mm") if isinstance(best_known_evidence, dict) else None),
             jam_cbto_mm,
-            (
-                best_known_evidence.get("ranked_candidates")
-                if isinstance(best_known_evidence, dict)
-                else None
-            ),
+            (best_known_evidence.get("ranked_candidates") if isinstance(best_known_evidence, dict) else None),
         ),
         "confidence_html": _seating_confidence_html(best_known_evidence),
         "trend_summary_html": _seating_trend_summary_html(best_known_evidence),
@@ -4782,9 +4336,7 @@ def summarize_powder_lot_advisory(db, powder_id) -> dict[str, str]:
     delta = verification_plan.get("start_delta_grains")
     delta_text = ""
     if isinstance(delta, (int, float)) and float(delta) != 0.0:
-        delta_text = (
-            f" Start {abs(float(delta)):.2f} gr {'opp' if float(delta) > 0 else 'ned'}."
-        )
+        delta_text = f" Start {abs(float(delta)):.2f} gr {'opp' if float(delta) > 0 else 'ned'}."
 
     severity = str(comparison.get("severity") or "info")
     level = "neutral"
@@ -4867,9 +4419,7 @@ def summarize_powder_model_advisory(powder_context: dict | None) -> dict[str, st
     else:
         status_text = ""
     missing_text = (
-        f" Missing: {', '.join(missing_fields[:6])}."
-        if missing_fields
-        else " The model basis is incomplete."
+        f" Missing: {', '.join(missing_fields[:6])}." if missing_fields else " The model basis is incomplete."
     )
     return {
         "level": "critical",
@@ -5039,9 +4589,7 @@ def infer_primer_reference_profile(primer_context: dict | None) -> dict[str, Any
     return primer
 
 
-def summarize_primer_profile_advisory(
-    primer_context: dict | None, result: dict | None = None
-) -> dict[str, str]:
+def summarize_primer_profile_advisory(primer_context: dict | None, result: dict | None = None) -> dict[str, str]:
     """Evaluate whether the selected primer profile matches the current pressure window."""
     primer = infer_primer_reference_profile(primer_context)
     if not isinstance(primer, dict) or not primer:
@@ -5052,8 +4600,7 @@ def summarize_primer_profile_advisory(
         }
 
     name = (
-        f"{str(primer.get('manufacturer') or '').strip()} "
-        f"{str(primer.get('name') or 'valgt primer').strip()}"
+        f"{str(primer.get('manufacturer') or '').strip()} " f"{str(primer.get('name') or 'valgt primer').strip()}"
     ).strip()
     peak = result.get("peak_pressure_psi") if isinstance(result, dict) else None
     maximum = result.get("max_pressure_psi") if isinstance(result, dict) else None
@@ -5097,12 +4644,7 @@ def summarize_primer_profile_advisory(
             ),
         }
 
-    if (
-        max_f
-        and peak_f
-        and peak_f >= 0.95 * max_f
-        and sign_mode == "late_signs_possible"
-    ):
+    if max_f and peak_f and peak_f >= 0.95 * max_f and sign_mode == "late_signs_possible":
         return {
             "level": "warning",
             "title": "Thick Primer Cups Can Hide Signs",
@@ -5114,9 +4656,7 @@ def summarize_primer_profile_advisory(
 
     if peak_f is not None and recommended_min not in (None, ""):
         try:
-            if peak_f < float(recommended_min or 0) and str(
-                primer.get("ignition_strength_class") or ""
-            ) in {
+            if peak_f < float(recommended_min or 0) and str(primer.get("ignition_strength_class") or "") in {
                 "magnum",
                 "standard_plus",
             }:
@@ -5135,8 +4675,7 @@ def summarize_primer_profile_advisory(
     return {
         "level": "ok",
         "title": "Primer Profile Fits",
-        "message": f"{name} looks reasonable in this pressure window."
-        + (f" Source: {source}." if source else ""),
+        "message": f"{name} looks reasonable in this pressure window." + (f" Source: {source}." if source else ""),
     }
 
 
@@ -5207,13 +4746,9 @@ def build_component_context_summary(
         lot_number = str(bullet_data.get("selected_lot_number") or "").strip()
         measured_stats = bullet_data.get("measured_lot_stats") or {}
         if measured_stats.get("sample_count"):
-            lines.append(
-                f"Bullet: {bullet_name} | Lot {lot_number or '-'} | Measured lot average active"
-            )
+            lines.append(f"Bullet: {bullet_name} | Lot {lot_number or '-'} | Measured lot average active")
         elif lot_number:
-            lines.append(
-                f"Bullet: {bullet_name} | Lot {lot_number} | Standard library data in use"
-            )
+            lines.append(f"Bullet: {bullet_name} | Lot {lot_number} | Standard library data in use")
         else:
             lines.append(f"Bullet: {bullet_name} | Standard library data in use")
 
@@ -5222,37 +4757,25 @@ def build_component_context_summary(
         lot_number = str(powder_data.get("selected_lot_number") or "").strip()
         comparison = powder_data.get("lot_comparison") or {}
         reference_variant_count = int(
-            powder_data.get("reference_variant_count")
-            or powder_data.get("gordon_reference_variant_count")
-            or 0
+            powder_data.get("reference_variant_count") or powder_data.get("gordon_reference_variant_count") or 0
         )
         if lot_number and comparison.get("title"):
-            lines.append(
-                f"Powder: {powder_name} | Lot {lot_number} | Learned lot context: {comparison.get('title')}"
-            )
+            lines.append(f"Powder: {powder_name} | Lot {lot_number} | Learned lot context: {comparison.get('title')}")
         elif lot_number:
-            lines.append(
-                f"Powder: {powder_name} | Lot {lot_number} | Active lot context"
-            )
+            lines.append(f"Powder: {powder_name} | Lot {lot_number} | Active lot context")
         else:
             lines.append(f"Powder: {powder_name} | Standard catalog data")
         if reference_variant_count:
-            lines.append(
-                f"Powder references: {reference_variant_count} internal Gordon variants"
-            )
+            lines.append(f"Powder references: {reference_variant_count} internal Gordon variants")
 
     if isinstance(primer_data, dict) and primer_data:
         primer_name = str(primer_data.get("name") or "Selected primer").strip()
         lot_number = str(primer_data.get("selected_lot_number") or "").strip()
         comparison = primer_data.get("lot_comparison") or {}
         if lot_number and comparison.get("title"):
-            lines.append(
-                f"Primer: {primer_name} | Lot {lot_number} | Learned lot context: {comparison.get('title')}"
-            )
+            lines.append(f"Primer: {primer_name} | Lot {lot_number} | Learned lot context: {comparison.get('title')}")
         elif lot_number:
-            lines.append(
-                f"Primer: {primer_name} | Lot {lot_number} | Active lot context"
-            )
+            lines.append(f"Primer: {primer_name} | Lot {lot_number} | Active lot context")
         else:
             lines.append(f"Primer: {primer_name} | Standard inventory data")
 
@@ -5290,9 +4813,7 @@ def build_active_component_context_payload(
             "uses_measured_lot_stats": bool(measured_stats.get("sample_count")),
             "sample_count": measured_stats.get("sample_count"),
             "nominal_weight_grains": bullet_data.get("nominal_weight_grains"),
-            "effective_weight_grains": bullet_data.get(
-                "weight_grains", bullet_data.get("weight")
-            ),
+            "effective_weight_grains": bullet_data.get("weight_grains", bullet_data.get("weight")),
             "nominal_length_mm": bullet_data.get("nominal_length_mm"),
             "effective_length_mm": bullet_data.get("length_mm"),
             "nominal_diameter_mm": bullet_data.get("nominal_diameter_mm"),
@@ -5312,12 +4833,8 @@ def build_active_component_context_payload(
             "usable_for_simulation": powder_data.get("usable_for_simulation"),
             "reference_snapshot_count": powder_data.get("reference_snapshot_count"),
             "reference_variant_count": powder_data.get("reference_variant_count"),
-            "gordon_reference_snapshot_count": powder_data.get(
-                "gordon_reference_snapshot_count"
-            ),
-            "gordon_reference_variant_count": powder_data.get(
-                "gordon_reference_variant_count"
-            ),
+            "gordon_reference_snapshot_count": powder_data.get("gordon_reference_snapshot_count"),
+            "gordon_reference_variant_count": powder_data.get("gordon_reference_variant_count"),
             "quickload_ba_value": powder_data.get("quickload_ba_value"),
             "qex_kj_per_kg": powder_data.get("qex_kj_per_kg"),
             "k_ratio": powder_data.get("k_ratio"),
@@ -5477,7 +4994,9 @@ def summarize_primer_lot_advisory(db, primer_id) -> dict[str, str]:
         "watch",
         "high",
     }:
-        uncertainty_message = "Uncertainty: the lot can still shift the ES/SD picture until ignition consistency is confirmed."
+        uncertainty_message = (
+            "Uncertainty: the lot can still shift the ES/SD picture until ignition consistency is confirmed."
+        )
     if confidence_label:
         message = f"{message} Data foundation: {confidence_label}.".strip()
     if uncertainty_message:
@@ -5492,18 +5011,14 @@ def summarize_primer_lot_advisory(db, primer_id) -> dict[str, str]:
     }
 
 
-def summarize_component_verification_plan(
-    db, powder_id, bullet_id, primer_id
-) -> dict[str, str]:
+def summarize_component_verification_plan(db, powder_id, bullet_id, primer_id) -> dict[str, str]:
     advisories = [
         ("Powder Lot", summarize_powder_lot_advisory(db, powder_id)),
         ("Bullet Lot", summarize_bullet_lot_advisory(db, bullet_id)),
         ("Primer Lot", summarize_primer_lot_advisory(db, primer_id)),
     ]
     actionable = [
-        (label, advisory)
-        for label, advisory in advisories
-        if advisory.get("level") in {"critical", "warning"}
+        (label, advisory) for label, advisory in advisories if advisory.get("level") in {"critical", "warning"}
     ]
     if not actionable:
         return {
@@ -5512,23 +5027,14 @@ def summarize_component_verification_plan(
             "message": "No clear lot deviations were found. A short normal control series is usually enough.",
         }
 
-    level = (
-        "critical"
-        if any(advisory.get("level") == "critical" for _, advisory in actionable)
-        else "warning"
-    )
-    labels = ", ".join(
-        f"{label} ({advisory.get('title', 'Lot')})" for label, advisory in actionable
-    )
+    level = "critical" if any(advisory.get("level") == "critical" for _, advisory in actionable) else "warning"
+    labels = ", ".join(f"{label} ({advisory.get('title', 'Lot')})" for label, advisory in actionable)
     lead = (
         "Several lot signals point toward conservative verification."
         if len(actionable) > 1
         else "One active lot signal should be confirmed before further fine-tuning."
     )
-    details = " ".join(
-        f"{label}: {str(advisory.get('message') or '').strip()}"
-        for label, advisory in actionable
-    )
+    details = " ".join(f"{label}: {str(advisory.get('message') or '').strip()}" for label, advisory in actionable)
     confidence_labels = [
         str(advisory.get("confidence_label") or "").strip()
         for _, advisory in actionable
@@ -5537,11 +5043,7 @@ def summarize_component_verification_plan(
     confidence_summary = ""
     if confidence_labels:
         confidence_summary = " Confidence: " + ", ".join(confidence_labels[:3]) + "."
-    uncertainty_summary = (
-        " Uncertainty: the verification picture is still moving between lots."
-        if actionable
-        else ""
-    )
+    uncertainty_summary = " Uncertainty: the verification picture is still moving between lots." if actionable else ""
     return {
         "level": level,
         "title": "Combined Verification",
@@ -5594,9 +5096,7 @@ def _build_predicted_result_summary(result: dict | None) -> dict[str, Any]:
     return summary
 
 
-def _extract_saved_component_entry(
-    snapshot: dict[str, Any], analysis: dict[str, Any], key: str
-) -> dict[str, Any]:
+def _extract_saved_component_entry(snapshot: dict[str, Any], analysis: dict[str, Any], key: str) -> dict[str, Any]:
     context = analysis.get("component_context")
     if isinstance(context, dict):
         candidate = context.get(key)
@@ -5608,9 +5108,7 @@ def _extract_saved_component_entry(
     return {}
 
 
-def _build_retest_protocol(
-    level: str, usage_profile: str, suggested_control_shots: int
-) -> dict[str, Any]:
+def _build_retest_protocol(level: str, usage_profile: str, suggested_control_shots: int) -> dict[str, Any]:
     profile = str(usage_profile or "").strip()
     if profile.startswith("hunting"):
         steps = [
@@ -5674,9 +5172,7 @@ def build_retest_session_payload(
 
     _proto_steps = advisory.get("protocol_steps")
     protocol_steps = [
-        str(step).strip()
-        for step in (_proto_steps if isinstance(_proto_steps, list) else [])
-        if str(step).strip()
+        str(step).strip() for step in (_proto_steps if isinstance(_proto_steps, list) else []) if str(step).strip()
     ]
     focus = str(advisory.get("focus") or "").strip()
     notes_parts = []
@@ -5732,9 +5228,7 @@ def summarize_retest_advisor(
             settings = QSettings("ReloadingWorkshop", "ReloadingManager")
             workflow_context = build_active_workflow_context_from_settings(settings, db)
             workflow_profile = str(
-                workflow_context.get("usage_profile_key")
-                or settings.value("workflow_context/usage_profile", "")
-                or ""
+                workflow_context.get("usage_profile_key") or settings.value("workflow_context/usage_profile", "") or ""
             ).strip()
             if workflow_target_es is None:
                 raw_target_es = settings.value("workflow_context/target_es")
@@ -5780,28 +5274,18 @@ def summarize_retest_advisor(
             if current_name == "ukjent":
                 current_name = "unknown"
             previous_name = str(previous_entry.get("name") or "").strip()
-            current_lot = str(
-                current_entry.get("selected_lot_number")
-                or current_entry.get("lot_number")
-                or ""
-            ).strip()
+            current_lot = str(current_entry.get("selected_lot_number") or current_entry.get("lot_number") or "").strip()
             previous_lot = str(previous_entry.get("lot_number") or "").strip()
 
             if previous_id and current_id and previous_id != current_id:
-                changes.append(
-                    f"{label} changed from {previous_name or previous_id} to {current_name or current_id}."
-                )
+                changes.append(f"{label} changed from {previous_name or previous_id} to {current_name or current_id}.")
                 major_change_count += 1
             elif current_lot and previous_lot and current_lot != previous_lot:
-                changes.append(
-                    f"{label} changed lot from {previous_lot} to {current_lot}."
-                )
+                changes.append(f"{label} changed lot from {previous_lot} to {current_lot}.")
                 major_change_count += 1
 
         baseline_charge = reference_batch.get("charge_weight_grains")
-        if isinstance(current_charge, (int, float)) and isinstance(
-            baseline_charge, (int, float)
-        ):
+        if isinstance(current_charge, (int, float)) and isinstance(baseline_charge, (int, float)):
             delta = float(current_charge) - float(baseline_charge)
             if abs(delta) >= 0.30:
                 changes.append(
@@ -5815,28 +5299,20 @@ def summarize_retest_advisor(
                 major_change_count += 1
 
         baseline_coal = reference_batch.get("coal_mm")
-        if isinstance(coal_mm, (int, float)) and isinstance(
-            baseline_coal, (int, float)
-        ):
+        if isinstance(coal_mm, (int, float)) and isinstance(baseline_coal, (int, float)):
             delta = float(coal_mm) - float(baseline_coal)
             if abs(delta) >= 0.20:
                 changes.append(f"COAL changed {delta:+.2f} mm.")
                 major_change_count += 1
 
         baseline_cbto = reference_batch.get("cbto_mm")
-        if isinstance(cbto_mm, (int, float)) and isinstance(
-            baseline_cbto, (int, float)
-        ):
+        if isinstance(cbto_mm, (int, float)) and isinstance(baseline_cbto, (int, float)):
             delta = float(cbto_mm) - float(baseline_cbto)
             if abs(delta) >= 0.10:
                 changes.append(f"CBTO changed {delta:+.2f} mm.")
                 major_change_count += 1
 
-    powder_comparison = (
-        (powder_data or {}).get("lot_comparison")
-        if isinstance(powder_data, dict)
-        else {}
-    ) or {}
+    powder_comparison = ((powder_data or {}).get("lot_comparison") if isinstance(powder_data, dict) else {}) or {}
     if str(powder_comparison.get("severity") or "") == "high":
         critical_change_count += 1
         watchouts.append(str(powder_comparison.get("message") or "").strip())
@@ -5844,11 +5320,7 @@ def summarize_retest_advisor(
         major_change_count += 1
         watchouts.append(str(powder_comparison.get("message") or "").strip())
 
-    primer_comparison = (
-        (primer_data or {}).get("lot_comparison")
-        if isinstance(primer_data, dict)
-        else {}
-    ) or {}
+    primer_comparison = ((primer_data or {}).get("lot_comparison") if isinstance(primer_data, dict) else {}) or {}
     if str(primer_comparison.get("severity") or "") == "high":
         critical_change_count += 1
         watchouts.append(str(primer_comparison.get("message") or "").strip())
@@ -5856,11 +5328,7 @@ def summarize_retest_advisor(
         major_change_count += 1
         watchouts.append(str(primer_comparison.get("message") or "").strip())
 
-    bullet_stats = (
-        (bullet_data or {}).get("measured_lot_stats")
-        if isinstance(bullet_data, dict)
-        else {}
-    ) or {}
+    bullet_stats = ((bullet_data or {}).get("measured_lot_stats") if isinstance(bullet_data, dict) else {}) or {}
     sample_count = bullet_stats.get("sample_count")
     if isinstance(sample_count, (int, float)) and 0 < float(sample_count) < 5:
         major_change_count += 1
@@ -5891,15 +5359,15 @@ def summarize_retest_advisor(
 
     profile_message = ""
     if workflow_profile.startswith("hunting"):
-        suggested_control_shots = max(
-            suggested_control_shots, 4 if level == "ok" else 6
-        )
+        suggested_control_shots = max(suggested_control_shots, 4 if level == "ok" else 6)
         focus = (
             "Prioritize cold-bore confirmation and realistic hunting distance before approving the load."
             if level == "ok"
             else "Prioritize cold-bore confirmation, realistic hunting distance, and a chronograph before further adjustment."
         )
-        profile_message = " Hunting profile active: the first shot and real use distance matter more than pure node chasing."
+        profile_message = (
+            " Hunting profile active: the first shot and real use distance matter more than pure node chasing."
+        )
     elif workflow_profile == "training":
         suggested_control_shots = max(suggested_control_shots, 4)
         focus = "Confirm that the load is robust and easy to repeat before spending more time on polishing."
@@ -5951,12 +5419,8 @@ def summarize_retest_advisor(
         "target_es": workflow_target_es,
         "protocol_summary": protocol_summary,
         "protocol_steps": list(protocol.get("steps") or []),
-        "reference_batch_number": (
-            reference_batch.get("batch_number") if reference_batch else None
-        ),
-        "reference_batch_name": (
-            reference_batch.get("batch_name") if reference_batch else None
-        ),
+        "reference_batch_number": (reference_batch.get("batch_number") if reference_batch else None),
+        "reference_batch_name": (reference_batch.get("batch_name") if reference_batch else None),
         "focus": focus,
     }
 
@@ -5973,9 +5437,7 @@ def summarize_builder_impact_window(
             workflow_context = build_active_workflow_context_from_settings(settings, db)
             workflow_id = workflow_context.get("workflow_id")
             if workflow_context.get("usage_profile_key") not in (None, ""):
-                workflow_data["usage_profile"] = workflow_context.get(
-                    "usage_profile_key"
-                )
+                workflow_data["usage_profile"] = workflow_context.get("usage_profile_key")
             if workflow_id:
                 workflow_row = db.get_by_id("load_development_workflows", workflow_id)
                 if workflow_row:
@@ -6003,19 +5465,13 @@ def summarize_builder_impact_window(
     if isinstance(_mv, (int, float)):
         muzzle_velocity = float(_mv)
     observations = {
-        "chronograph_sessions": (
-            [{"avg_velocity_fps": muzzle_velocity}]
-            if muzzle_velocity is not None
-            else []
-        )
+        "chronograph_sessions": ([{"avg_velocity_fps": muzzle_velocity}] if muzzle_velocity is not None else [])
     }
 
     try:
         import importlib
 
-        workflow_module = importlib.import_module(
-            "src.modules.load_development_workflow"
-        )
+        workflow_module = importlib.import_module("src.modules.load_development_workflow")
         builder = getattr(workflow_module, "build_workflow_impact_window", None)
         if callable(builder):
             impact = builder(db, workflow_data, observations)
@@ -6023,29 +5479,19 @@ def summarize_builder_impact_window(
                 raise ValueError("build_workflow_impact_window returned non-dict")
             projectile_profile = _as_dict(impact, "projectile_profile")
             detail_bits = []
-            profile_summary = str(
-                projectile_profile.get("profile_summary") or ""
-            ).strip()
+            profile_summary = str(projectile_profile.get("profile_summary") or "").strip()
             preferred_min = projectile_profile.get("preferred_impact_min_fps")
             preferred_max = projectile_profile.get("preferred_impact_max_fps")
             if profile_summary:
                 detail_bits.append(f"Projectile: {profile_summary}.")
-            if isinstance(preferred_min, (int, float)) and isinstance(
-                preferred_max, (int, float)
-            ):
-                detail_bits.append(
-                    f"Estimated working window: {preferred_min:.0f}-{preferred_max:.0f} fps."
-                )
+            if isinstance(preferred_min, (int, float)) and isinstance(preferred_max, (int, float)):
+                detail_bits.append(f"Estimated working window: {preferred_min:.0f}-{preferred_max:.0f} fps.")
             elif isinstance(preferred_min, (int, float)):
-                detail_bits.append(
-                    f"Estimated working floor: {preferred_min:.0f}+ fps."
-                )
+                detail_bits.append(f"Estimated working floor: {preferred_min:.0f}+ fps.")
             return {
                 "level": str(impact.get("level") or "neutral"),
                 "title": str(impact.get("title") or "Impact Window"),
-                "message": str(
-                    impact.get("message") or "No impact assessment available."
-                ),
+                "message": str(impact.get("message") or "No impact assessment available."),
                 "details": " ".join(detail_bits).strip(),
             }
     except Exception:
@@ -6130,9 +5576,7 @@ def summarize_builder_calibration_profile(
     message = str(summary.get("message") or "").strip()
     if metrics:
         message = f"{message} {' | '.join(metrics[:7])}".strip()
-    setup_label = _format_barrel_configuration_label(
-        barrel_configuration_name, barrel_name
-    )
+    setup_label = _format_barrel_configuration_label(barrel_configuration_name, barrel_name)
     if setup_label:
         message = f"Setup {setup_label}. {message}".strip()
     return {
@@ -6142,9 +5586,7 @@ def summarize_builder_calibration_profile(
     }
 
 
-def _get_profile_scoped_engine_calibration(
-    db, ammo_profile_id: int | None
-) -> dict[str, float | None] | None:
+def _get_profile_scoped_engine_calibration(db, ammo_profile_id: int | None) -> dict[str, float | None] | None:
     if db is None or ammo_profile_id in (None, ""):
         return None
 
@@ -6216,9 +5658,7 @@ def summarize_builder_evidence_basis(
 
     if isinstance(result, dict):
         if isinstance(result.get("muzzle_velocity_fps"), (int, float)):
-            measured_parts.append(
-                "chronograph-based muzzle velocity is used in the evaluation"
-            )
+            measured_parts.append("chronograph-based muzzle velocity is used in the evaluation")
         if isinstance(result.get("peak_pressure_psi"), (int, float)):
             modeled_parts.append("internal ballistics and pressure margin are modeled")
             internal_ballistics = (
@@ -6240,22 +5680,16 @@ def summarize_builder_evidence_basis(
                 modeled_parts.append(str(internal_ballistics.get("message") or ""))
         warnings = result.get("warnings")
         if isinstance(warnings, list) and warnings:
-            recommended_parts.append(
-                "pressure and spike warnings drive the recommended next step"
-            )
+            recommended_parts.append("pressure and spike warnings drive the recommended next step")
         if isinstance(result.get("safety_margin_percent"), (int, float)):
             recommended_parts.append("safety margin is used in the QA guidance")
 
     if not measured_parts:
-        measured_parts.append(
-            "missing measured data makes the builder guidance more provisional"
-        )
+        measured_parts.append("missing measured data makes the builder guidance more provisional")
     if not modeled_parts:
         modeled_parts.append("no modeled ballistics data is available right now")
     if not recommended_parts:
-        recommended_parts.append(
-            "the builder is waiting for more data before it gives a clear recommendation"
-        )
+        recommended_parts.append("the builder is waiting for more data before it gives a clear recommendation")
 
     input_quality = build_input_quality_summary(
         workflow_data or {},
@@ -6309,9 +5743,7 @@ def summarize_builder_confidence_model(
 
     if tracked_brass:
         score += 0.5
-        checks.append(
-            "A recorded brass batch is selected, which gives better traceability and interpretation."
-        )
+        checks.append("A recorded brass batch is selected, which gives better traceability and interpretation.")
     else:
         checks.append("Brass is not fully batch-tracked in this builder.")
 
@@ -6321,23 +5753,17 @@ def summarize_builder_confidence_model(
 
             sigma = math.sqrt(float(result.get("_calibration_mse") or 0))
             score += 1.0
-            checks.append(
-                f"The engine has calibration support with sigma around {format_velocity_fps(sigma)}."
-            )
+            checks.append(f"The engine has calibration support with sigma around {format_velocity_fps(sigma)}.")
         except Exception:
             score += 0.5
-            checks.append(
-                "The engine has calibration support, but the uncertainty could not be quantified."
-            )
+            checks.append("The engine has calibration support, but the uncertainty could not be quantified.")
     else:
         checks.append("No saved engine calibration exists for this prediction.")
 
     seating_conf = str((seating_evidence or {}).get("confidence") or "").strip().lower()
     if seating_conf == "high":
         score += 0.75
-        checks.append(
-            "Seating history has high evidence for the selected bullet and setup."
-        )
+        checks.append("Seating history has high evidence for the selected bullet and setup.")
     elif seating_conf == "medium":
         score += 0.35
         checks.append("Seating history is useful, but still moderate.")
@@ -6349,17 +5775,13 @@ def summarize_builder_confidence_model(
         score += 0.5
         checks.append("Subsonic history shows working sessions for this combination.")
     elif sub_hist_level == "critical":
-        checks.append(
-            "Subsonic history contains serious stability or function warnings."
-        )
+        checks.append("Subsonic history contains serious stability or function warnings.")
     elif sub_hist_level == "warning":
         checks.append("Subsonic history is mixed and should be read conservatively.")
 
     model_level = str((model_match or {}).get("level") or "").strip().lower()
     model_ref = (model_match or {}).get("reference")
-    bias_direction = (
-        str((model_match or {}).get("bias_direction") or "").strip().lower()
-    )
+    bias_direction = str((model_match or {}).get("bias_direction") or "").strip().lower()
     bias_fps = (model_match or {}).get("bias_fps")
     if isinstance(bias_fps, (int, float)):
         if bias_direction in {"model_higher", "measured_higher"}:
@@ -6373,22 +5795,14 @@ def summarize_builder_confidence_model(
             checks.append("History shows little or no systematic model bias.")
     if model_level == "ok":
         score += 0.9
-        checks.append(
-            "The model aligns well with measured chrono history for similar batches."
-        )
+        checks.append("The model aligns well with measured chrono history for similar batches.")
     elif model_level == "warning":
         score += 0.2
-        checks.append(
-            "The model has some support in history, but still needs chrono confirmation."
-        )
+        checks.append("The model has some support in history, but still needs chrono confirmation.")
     elif model_level == "critical":
-        checks.append(
-            "Similar batches show a clear deviation between model and measured velocity."
-        )
+        checks.append("Similar batches show a clear deviation between model and measured velocity.")
     elif isinstance(model_ref, dict):
-        checks.append(
-            "There is some measured history, but not enough to calibrate the model reliably."
-        )
+        checks.append("There is some measured history, but not enough to calibrate the model reliably.")
 
     level = score_to_confidence_level(score, BUILDER_CONFIDENCE_THRESHOLDS)
     if level == "high":
@@ -6396,9 +5810,7 @@ def summarize_builder_confidence_model(
         message = "The data basis is broad enough that the guidance can be read with relatively good confidence."
     elif level == "medium":
         title = "Usable Confidence"
-        message = (
-            "The builder has a useful basis, but some parts are still assumed or thin."
-        )
+        message = "The builder has a useful basis, but some parts are still assumed or thin."
     else:
         title = "Low Confidence"
         message = "The builder lacks enough measured or verified data for strong conclusions without extra testing."
@@ -6509,13 +5921,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 return profile
         try:
             settings = QSettings("ReloadingWorkshop", "ReloadingManager")
-            workflow_context = build_active_workflow_context_from_settings(
-                settings, self.db
-            )
+            workflow_context = build_active_workflow_context_from_settings(settings, self.db)
             profile = str(
-                workflow_context.get("usage_profile_key")
-                or settings.value("workflow_context/usage_profile", "")
-                or ""
+                workflow_context.get("usage_profile_key") or settings.value("workflow_context/usage_profile", "") or ""
             ).strip()
             return profile or "precision"
         except Exception:
@@ -6530,11 +5938,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         try:
             _pkpa = self._current_pressure_kpa()
-            pressure_hpa = (
-                float(_pkpa) * 10.0
-                if hasattr(self, "pressure_spin") and _pkpa is not None
-                else 1013.25
-            )
+            pressure_hpa = float(_pkpa) * 10.0 if hasattr(self, "pressure_spin") and _pkpa is not None else 1013.25
         except Exception:
             pressure_hpa = 1013.25
 
@@ -6549,97 +5953,57 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 powder_id=int(_pd.get("id") or 0),
                 primer_id=(
                     int(self.primer_data["id"])
-                    if isinstance(self.primer_data, dict)
-                    and self.primer_data.get("id") not in (None, "")
+                    if isinstance(self.primer_data, dict) and self.primer_data.get("id") not in (None, "")
                     else None
                 ),
                 charge_weight_gr=float(self.current_charge or 0),
                 coal_mm=float(self.coal_mm or 0),
                 cbto_mm=float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
-                temperature_c=(
-                    _tc if _tc is not None and hasattr(self, "temp_spin") else 15.0
-                ),
+                temperature_c=(_tc if _tc is not None and hasattr(self, "temp_spin") else 15.0),
                 pressure_hpa=pressure_hpa,
                 humidity_percent=(
-                    float(getattr(self, "humidity_spin").value())
-                    if hasattr(self, "humidity_spin")
-                    else 50.0
+                    float(getattr(self, "humidity_spin").value()) if hasattr(self, "humidity_spin") else 50.0
                 ),
-                altitude_m=(
-                    float(getattr(self, "altitude_spin").value())
-                    if hasattr(self, "altitude_spin")
-                    else 0.0
-                ),
-                wind_speed_mps=(
-                    float(getattr(self, "wind_spin").value())
-                    if hasattr(self, "wind_spin")
-                    else 0.0
-                ),
+                altitude_m=(float(getattr(self, "altitude_spin").value()) if hasattr(self, "altitude_spin") else 0.0),
+                wind_speed_mps=(float(getattr(self, "wind_spin").value()) if hasattr(self, "wind_spin") else 0.0),
                 wind_dir_deg=(
-                    float(getattr(self, "wind_dir_spin").value())
-                    if hasattr(self, "wind_dir_spin")
-                    else 90.0
+                    float(getattr(self, "wind_dir_spin").value()) if hasattr(self, "wind_dir_spin") else 90.0
                 ),
                 case_id=(
                     int(self.brass_data["id"])
-                    if isinstance(self.brass_data, dict)
-                    and self.brass_data.get("id") not in (None, "")
+                    if isinstance(self.brass_data, dict) and self.brass_data.get("id") not in (None, "")
                     else None
                 ),
                 brass_batch_id=(
                     int(self.brass_data["id"])
-                    if isinstance(self.brass_data, dict)
-                    and self.brass_data.get("id") not in (None, "")
+                    if isinstance(self.brass_data, dict) and self.brass_data.get("id") not in (None, "")
                     else None
                 ),
                 bullet_lot_id=(
                     int(self.bullet_data["selected_lot_id"])
-                    if isinstance(self.bullet_data, dict)
-                    and self.bullet_data.get("selected_lot_id") not in (None, "")
+                    if isinstance(self.bullet_data, dict) and self.bullet_data.get("selected_lot_id") not in (None, "")
                     else None
                 ),
                 powder_lot_id=(
                     int(self.powder_data["selected_lot_id"])
-                    if isinstance(self.powder_data, dict)
-                    and self.powder_data.get("selected_lot_id") not in (None, "")
+                    if isinstance(self.powder_data, dict) and self.powder_data.get("selected_lot_id") not in (None, "")
                     else None
                 ),
                 primer_lot_id=(
                     int(self.primer_data["selected_lot_id"])
-                    if isinstance(self.primer_data, dict)
-                    and self.primer_data.get("selected_lot_id") not in (None, "")
+                    if isinstance(self.primer_data, dict) and self.primer_data.get("selected_lot_id") not in (None, "")
                     else None
                 ),
                 barrel_id=self._get_active_barrel_id(),
                 usage_profile=self._current_usage_profile(),
-                subsonic_mode=bool(
-                    getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked()
-                ),
-                rifle_overrides=(
-                    dict(self.rifle_data) if isinstance(self.rifle_data, dict) else None
-                ),
-                bullet_overrides=(
-                    dict(self.bullet_data)
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                powder_overrides=(
-                    dict(self.powder_data)
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
-                primer_overrides=(
-                    dict(self.primer_data)
-                    if isinstance(self.primer_data, dict)
-                    else None
-                ),
-                case_overrides=(
-                    dict(self.brass_data) if isinstance(self.brass_data, dict) else None
-                ),
+                subsonic_mode=bool(getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked()),
+                rifle_overrides=(dict(self.rifle_data) if isinstance(self.rifle_data, dict) else None),
+                bullet_overrides=(dict(self.bullet_data) if isinstance(self.bullet_data, dict) else None),
+                powder_overrides=(dict(self.powder_data) if isinstance(self.powder_data, dict) else None),
+                primer_overrides=(dict(self.primer_data) if isinstance(self.primer_data, dict) else None),
+                case_overrides=(dict(self.brass_data) if isinstance(self.brass_data, dict) else None),
                 barrel_overrides=(
-                    self._get_active_barrel_details()
-                    if hasattr(self, "_get_active_barrel_details")
-                    else None
+                    self._get_active_barrel_details() if hasattr(self, "_get_active_barrel_details") else None
                 ),
             )
             analysis = self.load_analysis_service.analyze_load(request)
@@ -6746,9 +6110,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     except Exception:
                         pass
 
-    def _select_combo_by_id(
-        self, combo: object, target_id: object, id_key: str = "id"
-    ) -> bool:
+    def _select_combo_by_id(self, combo: object, target_id: object, id_key: str = "id") -> bool:
         """Find and select the combo item whose data[id_key] matches target_id.
 
         Signals are blocked during the programmatic selection to avoid cascading
@@ -6765,10 +6127,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 return False
             for i in range(combo.count()):
                 item_data = combo.itemData(i)
-                if (
-                    isinstance(item_data, dict)
-                    and str(item_data.get(id_key) or "") == target
-                ):
+                if isinstance(item_data, dict) and str(item_data.get(id_key) or "") == target:
                     combo.blockSignals(True)
                     combo.setCurrentIndex(i)
                     combo.blockSignals(False)
@@ -6833,55 +6192,35 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
     def _build_active_load_session_intake_snapshot(self) -> dict[str, Any]:
         snapshot: dict[str, Any] = {
             "usage_profile": self._current_usage_profile(),
-            "charge_weight_gr": (
-                float(self.current_charge or 0)
-                if self.current_charge is not None
-                else None
-            ),
+            "charge_weight_gr": (float(self.current_charge or 0) if self.current_charge is not None else None),
             "coal_mm": float(self.coal_mm or 0) if self.coal_mm is not None else None,
             "cbto_mm": float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
         }
 
         try:
             _tc2 = self._current_temperature_c()
-            snapshot["temperature_c"] = (
-                float(_tc2) if hasattr(self, "temp_spin") and _tc2 is not None else None
-            )
+            snapshot["temperature_c"] = float(_tc2) if hasattr(self, "temp_spin") and _tc2 is not None else None
         except Exception:
             snapshot["temperature_c"] = None
         try:
             _pkpa = self._current_pressure_kpa()
-            snapshot["pressure_kpa"] = (
-                float(_pkpa)
-                if hasattr(self, "pressure_spin") and _pkpa is not None
-                else None
-            )
+            snapshot["pressure_kpa"] = float(_pkpa) if hasattr(self, "pressure_spin") and _pkpa is not None else None
         except Exception:
             snapshot["pressure_kpa"] = None
         try:
-            snapshot["humidity_percent"] = (
-                float(self.humidity_spin.value())
-                if hasattr(self, "humidity_spin")
-                else None
-            )
+            snapshot["humidity_percent"] = float(self.humidity_spin.value()) if hasattr(self, "humidity_spin") else None
         except Exception:
             snapshot["humidity_percent"] = None
         try:
             snapshot["altitude_m"] = (
-                float(getattr(self, "altitude_spin").value())
-                if hasattr(self, "altitude_spin")
-                else None
+                float(getattr(self, "altitude_spin").value()) if hasattr(self, "altitude_spin") else None
             )
         except Exception:
             snapshot["altitude_m"] = None
-        snapshot["subsonic_mode"] = bool(
-            getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked()
-        )
+        snapshot["subsonic_mode"] = bool(getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked())
         return snapshot
 
-    def _resolve_session_safety_status(
-        self, analysis: dict | None, result: dict | None
-    ) -> str:
+    def _resolve_session_safety_status(self, analysis: dict | None, result: dict | None) -> str:
         _an = analysis if isinstance(analysis, dict) else {}
         pressure_assessment = _as_dict(_an, "pressure_assessment")
         level = str(pressure_assessment.get("level") or "").strip().lower()
@@ -6897,9 +6236,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             maximum = result.get("max_pressure_psi")
             if peak is not None and maximum not in (None, 0, ""):
                 try:
-                    display_margin = (
-                        (float(maximum) - float(peak)) / float(maximum) * 100.0
-                    )
+                    display_margin = (float(maximum) - float(peak)) / float(maximum) * 100.0
                 except Exception:
                     pass
         try:
@@ -6917,9 +6254,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
         _raw_analysis = getattr(self, "_latest_load_analysis", None)
-        analysis: dict[str, Any] = (
-            _raw_analysis if isinstance(_raw_analysis, dict) else {}
-        )
+        analysis: dict[str, Any] = _raw_analysis if isinstance(_raw_analysis, dict) else {}
         _raw_result = getattr(self, "_latest_visual_result", None)
         result: dict[str, Any] = _raw_result if isinstance(_raw_result, dict) else {}
         recommendation = _as_dict(analysis, "recommendation")
@@ -6932,9 +6267,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         updates: dict[str, Any] = {
             "confidence_label": str(input_quality.get("level") or "medium"),
             "confidence_score": (
-                float(input_quality.get("score") or 0)
-                if input_quality.get("score") not in (None, "")
-                else None
+                float(input_quality.get("score") or 0) if input_quality.get("score") not in (None, "") else None
             ),
             "safety_status": self._resolve_session_safety_status(analysis, result),
             "next_action": str(recommendation.get("next_step") or "").strip() or None,
@@ -6951,50 +6284,23 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         seating_window = _as_list(recommendation, "seating_window_mm")
         if len(seating_window) == 2 and self.coal_mm is not None:
             try:
-                updates["recommended_coal_min"] = float(self.coal_mm or 0) + float(
-                    seating_window[0]
-                )
-                updates["recommended_coal_max"] = float(self.coal_mm or 0) + float(
-                    seating_window[1]
-                )
+                updates["recommended_coal_min"] = float(self.coal_mm or 0) + float(seating_window[0])
+                updates["recommended_coal_max"] = float(self.coal_mm or 0) + float(seating_window[1])
             except Exception:
                 pass
 
         # Runtime baseline wins: prefer the runtime-derived frozen baseline over the
         # locally computed candidate so session re-opens restore the correct state.
-        baseline = (
-            self._ensure_recommendation_baseline()
-            or self._build_recommendation_baseline_candidate()
-        )
+        baseline = self._ensure_recommendation_baseline() or self._build_recommendation_baseline_candidate()
         charge_promotion_candidate = summarize_charge_promotion_candidate(
             db=self.db,
-            rifle_id=(
-                (self.rifle_data or {}).get("id")
-                if isinstance(self.rifle_data, dict)
-                else None
-            ),
-            bullet_id=(
-                (self.bullet_data or {}).get("id")
-                if isinstance(self.bullet_data, dict)
-                else None
-            ),
-            powder_id=(
-                (self.powder_data or {}).get("id")
-                if isinstance(self.powder_data, dict)
-                else None
-            ),
-            current_charge_gr=(
-                float(self.current_charge or 0)
-                if self.current_charge is not None
-                else None
-            ),
+            rifle_id=((self.rifle_data or {}).get("id") if isinstance(self.rifle_data, dict) else None),
+            bullet_id=((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+            powder_id=((self.powder_data or {}).get("id") if isinstance(self.powder_data, dict) else None),
+            current_charge_gr=(float(self.current_charge or 0) if self.current_charge is not None else None),
         )
         control_state = build_recommendation_control_state(
-            current_charge_gr=(
-                float(self.current_charge or 0)
-                if self.current_charge is not None
-                else None
-            ),
+            current_charge_gr=(float(self.current_charge or 0) if self.current_charge is not None else None),
             coal_mm=float(self.coal_mm or 0) if self.coal_mm is not None else None,
             cbto_mm=float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
             baseline=baseline,
@@ -7002,17 +6308,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         recommendation_payload: dict[str, Any] = {
             "active_settings": {
-                "charge_weight_gr": (
-                    float(self.current_charge or 0)
-                    if self.current_charge is not None
-                    else None
-                ),
-                "coal_mm": (
-                    float(self.coal_mm or 0) if self.coal_mm is not None else None
-                ),
-                "cbto_mm": (
-                    float(self.cbto_mm or 0) if self.cbto_mm is not None else None
-                ),
+                "charge_weight_gr": (float(self.current_charge or 0) if self.current_charge is not None else None),
+                "coal_mm": (float(self.coal_mm or 0) if self.coal_mm is not None else None),
+                "cbto_mm": (float(self.cbto_mm or 0) if self.cbto_mm is not None else None),
             },
             "recommendation": recommendation,
             "baseline": baseline,
@@ -7045,29 +6343,15 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         learning_payload: dict[str, Any] = {
             "summary": {
-                "next_focus": str(recommendation.get("next_step") or "").strip()
-                or None,
-                "input_quality_level": str(input_quality.get("level") or "").strip()
-                or None,
+                "next_focus": str(recommendation.get("next_step") or "").strip() or None,
+                "input_quality_level": str(input_quality.get("level") or "").strip() or None,
                 "input_quality_score": (
-                    float(input_quality.get("score") or 0)
-                    if input_quality.get("score") not in (None, "")
-                    else None
+                    float(input_quality.get("score") or 0) if input_quality.get("score") not in (None, "") else None
                 ),
-                "pressure_level": str(pressure_assessment.get("level") or "").strip()
-                or None,
-                "stability_level": str(
-                    _as_dict(analysis, "stability_assessment").get("level") or ""
-                ).strip()
-                or None,
-                "barrel_level": str(
-                    _as_dict(analysis, "barrel_context").get("level") or ""
-                ).strip()
-                or None,
-                "brass_level": str(
-                    _as_dict(analysis, "brass_context").get("level") or ""
-                ).strip()
-                or None,
+                "pressure_level": str(pressure_assessment.get("level") or "").strip() or None,
+                "stability_level": str(_as_dict(analysis, "stability_assessment").get("level") or "").strip() or None,
+                "barrel_level": str(_as_dict(analysis, "barrel_context").get("level") or "").strip() or None,
+                "brass_level": str(_as_dict(analysis, "brass_context").get("level") or "").strip() or None,
             },
             "barrel_context": _as_dict(analysis, "barrel_context"),
             "brass_context": _as_dict(analysis, "brass_context"),
@@ -7085,31 +6369,19 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         session_summary = _as_dict(session_payload, "summary")
         evidence_summary = _as_dict(evidence, "summary")
 
-        confidence_label = str(
-            aggregate.get("confidence_label") or aggregate.get("model_status") or ""
-        ).strip()
+        confidence_label = str(aggregate.get("confidence_label") or aggregate.get("model_status") or "").strip()
         confidence_score = aggregate.get("confidence_score")
         weakest_link = str(aggregate.get("weakest_link") or "").strip()
-        next_focus = str(
-            session_summary.get("next_focus") or aggregate.get("next_focus") or ""
-        ).strip()
+        next_focus = str(session_summary.get("next_focus") or aggregate.get("next_focus") or "").strip()
         pressure_level = str(session_summary.get("pressure_level") or "").strip()
         data_strength = str(session_summary.get("data_strength") or "").strip()
         drift_state = str(session_summary.get("drift_state") or "").strip()
         signal_hint = str(session_summary.get("signal_hint") or "").strip()
         chrono_count = (
-            _coerce_int(
-                evidence_summary.get("chronograph_import_count")
-                or evidence_summary.get("chrono_count")
-            )
-            or 0
+            _coerce_int(evidence_summary.get("chronograph_import_count") or evidence_summary.get("chrono_count")) or 0
         )
         test_count = (
-            _coerce_int(
-                evidence_summary.get("test_result_count")
-                or evidence_summary.get("accuracy_count")
-            )
-            or 0
+            _coerce_int(evidence_summary.get("test_result_count") or evidence_summary.get("accuracy_count")) or 0
         )
 
         parts: list[str] = []
@@ -7145,16 +6417,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if session_id is None:
             return
 
-        barrel = (
-            self._get_active_barrel_details()
-            if hasattr(self, "_get_active_barrel_details")
-            else {}
-        )
-        barrel_context = (
-            self._get_active_barrel_configuration_context()
-            if hasattr(self, "_get_active_barrel_configuration_context")
-            else {}
-        )
+        try:
+            barrel = self._get_active_barrel_details() if hasattr(self, "_get_active_barrel_details") else {}
+        except Exception:
+            barrel = {}
+        try:
+            barrel_context = (
+                self._get_active_barrel_configuration_context()
+                if hasattr(self, "_get_active_barrel_configuration_context")
+                else {}
+            )
+        except Exception:
+            barrel_context = {}
         barrel_name = str((barrel or {}).get("name") or "").strip() or None
         rifle_name = None
         rifle_caliber = None
@@ -7167,27 +6441,40 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 rifle_id = int(_rid)
 
         ammo_profile_id = getattr(self, "current_ammo_profile_id", None)
+        try:
+            _active_barrel_id = self._get_active_barrel_id()
+        except Exception:
+            _active_barrel_id = None
         scalar_updates = {
             "rifle_id": rifle_id,
             "rifle_name": rifle_name,
             "rifle_caliber": rifle_caliber,
-            "barrel_id": barrel_context.get("barrel_id")
-            or self._get_active_barrel_id(),
+            "barrel_id": barrel_context.get("barrel_id") or _active_barrel_id,
             "barrel_name": barrel_context.get("barrel_name") or barrel_name,
             "barrel_configuration_id": barrel_context.get("barrel_configuration_id"),
-            "barrel_configuration_name": barrel_context.get(
-                "barrel_configuration_name"
-            ),
-            "ammo_profile_id": (
-                int(ammo_profile_id) if ammo_profile_id not in (None, "") else None
-            ),
+            "barrel_configuration_name": barrel_context.get("barrel_configuration_name"),
+            "ammo_profile_id": (int(ammo_profile_id) if ammo_profile_id not in (None, "") else None),
         }
-        analysis_updates, recommendation_payload, evidence_payload, learning_payload = (
-            self._build_active_load_session_analysis_payloads()
-        )
-        scalar_updates.update(
-            {k: v for k, v in analysis_updates.items() if v is not None}
-        )
+        try:
+            (
+                analysis_updates,
+                recommendation_payload,
+                evidence_payload,
+                learning_payload,
+            ) = self._build_active_load_session_analysis_payloads()
+        except Exception:
+            (
+                analysis_updates,
+                recommendation_payload,
+                evidence_payload,
+                learning_payload,
+            ) = (
+                {},
+                {},
+                {},
+                {},
+            )
+        scalar_updates.update({k: v for k, v in analysis_updates.items() if v is not None})
 
         try:
             update_load_development_session(
@@ -7196,10 +6483,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 updates=scalar_updates,
                 component_selection=self._build_active_load_session_component_selection(),
                 intake_snapshot=self._build_active_load_session_intake_snapshot(),
-                barrel_configuration_snapshot=barrel_context.get(
-                    "barrel_configuration_snapshot"
-                )
-                or {},
+                barrel_configuration_snapshot=barrel_context.get("barrel_configuration_snapshot") or {},
                 recommendation=recommendation_payload,
                 evidence_summary=evidence_payload,
                 learning_state=learning_payload,
@@ -7208,17 +6492,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
 
         try:
-            self._latest_load_session_runtime = build_load_session_runtime(
-                self.db, session_id
-            )
+            self._latest_load_session_runtime = build_load_session_runtime(self.db, session_id)
         except Exception:
             self._latest_load_session_runtime = None
 
-        runtime = (
-            self._latest_load_session_runtime
-            if isinstance(self._latest_load_session_runtime, dict)
-            else {}
-        )
+        runtime = self._latest_load_session_runtime if isinstance(self._latest_load_session_runtime, dict) else {}
         delta = _as_dict(runtime, "delta")
         delta_action = str(delta.get("suggested_action") or "").strip() or None
         current_action = str(scalar_updates.get("next_action") or "").strip() or None
@@ -7233,9 +6511,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 pass
             else:
                 try:
-                    self._latest_load_session_runtime = build_load_session_runtime(
-                        self.db, session_id
-                    )
+                    self._latest_load_session_runtime = build_load_session_runtime(self.db, session_id)
                 except Exception:
                     self._latest_load_session_runtime = runtime
 
@@ -7244,11 +6520,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         rifle_name = ""
         if isinstance(self.rifle_data, dict):
             rifle_name = str(self.rifle_data.get("name") or "").strip()
-        barrel = (
-            self._get_active_barrel_details()
-            if hasattr(self, "_get_active_barrel_details")
-            else {}
-        )
+        barrel = self._get_active_barrel_details() if hasattr(self, "_get_active_barrel_details") else {}
         barrel_name = str((barrel or {}).get("name") or "").strip()
         if rifle_name:
             parts.append(f"Rifle: {rifle_name}")
@@ -7259,21 +6531,15 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if isinstance(self.bullet_data, dict) and self.bullet_data.get("name"):
             bullet_name = str(self.bullet_data.get("name") or "").strip()
             bullet_lot = str(self.bullet_data.get("selected_lot_number") or "").strip()
-            component_bits.append(
-                f"Bullet {bullet_name}" + (f" [{bullet_lot}]" if bullet_lot else "")
-            )
+            component_bits.append(f"Bullet {bullet_name}" + (f" [{bullet_lot}]" if bullet_lot else ""))
         if isinstance(self.powder_data, dict) and self.powder_data.get("name"):
             powder_name = str(self.powder_data.get("name") or "").strip()
             powder_lot = str(self.powder_data.get("selected_lot_number") or "").strip()
-            component_bits.append(
-                f"Powder {powder_name}" + (f" [{powder_lot}]" if powder_lot else "")
-            )
+            component_bits.append(f"Powder {powder_name}" + (f" [{powder_lot}]" if powder_lot else ""))
         if isinstance(self.primer_data, dict) and self.primer_data.get("name"):
             primer_name = str(self.primer_data.get("name") or "").strip()
             primer_lot = str(self.primer_data.get("selected_lot_number") or "").strip()
-            component_bits.append(
-                f"Primer {primer_name}" + (f" [{primer_lot}]" if primer_lot else "")
-            )
+            component_bits.append(f"Primer {primer_name}" + (f" [{primer_lot}]" if primer_lot else ""))
         if component_bits:
             parts.append("Builder selections: " + " | ".join(component_bits))
         return parts
@@ -7317,9 +6583,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         identity_lots = _as_dict(identity, "lots")
 
         lines = []
-        session_uid = str(
-            context.get("session_uid") or session.get("session_uid") or ""
-        ).strip()
+        session_uid = str(context.get("session_uid") or session.get("session_uid") or "").strip()
         usage_name = str(
             identity_usage.get("label")
             or context.get("usage_profile_name")
@@ -7357,13 +6621,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             lines.append(heading)
         if barrel_name:
             barrel_profile = _as_dict(barrel, "learning_profile")
-            barrel_confidence = str(
-                barrel_profile.get("confidence_label") or ""
-            ).strip()
+            barrel_confidence = str(barrel_profile.get("confidence_label") or "").strip()
             lines.append(
-                "Barrel: "
-                + (setup_label or barrel_name)
-                + (f" ({barrel_confidence})" if barrel_confidence else "")
+                "Barrel: " + (setup_label or barrel_name) + (f" ({barrel_confidence})" if barrel_confidence else "")
             )
 
         active_lots = []
@@ -7377,10 +6637,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             lot = _as_dict(lots, key)
             component = _as_dict(identity_components, key)
             lot_number = str(
-                lot_identity.get("lot_number")
-                or context.get(f"{key}_lot_number")
-                or lot.get("lot_number")
-                or ""
+                lot_identity.get("lot_number") or context.get(f"{key}_lot_number") or lot.get("lot_number") or ""
             ).strip()
             if not lot_number:
                 continue
@@ -7405,13 +6662,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if batch_count:
             evidence_bits.append(f"{batch_count} batch projects")
         if isinstance(best_group_mm, (int, float)):
-            evidence_bits.append(
-                f"best group {format_group_size_mm(float(best_group_mm))}"
-            )
+            evidence_bits.append(f"best group {format_group_size_mm(float(best_group_mm))}")
         if isinstance(latest_velocity, (int, float)):
-            evidence_bits.append(
-                f"latest avg {format_velocity_fps(float(latest_velocity))}"
-            )
+            evidence_bits.append(f"latest avg {format_velocity_fps(float(latest_velocity))}")
         if evidence_bits:
             lines.append("Evidence: " + " | ".join(evidence_bits))
 
@@ -7420,9 +6673,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         recommendation_bits = []
         charge_state = str(control_state.get("charge_state") or "").strip()
         seating_state = str(control_state.get("seating_state") or "").strip()
-        trust_label = str(
-            control_state.get("trust_label") or baseline.get("trust_label") or ""
-        ).strip()
+        trust_label = str(control_state.get("trust_label") or baseline.get("trust_label") or "").strip()
         if charge_state:
             recommendation_bits.append(f"charge {charge_state}")
         if seating_state:
@@ -7434,23 +6685,15 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             recommendation_bits.append(baseline_summary)
         elif setup_label:
             recommendation_bits.append(f"setup {setup_label}")
-        recommendation_bits.extend(
-            summarize_recommendation_return_targets(control_state, baseline)
-        )
+        recommendation_bits.extend(summarize_recommendation_return_targets(control_state, baseline))
         if recommendation_bits:
             lines.append("Recommendation: " + " | ".join(recommendation_bits))
 
         meta = []
         status = str(context.get("status") or session.get("status") or "").strip()
-        stage = str(
-            context.get("lifecycle_stage") or session.get("lifecycle_stage") or ""
-        ).strip()
-        confidence = str(
-            context.get("confidence_label") or session.get("confidence_label") or ""
-        ).strip()
-        safety = str(
-            context.get("safety_status") or session.get("safety_status") or ""
-        ).strip()
+        stage = str(context.get("lifecycle_stage") or session.get("lifecycle_stage") or "").strip()
+        confidence = str(context.get("confidence_label") or session.get("confidence_label") or "").strip()
+        safety = str(context.get("safety_status") or session.get("safety_status") or "").strip()
         if status:
             meta.append(f"status {status}")
         if stage:
@@ -7464,32 +6707,16 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if meta:
             lines.append("Runtime: " + " | ".join(meta))
         if not lines:
-            lines.append(
-                "Canonical session is active, but the runtime summary is still building."
-            )
+            lines.append("Canonical session is active, but the runtime summary is still building.")
 
         level = "ok" if evidence_bits else "warning"
-        self.runtime_context_label.setText(
-            "<b>Session Runtime</b><br>" + "<br>".join(lines)
-        )
+        self.runtime_context_label.setText("<b>Session Runtime</b><br>" + "<br>".join(lines))
         self.runtime_context_label.setStyleSheet(_advisory_style(level))
         if hasattr(self, "runtime_delta_label"):
             delta = _as_dict(_runtime, "delta")
-            delta_items = [
-                str(item).strip()
-                for item in (delta.get("items") or [])
-                if str(item).strip()
-            ]
-            delta_impacts = [
-                str(item).strip()
-                for item in (delta.get("impacts") or [])
-                if str(item).strip()
-            ]
-            delta_focus_areas = [
-                str(item).strip()
-                for item in (delta.get("focus_areas") or [])
-                if str(item).strip()
-            ]
+            delta_items = [str(item).strip() for item in (delta.get("items") or []) if str(item).strip()]
+            delta_impacts = [str(item).strip() for item in (delta.get("impacts") or []) if str(item).strip()]
+            delta_focus_areas = [str(item).strip() for item in (delta.get("focus_areas") or []) if str(item).strip()]
             delta_summary = str(delta.get("summary") or "").strip()
             delta_title = str(delta.get("title") or "Runtime Delta").strip()
             delta_action = str(delta.get("suggested_action") or "").strip()
@@ -7503,12 +6730,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 delta_lines.append("Then: " + delta_impacts[1])
             if delta_action:
                 delta_lines.append("Next: " + delta_action)
-            self.runtime_delta_label.setText(
-                "<b>" + delta_title + "</b><br>" + "<br>".join(delta_lines)
-            )
-            self.runtime_delta_label.setStyleSheet(
-                _advisory_style(str(delta.get("level") or "unknown"))
-            )
+            self.runtime_delta_label.setText("<b>" + delta_title + "</b><br>" + "<br>".join(delta_lines))
+            self.runtime_delta_label.setStyleSheet(_advisory_style(str(delta.get("level") or "unknown")))
 
     def _refresh_service_recommendation_callout(self) -> None:
         """Show compact service-based recommendation text in builder callouts."""
@@ -7516,9 +6739,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
 
         _raw_analysis = getattr(self, "_latest_load_analysis", None)
-        analysis: dict[str, Any] = (
-            _raw_analysis if isinstance(_raw_analysis, dict) else {}
-        )
+        analysis: dict[str, Any] = _raw_analysis if isinstance(_raw_analysis, dict) else {}
         recommendation = _as_dict(analysis, "recommendation")
         if not recommendation:
             return
@@ -7556,13 +6777,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         powder_lot_context = _as_dict(analysis, "powder_lot_context")
         bullet_lot_context = _as_dict(analysis, "bullet_lot_context")
         if powder_lot_context.get("lot_number"):
-            parts.append(
-                f"Powder lot in engine: {powder_lot_context.get('lot_number')}"
-            )
+            parts.append(f"Powder lot in engine: {powder_lot_context.get('lot_number')}")
         if bullet_lot_context.get("lot_number"):
-            parts.append(
-                f"Bullet lot in engine: {bullet_lot_context.get('lot_number')}"
-            )
+            parts.append(f"Bullet lot in engine: {bullet_lot_context.get('lot_number')}")
         if not parts:
             return
 
@@ -7574,9 +6791,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if existing:
             self.powder_recommendation.setText(existing + marker + " " + service_block)
         else:
-            self.powder_recommendation.setText(
-                "<b>Engine Suggestion:</b> " + service_block
-            )
+            self.powder_recommendation.setText("<b>Engine Suggestion:</b> " + service_block)
 
     def init_ui(self):
         """Single-screen load builder: top bar + 3-column layout."""
@@ -7625,9 +6840,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         """Rifle selector · purpose toggles · Demper/Subsonisk · action buttons."""
         bar = QWidget()
         bar.setObjectName("loadBuilderTopBar")
-        bar.setStyleSheet(
-            "#loadBuilderTopBar { background: #1a1f2e; border-bottom: 1px solid #2d3548; }"
-        )
+        bar.setStyleSheet("#loadBuilderTopBar { background: #1a1f2e; border-bottom: 1px solid #2d3548; }")
         h = QHBoxLayout(bar)
         h.setContentsMargins(14, 8, 14, 8)
         h.setSpacing(10)
@@ -7688,9 +6901,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             "QDoubleSpinBox { background:#252b3b; color:#e0e6f0; border:1px solid #3b4560;"
             " border-radius:4px; padding:3px 6px; }"
         )
-        self.subsonic_cb.toggled.connect(
-            lambda checked: self.subsonic_target.setVisible(checked)
-        )
+        self.subsonic_cb.toggled.connect(lambda checked: self.subsonic_target.setVisible(checked))
         self.subsonic_cb.toggled.connect(self.update_visualization)
         self.subsonic_target.valueChanged.connect(self.update_visualization)
         self.subsonic_row = bar  # legacy alias
@@ -7786,10 +6997,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             "primer_combo": self.primer_combo,
         }
 
-        _CARD_SS = (
-            "QWidget#compCard {{ background:#1c2438; border-radius:6px;"
-            " border-left:3px solid {color}; }}"
-        )
+        _CARD_SS = "QWidget#compCard {{ background:#1c2438; border-radius:6px;" " border-left:3px solid {color}; }}"
         colors = ["#3498db", "#2ecc71", "#e67e22", "#e74c3c"]
 
         for (label_text, attr), color in zip(rows, colors):
@@ -7802,8 +7010,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
             lbl = QLabel(label_text)
             lbl.setStyleSheet(
-                "color:#5a7ab0; font-size:9px; font-weight:bold;"
-                " letter-spacing:0.5px; background:transparent;"
+                "color:#5a7ab0; font-size:9px; font-weight:bold;" " letter-spacing:0.5px; background:transparent;"
             )
             cv.addWidget(lbl)
 
@@ -7860,9 +7067,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         sc.setContentsMargins(12, 10, 12, 10)
         sc.setSpacing(6)
         seat_hdr = QLabel("SITTING / COAL")
-        seat_hdr.setStyleSheet(
-            "color:#5a7ab0; font-size:9px; font-weight:bold; background:transparent;"
-        )
+        seat_hdr.setStyleSheet("color:#5a7ab0; font-size:9px; font-weight:bold; background:transparent;")
         sc.addWidget(seat_hdr)
 
         # Ensure seating widgets exist (create_seating_controls creates them)
@@ -7880,9 +7085,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         ]:
             row = QHBoxLayout()
             lbl = QLabel(caption)
-            lbl.setStyleSheet(
-                "color:#5a7ab0; font-size:10px; min-width:80px; background:transparent;"
-            )
+            lbl.setStyleSheet("color:#5a7ab0; font-size:10px; min-width:80px; background:transparent;")
             spin = getattr(self, spin_attr)
             spin.setStyleSheet(_spin_ss)
             row.addWidget(lbl)
@@ -7907,8 +7110,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         hdr = QLabel("SIKKERHET")
         hdr.setStyleSheet(
-            "color:#5a7ab0; font-size:9px; font-weight:bold; letter-spacing:1px;"
-            " background:transparent;"
+            "color:#5a7ab0; font-size:9px; font-weight:bold; letter-spacing:1px;" " background:transparent;"
         )
         outer.addWidget(hdr)
 
@@ -7917,8 +7119,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         grid.setContentsMargins(0, 0, 0, 0)
 
         _pill_base = (
-            "QLabel { border-radius:4px; padding:4px 8px; font-size:10px;"
-            " background:#12192e; color:#5a7ab0; }"
+            "QLabel { border-radius:4px; padding:4px 8px; font-size:10px;" " background:#12192e; color:#5a7ab0; }"
         )
 
         def _make_pill(attr: str, text: str) -> QLabel:
@@ -7951,10 +7152,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         def _style_for(text: str):
             t = text.lower()
-            if any(
-                k in t
-                for k in ("ok", "safe", "good", "grønn", "trygg", "stable", "stabil")
-            ):
+            if any(k in t for k in ("ok", "safe", "good", "grønn", "trygg", "stable", "stabil")):
                 return _ok
             if any(k in t for k in ("warn", "advar", "caution", "gul", "marginal")):
                 return _warn
@@ -7985,9 +7183,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
             plain = _re.sub(r"<[^>]+>", "", raw)
             pill.setStyleSheet(_style_for(plain))
-            pill.setText(
-                f"● {short}: {plain[:28]}" if len(plain) > 3 else f"● {short}: --"
-            )
+            pill.setText(f"● {short}: {plain[:28]}" if len(plain) > 3 else f"● {short}: --")
 
         _sync("_pill_pressure", "pressure_alert_label", "Trykk")
         _sync("_pill_stability", "stability_advisor_label", "Stabilitet")
@@ -8048,9 +7244,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
             self.velocity_plot = pg.PlotWidget()
             self.velocity_plot.setLabel("left", "Hastighet", units="fps", **_AXIS_SS)
-            self.velocity_plot.setLabel(
-                "bottom", "Posisjon", units="tommer", **_AXIS_SS
-            )
+            self.velocity_plot.setLabel("bottom", "Posisjon", units="tommer", **_AXIS_SS)
             self.velocity_plot.setTitle("Kulehastighet", color="#4a6a9a", size="9pt")
             self.velocity_plot.setMinimumHeight(160)
             self.velocity_plot.showGrid(x=True, y=True, alpha=0.15)
@@ -8060,9 +7254,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             tc_row = QHBoxLayout()
             self.transonic_cb = QCheckBox("Vis transonisk sone")
             self.transonic_cb.setChecked(True)
-            self.transonic_cb.setStyleSheet(
-                "color:#4a6a9a; font-size:10px; background:transparent;"
-            )
+            self.transonic_cb.setStyleSheet("color:#4a6a9a; font-size:10px; background:transparent;")
             self.transonic_cb.toggled.connect(self.update_visualization)
             self.transonic_margin = QDoubleSpinBox()
             self.transonic_margin.setRange(0, 500)
@@ -8082,8 +7274,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             traj_hdr_row = QHBoxLayout()
             traj_hdr = QLabel("BALLISTISK BANE")
             traj_hdr.setStyleSheet(
-                "color:#3d5a8a; font-size:9px; font-weight:bold; letter-spacing:2px;"
-                " background:transparent;"
+                "color:#3d5a8a; font-size:9px; font-weight:bold; letter-spacing:2px;" " background:transparent;"
             )
             self._traj_range_combo = QComboBox()
             self._traj_range_combo.addItems(["300 m", "500 m", "800 m", "1000 m"])
@@ -8092,24 +7283,16 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 "QComboBox { background:#1a2035; color:#4a6a9a; border:1px solid #2a3550;"
                 " border-radius:3px; padding:2px 6px; font-size:9px; }"
             )
-            self._traj_range_combo.currentIndexChanged.connect(
-                self.update_visualization
-            )
+            self._traj_range_combo.currentIndexChanged.connect(self.update_visualization)
             traj_hdr_row.addWidget(traj_hdr)
             traj_hdr_row.addStretch()
             traj_hdr_row.addWidget(self._traj_range_combo)
             layout.addLayout(traj_hdr_row)
 
             self.trajectory_plot = pg.PlotWidget(container)
-            self.trajectory_plot.setLabel(
-                "left", "Fall", units="cm", color="#4a6a9a", **{"font-size": "9pt"}
-            )
-            self.trajectory_plot.setLabel(
-                "bottom", "Avstand", units="m", color="#4a6a9a", **{"font-size": "9pt"}
-            )
-            self.trajectory_plot.setTitle(
-                "Kulebane (nullstilt 100 m)", color="#4a6a9a", size="9pt"
-            )
+            self.trajectory_plot.setLabel("left", "Fall", units="cm", color="#4a6a9a", **{"font-size": "9pt"})
+            self.trajectory_plot.setLabel("bottom", "Avstand", units="m", color="#4a6a9a", **{"font-size": "9pt"})
+            self.trajectory_plot.setTitle("Kulebane (nullstilt 100 m)", color="#4a6a9a", size="9pt")
             self.trajectory_plot.setMinimumHeight(140)
             self.trajectory_plot.showGrid(x=True, y=True, alpha=0.15)
             self.trajectory_plot.invertY(False)
@@ -8117,9 +7300,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
             # Distance table (5 columns × 3 rows)
             self._traj_table = QTableWidget(3, 5)
-            self._traj_table.setHorizontalHeaderLabels(
-                ["100 m", "200 m", "300 m", "400 m", "500 m"]
-            )
+            self._traj_table.setHorizontalHeaderLabels(["100 m", "200 m", "300 m", "400 m", "500 m"])
             self._traj_table.setVerticalHeaderLabels(["m/s", "Fall cm", "J"])
             _th = self._traj_table.horizontalHeader()
             if _th is not None:
@@ -8138,9 +7319,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             layout.addWidget(self._traj_table)
 
         except ImportError:
-            ph = QLabel(
-                "pyqtgraph ikke installert — installer med:  pip install pyqtgraph"
-            )
+            ph = QLabel("pyqtgraph ikke installert — installer med:  pip install pyqtgraph")
             ph.setStyleSheet("color:#4a6a9a; padding:20px; background:transparent;")
             ph.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(ph)
@@ -8214,9 +7393,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self.pressure_rifle_combo = QComboBox(hidden)
         self.pressure_rifle_combo.addItem("All firearms", None)
         try:
-            for r in (
-                self.db.execute_query("SELECT id, name FROM rifles ORDER BY name") or []
-            ):
+            for r in self.db.execute_query("SELECT id, name FROM rifles ORDER BY name") or []:
                 self.pressure_rifle_combo.addItem(r.get("name", "?"), r.get("id"))
         except Exception:
             pass
@@ -8318,9 +7495,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         rifles = self._list_rifles_for_selection()
         pending_id = None
         try:
-            pending_id = QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "pending_builder_rifle_id"
-            )
+            pending_id = QSettings("ReloadingWorkshop", "ReloadingManager").value("pending_builder_rifle_id")
         except Exception:
             pass
         if pending_id is None:
@@ -8376,9 +7551,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 (caliber,),
             )
             for b in batches or []:
-                label = (
-                    f"{b.get('case_name', '?')}  —  {b.get('cases_active', '?')} stk"
-                )
+                label = f"{b.get('case_name', '?')}  —  {b.get('cases_active', '?')} stk"
                 self.brass_combo.addItem(label, dict(b))
         except Exception:
             pass
@@ -8399,9 +7572,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
     def apply_ui_mode_from_settings(self) -> None:
         """Apply guided vs expert mode based on persisted settings."""
         try:
-            val = QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "ui/mode", "beginner"
-            )
+            val = QSettings("ReloadingWorkshop", "ReloadingManager").value("ui/mode", "beginner")
         except Exception:
             val = "beginner"
 
@@ -8434,10 +7605,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         if is_beginner:
             try:
-                if (
-                    getattr(self, "auto_match_toggle", None)
-                    and self.auto_match_toggle.isChecked()
-                ):
+                if getattr(self, "auto_match_toggle", None) and self.auto_match_toggle.isChecked():
                     self.auto_match_toggle.setChecked(False)
             except Exception:
                 pass
@@ -8499,11 +7667,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
             if q:
                 note = str(r.get("note") or "").lower()
-                if (
-                    q not in note
-                    and q not in str(r.get("id") or "")
-                    and q not in str(r.get("charge_weight") or "")
-                ):
+                if q not in note and q not in str(r.get("id") or "") and q not in str(r.get("charge_weight") or ""):
                     continue
             filtered.append(r)
 
@@ -8511,9 +7675,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         # build powder/bullet lot mapping per ammo_profile
         ammo_component_lots: dict = {}
         try:
-            rows_ap = self.db.execute_query(
-                "SELECT id, powder_id, bullet_id FROM ammo_profiles"
-            )
+            rows_ap = self.db.execute_query("SELECT id, powder_id, bullet_id FROM ammo_profiles")
             for ap in rows_ap:
                 apid = ap.get("id")
                 powder_lot = None
@@ -8553,9 +7715,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 ptxt = "N/A"
 
             rifle_name = rifle_names.get(r.get("rifle_id"), f"V:{r.get('rifle_id')}")
-            ammo_name = ammo_names.get(
-                r.get("ammo_profile_id"), f"A:{r.get('ammo_profile_id')}"
-            )
+            ammo_name = ammo_names.get(r.get("ammo_profile_id"), f"A:{r.get('ammo_profile_id')}")
             charge_text = format_weight_grains(r.get("charge_weight"), "powder")
             display = f"{r.get('timestamp')} | {rifle_name} | {ammo_name} | Charge:{charge_text} | P:{ptxt} | {r.get('note') or ''}"
             item = QListWidgetItem(display)
@@ -8610,23 +7770,15 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 continue
             if q:
                 note = str(r.get("note") or "").lower()
-                if (
-                    q not in note
-                    and q not in str(r.get("id") or "")
-                    and q not in str(r.get("charge_weight") or "")
-                ):
+                if q not in note and q not in str(r.get("id") or "") and q not in str(r.get("charge_weight") or ""):
                     continue
             filtered.append(r)
 
         if not filtered:
-            QMessageBox.information(
-                self, tr("mlb_no_data_title"), tr("mlb_no_pressure_log_rows")
-            )
+            QMessageBox.information(self, tr("mlb_no_data_title"), tr("mlb_no_pressure_log_rows"))
             return
 
-        fname, _ = QFileDialog.getSaveFileName(
-            self, tr("mlb_export_pressure_log_csv"), "", "CSV Files (*.csv)"
-        )
+        fname, _ = QFileDialog.getSaveFileName(self, tr("mlb_export_pressure_log_csv"), "", "CSV Files (*.csv)")
         if not fname:
             return
 
@@ -8656,9 +7808,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             pass
         try:
             # map ammo_profile -> powder/bullet lot numbers (latest per component)
-            for ap in self.db.execute_query(
-                "SELECT id, powder_id, bullet_id FROM ammo_profiles"
-            ):
+            for ap in self.db.execute_query("SELECT id, powder_id, bullet_id FROM ammo_profiles"):
                 apid = ap.get("id")
                 powder_lot = None
                 bullet_lot = None
@@ -8815,9 +7965,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self.rifle_button_group.setExclusive(True)
         pending_rifle_id = None
         try:
-            pending_rifle_id = QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "pending_builder_rifle_id"
-            )
+            pending_rifle_id = QSettings("ReloadingWorkshop", "ReloadingManager").value("pending_builder_rifle_id")
         except Exception:
             pending_rifle_id = None
 
@@ -8848,9 +7996,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 self.rifle_button_group.addButton(btn)
                 rifle_layout.addWidget(btn)
                 try:
-                    if pending_rifle_id is not None and str(rifle.get("id")) == str(
-                        pending_rifle_id
-                    ):
+                    if pending_rifle_id is not None and str(rifle.get("id")) == str(pending_rifle_id):
                         QTimer.singleShot(0, lambda button=btn: button.setChecked(True))
                 except Exception:
                     pass
@@ -9018,8 +8164,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.brass_container.addWidget(no_brass)
 
         manual_rb = QRadioButton(
-            "Other / unbatched brass\n"
-            "  Bruk dette hvis du vil velge brass selv uten registrert batchnummer"
+            "Other / unbatched brass\n" "  Bruk dette hvis du vil velge brass selv uten registrert batchnummer"
         )
         manual_rb.setProperty("variant", "listItem")
         manual_rb.brass_data = {  # type: ignore[attr-defined]
@@ -9255,9 +8400,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         )
         layout.addWidget(self.powder_lot_alert_label)
 
-        self.component_verification_label = QLabel(
-            f"{tr('mlb_combined_verification')}: --"
-        )
+        self.component_verification_label = QLabel(f"{tr('mlb_combined_verification')}: --")
         self.component_verification_label.setWordWrap(True)
         self.component_verification_label.setStyleSheet(
             "padding: 6px 8px; border-radius: 5px; background: #1a2035; color: #8a9ec0; border-left: 2px solid #2d3f60;"
@@ -9298,9 +8441,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self.use_recommended_btn = QPushButton("Use Recommended")
         self.use_recommended_btn.setProperty("variant", "ghost")
         self.use_recommended_btn.setEnabled(False)
-        self.use_recommended_btn.clicked.connect(
-            self.on_apply_recommendation_baseline_clicked
-        )
+        self.use_recommended_btn.clicked.connect(self.on_apply_recommendation_baseline_clicked)
         recommendation_action_row.addWidget(self.use_recommended_btn)
         recommendation_action_row.addStretch()
         layout.addLayout(recommendation_action_row)
@@ -9441,18 +8582,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         )
         self.calibration_table.setAlternatingRowColors(True)
         self.calibration_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.calibration_table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.calibration_table.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
+        self.calibration_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.calibration_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         _vh = self.calibration_table.verticalHeader()
         if _vh is not None:
             _vh.setVisible(False)
-        self.calibration_table.cellDoubleClicked.connect(
-            self.on_edit_calibration_series
-        )
+        self.calibration_table.cellDoubleClicked.connect(self.on_edit_calibration_series)
         try:
             header = self.calibration_table.horizontalHeader()
             if header is not None:
@@ -9469,50 +8604,36 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         calibration_plot_controls.addWidget(QLabel(tr("mlb_calibration_plot")))
         self.calibration_metric_combo = QComboBox()
         self.calibration_metric_combo.addItems(["Velocity", "ES", "SD", "Gruppe"])
-        self.calibration_metric_combo.currentIndexChanged.connect(
-            self._refresh_calibration_plot
-        )
+        self.calibration_metric_combo.currentIndexChanged.connect(self._refresh_calibration_plot)
         calibration_plot_controls.addWidget(self.calibration_metric_combo)
         calibration_plot_controls.addWidget(QLabel(tr("mlb_powder_filter")))
         self.calibration_powder_filter = QComboBox()
         self.calibration_powder_filter.addItem(tr("mlb_all_powders"), "")
-        self.calibration_powder_filter.currentIndexChanged.connect(
-            self._refresh_calibration_table
-        )
+        self.calibration_powder_filter.currentIndexChanged.connect(self._refresh_calibration_table)
         calibration_plot_controls.addWidget(self.calibration_powder_filter)
         calibration_plot_controls.addWidget(QLabel(tr("mlb_bullet_filter")))
         self.calibration_bullet_filter = QComboBox()
         self.calibration_bullet_filter.addItem(tr("mlb_all_bullets"), "")
-        self.calibration_bullet_filter.currentIndexChanged.connect(
-            self._refresh_calibration_table
-        )
+        self.calibration_bullet_filter.currentIndexChanged.connect(self._refresh_calibration_table)
         calibration_plot_controls.addWidget(self.calibration_bullet_filter)
         calibration_plot_controls.addWidget(QLabel(tr("mlb_lot_filter")))
         self.calibration_lot_filter = QComboBox()
         self.calibration_lot_filter.addItem(tr("mlb_all_lots"), "")
-        self.calibration_lot_filter.currentIndexChanged.connect(
-            self._refresh_calibration_table
-        )
+        self.calibration_lot_filter.currentIndexChanged.connect(self._refresh_calibration_table)
         calibration_plot_controls.addWidget(self.calibration_lot_filter)
         calibration_plot_controls.addWidget(QLabel(tr("mlb_distance_filter")))
         self.calibration_distance_filter = QComboBox()
         self.calibration_distance_filter.addItem(tr("mlb_all_distances"), "")
-        self.calibration_distance_filter.currentIndexChanged.connect(
-            self._refresh_calibration_table
-        )
+        self.calibration_distance_filter.currentIndexChanged.connect(self._refresh_calibration_table)
         calibration_plot_controls.addWidget(self.calibration_distance_filter)
         calibration_plot_controls.addWidget(QLabel(tr("mlb_temp_filter")))
         self.calibration_temperature_filter = QComboBox()
         self.calibration_temperature_filter.addItem(tr("mlb_all_temperatures"), "")
-        self.calibration_temperature_filter.currentIndexChanged.connect(
-            self._refresh_calibration_table
-        )
+        self.calibration_temperature_filter.currentIndexChanged.connect(self._refresh_calibration_table)
         calibration_plot_controls.addWidget(self.calibration_temperature_filter)
         calibration_plot_controls.addStretch()
         evidence_layout.addLayout(calibration_plot_controls)
-        self.calibration_plot_placeholder = QLabel(
-            tr("mlb_calibration_plot_placeholder")
-        )
+        self.calibration_plot_placeholder = QLabel(tr("mlb_calibration_plot_placeholder"))
         self.calibration_plot_placeholder.setWordWrap(True)
         self.calibration_plot_placeholder.setProperty("role", "muted")
         evidence_layout.addWidget(self.calibration_plot_placeholder)
@@ -9703,9 +8824,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         setup_row = QHBoxLayout()
         setup_row.addWidget(QLabel("Setup"))
         self.barrel_configuration_combo = QComboBox()
-        self.barrel_configuration_combo.currentIndexChanged.connect(
-            self.on_barrel_configuration_changed
-        )
+        self.barrel_configuration_combo.currentIndexChanged.connect(self.on_barrel_configuration_changed)
         setup_row.addWidget(self.barrel_configuration_combo, 1)
         layout.addLayout(setup_row)
 
@@ -9723,9 +8842,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         bullet_row.addWidget(self.manual_bullet_btn)
         self.open_bullet_library_btn = QPushButton("Library")
         self.open_bullet_library_btn.setProperty("variant", "ghost")
-        self.open_bullet_library_btn.clicked.connect(
-            lambda: self._open_selected_component_in_library("bullet")
-        )
+        self.open_bullet_library_btn.clicked.connect(lambda: self._open_selected_component_in_library("bullet"))
         bullet_row.addWidget(self.open_bullet_library_btn)
         layout.addLayout(bullet_row)
 
@@ -9775,9 +8892,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             float(pressure_kpa_to_display_value(70.0) or 70.0),
             float(pressure_kpa_to_display_value(110.0) or 110.0),
         )
-        self.pressure_spin.setValue(
-            float(pressure_kpa_to_display_value(101.325) or 101.325)
-        )
+        self.pressure_spin.setValue(float(pressure_kpa_to_display_value(101.325) or 101.325))
         self.pressure_spin.setSuffix(get_pressure_suffix())
         env_layout.addWidget(QLabel(tr("mlb_pressure")))
         env_layout.addWidget(self.pressure_spin)
@@ -9806,9 +8921,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         powder_row.addWidget(self.manual_powder_btn)
         self.open_powder_library_btn = QPushButton("Library")
         self.open_powder_library_btn.setProperty("variant", "ghost")
-        self.open_powder_library_btn.clicked.connect(
-            lambda: self._open_selected_component_in_library("powder")
-        )
+        self.open_powder_library_btn.clicked.connect(lambda: self._open_selected_component_in_library("powder"))
         powder_row.addWidget(self.open_powder_library_btn)
         layout.addLayout(powder_row)
 
@@ -9870,9 +8983,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         primer_row.addWidget(self.manual_primer_btn)
         self.open_primer_library_btn = QPushButton("Library")
         self.open_primer_library_btn.setProperty("variant", "ghost")
-        self.open_primer_library_btn.clicked.connect(
-            lambda: self._open_selected_component_in_library("primer")
-        )
+        self.open_primer_library_btn.clicked.connect(lambda: self._open_selected_component_in_library("primer"))
         primer_row.addWidget(self.open_primer_library_btn)
         layout.addLayout(primer_row)
 
@@ -9915,8 +9026,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self.charge_label = QLabel(format_weight_grains(self.current_charge, "powder"))
         self.charge_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.charge_label.setStyleSheet(
-            "font-size:26px; font-weight:bold; font-family:monospace;"
-            " color:#2ecc71; background:transparent;"
+            "font-size:26px; font-weight:bold; font-family:monospace;" " color:#2ecc71; background:transparent;"
         )
         layout.addWidget(self.charge_label)
 
@@ -9998,9 +9108,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         color = "#2ecc71" if pct < 0.80 else "#e67e22" if pct < 0.95 else "#e74c3c"
         import re
 
-        lbl.setStyleSheet(
-            re.sub(r"color:[^;]+;", f"color:{color};", lbl.styleSheet(), count=1)
-        )
+        lbl.setStyleSheet(re.sub(r"color:[^;]+;", f"color:{color};", lbl.styleSheet(), count=1))
 
     def _apply_velocity_unit_preferences(self):
         sub_min = velocity_fps_to_display_value(500.0)
@@ -10012,32 +9120,24 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 float(max(sub_min or 500.0, sub_max or 1300.0)),
             )
             self.subsonic_target.setValue(float(sub_default or 1050.0))
-            self.subsonic_target.setSingleStep(
-                5.0 if "fps" in get_velocity_suffix() else 2.0
-            )
+            self.subsonic_target.setSingleStep(5.0 if "fps" in get_velocity_suffix() else 2.0)
             self.subsonic_target.setSuffix(get_velocity_suffix())
         if getattr(self, "transonic_margin", None) is not None:
             trans_max = velocity_fps_to_display_value(500.0)
             trans_default = velocity_fps_to_display_value(50.0)
             self.transonic_margin.setRange(0.0, float(trans_max or 500.0))
             self.transonic_margin.setValue(float(trans_default or 50.0))
-            self.transonic_margin.setSingleStep(
-                5.0 if "fps" in get_velocity_suffix() else 2.0
-            )
+            self.transonic_margin.setSingleStep(5.0 if "fps" in get_velocity_suffix() else 2.0)
             self.transonic_margin.setSuffix(get_velocity_suffix())
 
     def _subsonic_target_fps(self) -> float:
         _sub_widget = getattr(self, "subsonic_target", None)
-        target = velocity_display_to_fps(
-            _sub_widget.value() if _sub_widget is not None else 1050.0
-        )
+        target = velocity_display_to_fps(_sub_widget.value() if _sub_widget is not None else 1050.0)
         return float(target or 1050.0)
 
     def _transonic_margin_fps(self) -> float:
         _trans_widget = getattr(self, "transonic_margin", None)
-        margin = velocity_display_to_fps(
-            _trans_widget.value() if _trans_widget is not None else 50.0
-        )
+        margin = velocity_display_to_fps(_trans_widget.value() if _trans_widget is not None else 50.0)
         return float(margin or 50.0)
 
     def _current_temperature_c(self) -> float | None:
@@ -10122,30 +9222,22 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         seating_profile_row = QHBoxLayout()
         self.save_seating_profile_btn = QPushButton("Save Profile")
         self.save_seating_profile_btn.setProperty("variant", "ghost")
-        self.save_seating_profile_btn.clicked.connect(
-            self.on_save_seating_profile_clicked
-        )
+        self.save_seating_profile_btn.clicked.connect(self.on_save_seating_profile_clicked)
         seating_profile_row.addWidget(self.save_seating_profile_btn)
 
         self.apply_seating_profile_btn = QPushButton("Apply Saved Profile")
         self.apply_seating_profile_btn.setProperty("variant", "ghost")
-        self.apply_seating_profile_btn.clicked.connect(
-            self.on_apply_saved_seating_profile_clicked
-        )
+        self.apply_seating_profile_btn.clicked.connect(self.on_apply_saved_seating_profile_clicked)
         seating_profile_row.addWidget(self.apply_seating_profile_btn)
 
         self.compare_seating_profile_btn = QPushButton("Compare Lot")
         self.compare_seating_profile_btn.setProperty("variant", "ghost")
-        self.compare_seating_profile_btn.clicked.connect(
-            self.on_compare_seating_profile_clicked
-        )
+        self.compare_seating_profile_btn.clicked.connect(self.on_compare_seating_profile_clicked)
         seating_profile_row.addWidget(self.compare_seating_profile_btn)
 
         self.apply_best_known_seating_btn = QPushButton("Apply Best Known")
         self.apply_best_known_seating_btn.setProperty("variant", "ghost")
-        self.apply_best_known_seating_btn.clicked.connect(
-            self.on_apply_best_known_seating_clicked
-        )
+        self.apply_best_known_seating_btn.clicked.connect(self.on_apply_best_known_seating_clicked)
         seating_profile_row.addWidget(self.apply_best_known_seating_btn)
         layout.addLayout(seating_profile_row)
 
@@ -10216,9 +9308,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.velocity_plot = pg.PlotWidget()
             self.velocity_plot.setBackground(panel_bg)
             self.velocity_plot.setLabel("left", "Velocity", units="fps", color=text_fg)
-            self.velocity_plot.setLabel(
-                "bottom", "Position", units="inches", color=text_fg
-            )
+            self.velocity_plot.setLabel("bottom", "Position", units="inches", color=text_fg)
             self.velocity_plot.setTitle("Bullet Velocity", color=text_fg, size="12pt")
             self.velocity_plot.setMinimumHeight(200)
             layout.addWidget(self.velocity_plot)
@@ -10231,9 +9321,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.transonic_cb.toggled.connect(self.update_visualization)
             # persist when toggled
             self.transonic_cb.toggled.connect(
-                lambda v: self._save_ui_setting(
-                    "transonic_overlay_enabled", "1" if v else "0"
-                )
+                lambda v: self._save_ui_setting("transonic_overlay_enabled", "1" if v else "0")
             )
             trans_h.addWidget(self.transonic_cb)
 
@@ -10270,9 +9358,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         self.transonic_cb.setChecked(bool(int(row[0])))
                     except Exception:
                         # tolerate non-int values
-                        self.transonic_cb.setChecked(
-                            row[0].lower() in ("1", "true", "yes")
-                        )
+                        self.transonic_cb.setChecked(row[0].lower() in ("1", "true", "yes"))
                 cur.execute(
                     "SELECT value FROM ui_settings WHERE key = ?",
                     ("transonic_margin_fps",),
@@ -10280,17 +9366,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 row2 = cur.fetchone()
                 if row2 and row2[0] is not None:
                     try:
-                        self.transonic_margin.setValue(
-                            float(
-                                velocity_fps_to_display_value(float(row2[0])) or row2[0]
-                            )
-                        )
+                        self.transonic_margin.setValue(float(velocity_fps_to_display_value(float(row2[0])) or row2[0]))
                     except Exception:
                         pass
                 # velocity y-range
-                cur.execute(
-                    "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_min",)
-                )
+                cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_min",))
                 vmin_r = cur.fetchone()
                 if vmin_r and vmin_r[0] is not None:
                     try:
@@ -10299,9 +9379,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         self.velocity_y_min = None
                 else:
                     self.velocity_y_min = None
-                cur.execute(
-                    "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_max",)
-                )
+                cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_max",))
                 vmax_r = cur.fetchone()
                 if vmax_r and vmax_r[0] is not None:
                     try:
@@ -10358,8 +9436,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         for attr, default, unit, color in CARDS:
             card = QWidget()
             card.setStyleSheet(
-                f"QWidget {{ background:#1a2035; border-radius:7px;"
-                f" border-left:3px solid {color}; }}"
+                f"QWidget {{ background:#1a2035; border-radius:7px;" f" border-left:3px solid {color}; }}"
             )
             v = QVBoxLayout(card)
             v.setContentsMargins(10, 7, 10, 7)
@@ -10381,9 +9458,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             sub = QLabel("")
-            sub.setStyleSheet(
-                "color:#2a3a55; font-size:8px; background:transparent; border:none;"
-            )
+            sub.setStyleSheet("color:#2a3a55; font-size:8px; background:transparent; border:none;")
             sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
             setattr(self, f"{attr}_sub", sub)
 
@@ -10415,9 +9490,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             cv.setContentsMargins(0, 0, 0, 0)
             cv.setSpacing(0)
             val = QLabel("—")
-            val.setStyleSheet(
-                "color:#7a94c4; font-size:11px; font-weight:bold; font-family:monospace;"
-            )
+            val.setStyleSheet("color:#7a94c4; font-size:11px; font-weight:bold; font-family:monospace;")
             val.setAlignment(Qt.AlignmentFlag.AlignCenter)
             cap = QLabel(caption)
             cap.setStyleSheet("color:#3a4e6a; font-size:8px;")
@@ -10477,9 +9550,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
     def _get_confidence_level(self) -> tuple[str, str]:
         """Return (label, colour) based on how much validated data exists."""
         try:
-            rifle_id = (
-                self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None
-            )
+            rifle_id = self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None
             if rifle_id is None:
                 return ("SIMULERING", "#3498db")
             rows = self.db.execute_query(
@@ -10515,9 +9586,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 return
             w.setText(text)
             if color:
-                w.setStyleSheet(
-                    _re.sub(r"color:[^;]+;", f"color:{color};", w.styleSheet(), count=1)
-                )
+                w.setStyleSheet(_re.sub(r"color:[^;]+;", f"color:{color};", w.styleSheet(), count=1))
 
         def _sub(attr: str, text: str) -> None:
             w = getattr(self, f"{attr}_sub", None)
@@ -10536,11 +9605,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         saami_psi = result.get("max_pressure_psi")
         if peak_psi is not None:
             pct = (float(peak_psi) / float(saami_psi) * 100) if saami_psi else None
-            pres_color = (
-                "#2ecc71"
-                if (pct or 0) < 80
-                else "#e67e22" if (pct or 0) < 95 else "#e74c3c"
-            )
+            pres_color = "#2ecc71" if (pct or 0) < 80 else "#e67e22" if (pct or 0) < 95 else "#e74c3c"
             peak_bar = float(peak_psi) * 0.0689476
             _s("_mc_pres", f"{peak_bar:.0f} bar", pres_color)
             _sub(
@@ -10570,15 +9635,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         # ── Recoil ────────────────────────────────────────────────────────────
         recoil = result.get("recoil_energy_ft_lbs") or result.get("recoil_j")
         if recoil is not None:
-            rj = (
-                float(recoil) * 1.35582
-                if result.get("recoil_energy_ft_lbs")
-                else float(recoil)
-            )
+            rj = float(recoil) * 1.35582 if result.get("recoil_energy_ft_lbs") else float(recoil)
             _s("_mc_recoil", f"{rj:.1f} J")
-            _sub(
-                "_mc_recoil", "lett" if rj < 10 else "moderat" if rj < 20 else "kraftig"
-            )
+            _sub("_mc_recoil", "lett" if rj < 10 else "moderat" if rj < 20 else "kraftig")
 
         # ── Barrel time ───────────────────────────────────────────────────────
         bt = result.get("barrel_time_ms")
@@ -10588,9 +9647,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             obt = result.get("optimal_barrel_time_ms")
             if obt is not None:
                 diff = float(bt) - float(obt)
-                hint = (
-                    f"OBT {float(obt):.3f} ms  ({'+' if diff >= 0 else ''}{diff:.3f})"
-                )
+                hint = f"OBT {float(obt):.3f} ms  ({'+' if diff >= 0 else ''}{diff:.3f})"
                 _sub("_mc_time", hint)
 
         # ── Safety margin ─────────────────────────────────────────────────────
@@ -10608,11 +9665,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if badge is not None:
             conf_label, conf_color = self._get_confidence_level()
             badge.setText(f"● {conf_label}")
-            badge.setStyleSheet(
-                _re.sub(
-                    r"color:[^;]+;", f"color:{conf_color};", badge.styleSheet(), count=1
-                )
-            )
+            badge.setStyleSheet(_re.sub(r"color:[^;]+;", f"color:{conf_color};", badge.styleSheet(), count=1))
 
         # ── Delta comparison row ──────────────────────────────────────────────
         ref = getattr(self, "_reference_result", None)
@@ -10620,9 +9673,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if ref is not None and delta_row is not None:
             delta_row.show()
 
-            def _delta(
-                attr: str, new_val, ref_val, fmt: str = ".1f", unit: str = ""
-            ) -> None:
+            def _delta(attr: str, new_val, ref_val, fmt: str = ".1f", unit: str = "") -> None:
                 w = getattr(self, f"{attr}_lbl", None)
                 if w is None or new_val is None or ref_val is None:
                     return
@@ -10631,11 +9682,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     sign = "+" if d >= 0 else ""
                     color = "#2ecc71" if d == 0 else "#e67e22"
                     w.setText(f"{sign}{d:{fmt}}{unit}")
-                    w.setStyleSheet(
-                        _re.sub(
-                            r"color:[^;]+;", f"color:{color};", w.styleSheet(), count=1
-                        )
-                    )
+                    w.setStyleSheet(_re.sub(r"color:[^;]+;", f"color:{color};", w.styleSheet(), count=1))
                 except Exception:
                     pass
 
@@ -10650,11 +9697,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     sign = "+" if d >= 0 else ""
                     color = "#2ecc71" if d == 0 else "#e67e22"
                     w.setText(f"{sign}{d:.0f} m/s")
-                    w.setStyleSheet(
-                        _re.sub(
-                            r"color:[^;]+;", f"color:{color};", w.styleSheet(), count=1
-                        )
-                    )
+                    w.setStyleSheet(_re.sub(r"color:[^;]+;", f"color:{color};", w.styleSheet(), count=1))
             _delta("_dc_pres", peak_psi, ref_psi, ".0f", " psi")
             _delta("_dc_energy", energy_ftlbs, ref_e, ".0f", " ft-lbs")
             _delta(
@@ -10717,12 +9760,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
     def on_create_batch_clicked(self):
         """UI handler: ask for batch name/size and create batch"""
         # Ensure components selected
-        if not (
-            self.rifle_data
-            and self.bullet_data
-            and self.powder_data
-            and self.brass_data
-        ):
+        if not (self.rifle_data and self.bullet_data and self.powder_data and self.brass_data):
             QMessageBox.warning(
                 self,
                 tr("mlb_missing_data_title"),
@@ -10730,9 +9768,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             )
             return
 
-        count, ok = QInputDialog.getInt(
-            self, "Batch Size", "How many rounds to create?", 10, 1, 10000, 1
-        )
+        count, ok = QInputDialog.getInt(self, "Batch Size", "How many rounds to create?", 10, 1, 10000, 1)
         if not ok:
             return
 
@@ -10746,30 +9782,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
 
         component_context = build_active_component_context_payload(
-            bullet_data=(
-                self.bullet_data if isinstance(self.bullet_data, dict) else None
-            ),
-            powder_data=(
-                self.powder_data if isinstance(self.powder_data, dict) else None
-            ),
-            primer_data=(
-                self.primer_data if isinstance(self.primer_data, dict) else None
-            ),
+            bullet_data=(self.bullet_data if isinstance(self.bullet_data, dict) else None),
+            powder_data=(self.powder_data if isinstance(self.powder_data, dict) else None),
+            primer_data=(self.primer_data if isinstance(self.primer_data, dict) else None),
         )
         seating_context = self._get_current_seating_context()
         subsonic_context = self._get_current_subsonic_context()
         retest_advisory = summarize_retest_advisor(
             self.db,
             self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None,
-            bullet_data=(
-                self.bullet_data if isinstance(self.bullet_data, dict) else None
-            ),
-            powder_data=(
-                self.powder_data if isinstance(self.powder_data, dict) else None
-            ),
-            primer_data=(
-                self.primer_data if isinstance(self.primer_data, dict) else None
-            ),
+            bullet_data=(self.bullet_data if isinstance(self.bullet_data, dict) else None),
+            powder_data=(self.powder_data if isinstance(self.powder_data, dict) else None),
+            primer_data=(self.primer_data if isinstance(self.primer_data, dict) else None),
             current_charge=float(self.current_charge or 0),
             coal_mm=float(self.coal_mm or 0),
             cbto_mm=float(self.cbto_mm or 0),
@@ -10784,30 +9808,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             current_cbto_mm=float(self.cbto_mm or 0),
             predicted_velocity_fps=(
                 float(_lvr_mv)
-                if isinstance(
-                    (_lvr := getattr(self, "_latest_visual_result", None)), dict
-                )
-                and isinstance(
-                    (_lvr_mv := _lvr.get("muzzle_velocity_fps")), (int, float)
-                )
+                if isinstance((_lvr := getattr(self, "_latest_visual_result", None)), dict)
+                and isinstance((_lvr_mv := _lvr.get("muzzle_velocity_fps")), (int, float))
                 else None
             ),
             subsonic_mode=bool(subsonic_context.get("enabled")),
             current_powder_lot_number=(
-                str(
-                    self.powder_data.get("lot_number")
-                    or self.powder_data.get("selected_lot_number")
-                    or ""
-                ).strip()
+                str(self.powder_data.get("lot_number") or self.powder_data.get("selected_lot_number") or "").strip()
                 if isinstance(self.powder_data, dict)
                 else ""
             ),
             target_temperature_c=(
-                float(_tc_val)
-                if isinstance(
-                    (_tc_val := seating_context.get("temperature_c")), (int, float)
-                )
-                else None
+                float(_tc_val) if isinstance((_tc_val := seating_context.get("temperature_c")), (int, float)) else None
             ),
         )
 
@@ -10852,10 +9864,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             },
         }
         current_project_path = str(
-            QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "workspace/current_project", ""
-            )
-            or ""
+            QSettings("ReloadingWorkshop", "ReloadingManager").value("workspace/current_project", "") or ""
         ).strip()
         analysis_context = {
             "workspace": {
@@ -10867,9 +9876,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 "rifle_name": self.rifle_data.get("name") if self.rifle_data else None,
                 "barrel_id": self._get_active_barrel_id(),
                 "barrel_name": (
-                    self._get_active_barrel_details().get("name")
-                    if self._get_active_barrel_details()
-                    else None
+                    self._get_active_barrel_details().get("name") if self._get_active_barrel_details() else None
                 ),
             },
             "component_context": component_context,
@@ -10880,19 +9887,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 self._get_best_known_seating_evidence(),
                 float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
             ),
-            "predicted_result_summary": _build_predicted_result_summary(
-                getattr(self, "_latest_visual_result", None)
-            ),
+            "predicted_result_summary": _build_predicted_result_summary(getattr(self, "_latest_visual_result", None)),
             "retest_advisory": retest_advisory,
             "model_match_advisory": model_match_advisory,
         }
         barrel_context = self._get_active_barrel_configuration_context()
-        analysis_context["rifle_context"]["barrel_configuration_id"] = (
-            barrel_context.get("barrel_configuration_id")
-        )
-        analysis_context["rifle_context"]["barrel_configuration_name"] = (
-            barrel_context.get("barrel_configuration_name")
-        )
+        analysis_context["rifle_context"]["barrel_configuration_id"] = barrel_context.get("barrel_configuration_id")
+        analysis_context["rifle_context"]["barrel_configuration_name"] = barrel_context.get("barrel_configuration_name")
 
         batch_result = create_batch_project(
             self.db,
@@ -10914,9 +9915,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             brass_batch_id=self.brass_data.get("id") if self.brass_data else None,
             case_id=self.brass_data.get("case_id") if self.brass_data else None,
             notes=tr("mlb_batch_notes_created", count=count),
-            barrel_configuration_snapshot=barrel_context.get(
-                "barrel_configuration_snapshot"
-            ),
+            barrel_configuration_snapshot=barrel_context.get("barrel_configuration_snapshot"),
             component_snapshot=component_snapshot,
             analysis_json=analysis_context,
         )
@@ -10936,9 +9935,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 load_session_id=_get_active_load_session_id(),
             )
         except Exception as e:
-            QMessageBox.critical(
-                self, tr("mlb_error_title"), tr("mlb_batch_create_error", error=e)
-            )
+            QMessageBox.critical(self, tr("mlb_error_title"), tr("mlb_batch_create_error", error=e))
             return
 
         if not res.get("ok"):
@@ -10969,15 +9966,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         return summarize_retest_advisor(
             self.db,
             self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None,
-            bullet_data=(
-                self.bullet_data if isinstance(self.bullet_data, dict) else None
-            ),
-            powder_data=(
-                self.powder_data if isinstance(self.powder_data, dict) else None
-            ),
-            primer_data=(
-                self.primer_data if isinstance(self.primer_data, dict) else None
-            ),
+            bullet_data=(self.bullet_data if isinstance(self.bullet_data, dict) else None),
+            powder_data=(self.powder_data if isinstance(self.powder_data, dict) else None),
+            primer_data=(self.primer_data if isinstance(self.primer_data, dict) else None),
             current_charge=float(self.current_charge or 0),
             coal_mm=float(self.coal_mm or 0),
             cbto_mm=float(self.cbto_mm or 0),
@@ -10989,12 +9980,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if existing_batch_id:
             return int(existing_batch_id)
 
-        if not (
-            self.rifle_data
-            and self.bullet_data
-            and self.powder_data
-            and self.brass_data
-        ):
+        if not (self.rifle_data and self.bullet_data and self.powder_data and self.brass_data):
             QMessageBox.warning(
                 self,
                 "Retest-serie",
@@ -11002,10 +9988,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             )
             return None
 
-        suggested_count = max(
-            5, int(retest_advisory.get("suggested_control_shots") or 5)
+        suggested_count = max(5, int(retest_advisory.get("suggested_control_shots") or 5))
+        default_name = (
+            f"Retest {self.rifle_data.get('name', 'rifle')} {self.powder_data.get('name', '').strip()}".strip()
         )
-        default_name = f"Retest {self.rifle_data.get('name', 'rifle')} {self.powder_data.get('name', '').strip()}".strip()
         name, ok = QInputDialog.getText(
             self,
             "Opprett retest-batch",
@@ -11017,23 +10003,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         batch_name = (name or "").strip() or default_name
 
         component_context = build_active_component_context_payload(
-            bullet_data=(
-                self.bullet_data if isinstance(self.bullet_data, dict) else None
-            ),
-            powder_data=(
-                self.powder_data if isinstance(self.powder_data, dict) else None
-            ),
-            primer_data=(
-                self.primer_data if isinstance(self.primer_data, dict) else None
-            ),
+            bullet_data=(self.bullet_data if isinstance(self.bullet_data, dict) else None),
+            powder_data=(self.powder_data if isinstance(self.powder_data, dict) else None),
+            primer_data=(self.primer_data if isinstance(self.primer_data, dict) else None),
         )
         seating_context = self._get_current_seating_context()
         subsonic_context = self._get_current_subsonic_context()
         current_project_path = str(
-            QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "workspace/current_project", ""
-            )
-            or ""
+            QSettings("ReloadingWorkshop", "ReloadingManager").value("workspace/current_project", "") or ""
         ).strip()
         analysis_context = {
             "workspace": {
@@ -11045,9 +10022,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 "rifle_name": self.rifle_data.get("name") if self.rifle_data else None,
                 "barrel_id": self._get_active_barrel_id(),
                 "barrel_name": (
-                    self._get_active_barrel_details().get("name")
-                    if self._get_active_barrel_details()
-                    else None
+                    self._get_active_barrel_details().get("name") if self._get_active_barrel_details() else None
                 ),
             },
             "component_context": component_context,
@@ -11058,65 +10033,37 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 self._get_best_known_seating_evidence(),
                 float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
             ),
-            "predicted_result_summary": _build_predicted_result_summary(
-                getattr(self, "_latest_visual_result", None)
-            ),
+            "predicted_result_summary": _build_predicted_result_summary(getattr(self, "_latest_visual_result", None)),
             "retest_advisory": retest_advisory,
             "model_match_advisory": summarize_model_vs_measured_advisory(
                 self.db,
-                (
-                    self.rifle_data.get("id")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
-                (
-                    self.bullet_data.get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    self.powder_data.get("id")
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
+                (self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None),
+                (self.bullet_data.get("id") if isinstance(self.bullet_data, dict) else None),
+                (self.powder_data.get("id") if isinstance(self.powder_data, dict) else None),
                 current_charge_grains=float(self.current_charge or 0),
                 current_cbto_mm=float(self.cbto_mm or 0),
                 predicted_velocity_fps=(
                     float(_lvr_mv2)
-                    if isinstance(
-                        (_lvr2 := getattr(self, "_latest_visual_result", None)), dict
-                    )
-                    and isinstance(
-                        (_lvr_mv2 := _lvr2.get("muzzle_velocity_fps")), (int, float)
-                    )
+                    if isinstance((_lvr2 := getattr(self, "_latest_visual_result", None)), dict)
+                    and isinstance((_lvr_mv2 := _lvr2.get("muzzle_velocity_fps")), (int, float))
                     else None
                 ),
                 subsonic_mode=bool(subsonic_context.get("enabled")),
                 current_powder_lot_number=(
-                    str(
-                        self.powder_data.get("lot_number")
-                        or self.powder_data.get("selected_lot_number")
-                        or ""
-                    ).strip()
+                    str(self.powder_data.get("lot_number") or self.powder_data.get("selected_lot_number") or "").strip()
                     if isinstance(self.powder_data, dict)
                     else ""
                 ),
                 target_temperature_c=(
                     float(_sc_tc2)
-                    if isinstance(
-                        (_sc_tc2 := seating_context.get("temperature_c")), (int, float)
-                    )
+                    if isinstance((_sc_tc2 := seating_context.get("temperature_c")), (int, float))
                     else None
                 ),
             ),
         }
         barrel_context = self._get_active_barrel_configuration_context()
-        analysis_context["rifle_context"]["barrel_configuration_id"] = (
-            barrel_context.get("barrel_configuration_id")
-        )
-        analysis_context["rifle_context"]["barrel_configuration_name"] = (
-            barrel_context.get("barrel_configuration_name")
-        )
+        analysis_context["rifle_context"]["barrel_configuration_id"] = barrel_context.get("barrel_configuration_id")
+        analysis_context["rifle_context"]["barrel_configuration_name"] = barrel_context.get("barrel_configuration_name")
 
         cur = self.db.cursor
         cur.execute(
@@ -11160,9 +10107,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             brass_batch_id=self.brass_data.get("id") if self.brass_data else None,
             case_id=self.brass_data.get("case_id") if self.brass_data else None,
             notes=f"Retest batch created from Retest Advisor ({suggested_count} control shots).",
-            barrel_configuration_snapshot=barrel_context.get(
-                "barrel_configuration_snapshot"
-            ),
+            barrel_configuration_snapshot=barrel_context.get("barrel_configuration_snapshot"),
             component_snapshot={
                 "rifle": self.rifle_data,
                 "bullet": self.bullet_data,
@@ -11189,119 +10134,65 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         payload = build_retest_session_payload(retest_advisory)
         payload["analysis_json"] = dict(payload.get("analysis_json") or {})
-        payload["analysis_json"]["component_context"] = (
-            build_active_component_context_payload(
-                bullet_data=(
-                    self.bullet_data if isinstance(self.bullet_data, dict) else None
-                ),
-                powder_data=(
-                    self.powder_data if isinstance(self.powder_data, dict) else None
-                ),
-                primer_data=(
-                    self.primer_data if isinstance(self.primer_data, dict) else None
-                ),
-            )
+        payload["analysis_json"]["component_context"] = build_active_component_context_payload(
+            bullet_data=(self.bullet_data if isinstance(self.bullet_data, dict) else None),
+            powder_data=(self.powder_data if isinstance(self.powder_data, dict) else None),
+            primer_data=(self.primer_data if isinstance(self.primer_data, dict) else None),
         )
-        payload["analysis_json"]["charge_weight_grains"] = float(
-            self.current_charge or 0
-        )
+        payload["analysis_json"]["charge_weight_grains"] = float(self.current_charge or 0)
         payload["analysis_json"]["coal_mm"] = float(self.coal_mm or 0)
         payload["analysis_json"]["cbto_mm"] = float(self.cbto_mm or 0)
-        payload["analysis_json"][
-            "seating_context"
-        ] = self._get_current_seating_context()
-        payload["analysis_json"][
-            "subsonic_context"
-        ] = self._get_current_subsonic_context()
-        payload["analysis_json"]["predicted_result_summary"] = (
-            _build_predicted_result_summary(
-                getattr(self, "_latest_visual_result", None)
-            )
+        payload["analysis_json"]["seating_context"] = self._get_current_seating_context()
+        payload["analysis_json"]["subsonic_context"] = self._get_current_subsonic_context()
+        payload["analysis_json"]["predicted_result_summary"] = _build_predicted_result_summary(
+            getattr(self, "_latest_visual_result", None)
         )
-        payload["analysis_json"]["seating_promotion_candidate"] = (
-            _summarize_seating_promotion_candidate(
-                self._get_best_known_seating_evidence(),
-                float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
-            )
+        payload["analysis_json"]["seating_promotion_candidate"] = _summarize_seating_promotion_candidate(
+            self._get_best_known_seating_evidence(),
+            float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
         )
-        payload["analysis_json"]["model_match_advisory"] = (
-            summarize_model_vs_measured_advisory(
-                self.db,
-                (
-                    self.rifle_data.get("id")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
-                (
-                    self.bullet_data.get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    self.powder_data.get("id")
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
-                current_charge_grains=float(self.current_charge or 0),
-                current_cbto_mm=float(self.cbto_mm or 0),
-                predicted_velocity_fps=(
-                    float(_lvr_mv)
-                    if isinstance(
-                        (_lvr := getattr(self, "_latest_visual_result", None)), dict
-                    )
-                    and isinstance(
-                        (_lvr_mv := _lvr.get("muzzle_velocity_fps")), (int, float)
-                    )
-                    else None
-                ),
-                subsonic_mode=bool(
-                    (payload["analysis_json"].get("subsonic_context") or {}).get(
-                        "enabled"
-                    )
-                ),
-                current_powder_lot_number=(
-                    str(
-                        self.powder_data.get("lot_number")
-                        or self.powder_data.get("selected_lot_number")
-                        or ""
-                    ).strip()
-                    if isinstance(self.powder_data, dict)
-                    else ""
-                ),
-                target_temperature_c=(
-                    float(_psc_tc)
-                    if isinstance(
-                        (
-                            _psc_tc := (
-                                payload["analysis_json"].get("seating_context") or {}
-                            ).get("temperature_c")
-                        ),
-                        (int, float),
-                    )
-                    else None
-                ),
-            )
+        payload["analysis_json"]["model_match_advisory"] = summarize_model_vs_measured_advisory(
+            self.db,
+            (self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None),
+            (self.bullet_data.get("id") if isinstance(self.bullet_data, dict) else None),
+            (self.powder_data.get("id") if isinstance(self.powder_data, dict) else None),
+            current_charge_grains=float(self.current_charge or 0),
+            current_cbto_mm=float(self.cbto_mm or 0),
+            predicted_velocity_fps=(
+                float(_lvr_mv)
+                if isinstance((_lvr := getattr(self, "_latest_visual_result", None)), dict)
+                and isinstance((_lvr_mv := _lvr.get("muzzle_velocity_fps")), (int, float))
+                else None
+            ),
+            subsonic_mode=bool((payload["analysis_json"].get("subsonic_context") or {}).get("enabled")),
+            current_powder_lot_number=(
+                str(self.powder_data.get("lot_number") or self.powder_data.get("selected_lot_number") or "").strip()
+                if isinstance(self.powder_data, dict)
+                else ""
+            ),
+            target_temperature_c=(
+                float(_psc_tc)
+                if isinstance(
+                    (_psc_tc := (payload["analysis_json"].get("seating_context") or {}).get("temperature_c")),
+                    (int, float),
+                )
+                else None
+            ),
         )
         barrel_context = self._get_active_barrel_configuration_context()
         add_batch_session(
             self.db,
             int(batch_id),
             load_session_id=_get_active_load_session_id(),
-            rifle_id=(
-                self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None
-            ),
+            rifle_id=(self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None),
             barrel_id=barrel_context.get("barrel_id"),
             barrel_name=barrel_context.get("barrel_name"),
             barrel_configuration_id=barrel_context.get("barrel_configuration_id"),
             barrel_configuration_name=barrel_context.get("barrel_configuration_name"),
-            session_name=str(
-                payload.get("session_name") or "Retest - verifiseringsserie"
-            ),
+            session_name=str(payload.get("session_name") or "Retest - verifiseringsserie"),
             session_type=str(payload.get("session_type") or "range"),
             shot_count=int(payload.get("shot_count") or 5),
-            distance_m=int(
-                (self._get_current_seating_context().get("distance_m") or 100)
-            ),
+            distance_m=int((self._get_current_seating_context().get("distance_m") or 100)),
             temperature_c=self._get_current_seating_context().get("temperature_c"),
             suppressor_used=barrel_context.get("suppressor_used"),
             muzzle_device_type=barrel_context.get("muzzle_device_type"),
@@ -11368,11 +10259,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             if isinstance(self.rifle_data, dict)
             else "Rifle"
         )
-        powder_name = (
-            self.powder_data.get("name") or ""
-            if isinstance(self.powder_data, dict)
-            else ""
-        )
+        powder_name = self.powder_data.get("name") or "" if isinstance(self.powder_data, dict) else ""
         charge = float(self.current_charge or 0) if self.current_charge else 0.0
         default_name = f"{rifle_name} – {powder_name} {charge:.1f}gr".strip(" –")
 
@@ -11391,34 +10278,21 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         snapshot = {
             "name": name.strip(),
-            "rifle_data": (
-                self.rifle_data if isinstance(self.rifle_data, dict) else None
-            ),
-            "bullet_data": (
-                self.bullet_data if isinstance(self.bullet_data, dict) else None
-            ),
-            "powder_data": (
-                self.powder_data if isinstance(self.powder_data, dict) else None
-            ),
-            "primer_data": (
-                self.primer_data if isinstance(self.primer_data, dict) else None
-            ),
-            "brass_data": (
-                self.brass_data if isinstance(self.brass_data, dict) else None
-            ),
+            "rifle_data": (self.rifle_data if isinstance(self.rifle_data, dict) else None),
+            "bullet_data": (self.bullet_data if isinstance(self.bullet_data, dict) else None),
+            "powder_data": (self.powder_data if isinstance(self.powder_data, dict) else None),
+            "primer_data": (self.primer_data if isinstance(self.primer_data, dict) else None),
+            "brass_data": (self.brass_data if isinstance(self.brass_data, dict) else None),
             "charge_gr": charge,
             "coal_mm": float(self.coal_mm or 0) if self.coal_mm else None,
             "cbto_mm": float(self.cbto_mm or 0) if self.cbto_mm else None,
         }
-        rifle_id = (
-            self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None
-        )
+        rifle_id = self.rifle_data.get("id") if isinstance(self.rifle_data, dict) else None
 
         try:
             self._ensure_saved_designs_table()
             self.db.cursor.execute(
-                "INSERT INTO saved_load_designs (name, rifle_id, snapshot_json, created_at)"
-                " VALUES (?, ?, ?, ?)",
+                "INSERT INTO saved_load_designs (name, rifle_id, snapshot_json, created_at)" " VALUES (?, ?, ?, ?)",
                 (
                     name.strip(),
                     rifle_id,
@@ -11459,8 +10333,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self._ensure_saved_designs_table()
         try:
             rows = self.db.execute_query(
-                "SELECT id, name, created_at FROM saved_load_designs"
-                " ORDER BY created_at DESC LIMIT 200"
+                "SELECT id, name, created_at FROM saved_load_designs" " ORDER BY created_at DESC LIMIT 200"
             )
         except Exception:
             rows = []
@@ -11489,9 +10362,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             list_widget.setCurrentRow(0)
         dlg_layout.addWidget(list_widget)
 
-        btn_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         btn_box.accepted.connect(dlg.accept)
         btn_box.rejected.connect(dlg.reject)
         dlg_layout.addWidget(btn_box)
@@ -11568,8 +10439,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         QMessageBox.information(
             self,
             "Ladning lastet inn",
-            f'"{snapshot.get("name", "")}" er lastet inn.\n'
-            "Kontroller og juster om nødvendig.",
+            f'"{snapshot.get("name", "")}" er lastet inn.\n' "Kontroller og juster om nødvendig.",
         )
 
     def on_print_label_clicked(self):
@@ -11610,12 +10480,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         latest_result = getattr(self, "_latest_visual_result", None)
         internal_ballistics_summary = None
         if isinstance(latest_result, dict):
-            internal_ballistics_summary = (
-                self._build_current_internal_ballistics_summary(
-                    latest_result=latest_result,
-                    powder_name=str((self.powder_data or {}).get("name") or ""),
-                    ammo_profile_id=ap_id,
-                )
+            internal_ballistics_summary = self._build_current_internal_ballistics_summary(
+                latest_result=latest_result,
+                powder_name=str((self.powder_data or {}).get("name") or ""),
+                ammo_profile_id=ap_id,
             )
         text = generate_label_text(
             self.db,
@@ -11625,20 +10493,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         try:
             save_label_to_file(path, text)
         except Exception as e:
-            QMessageBox.critical(
-                self, tr("mlb_save_failed_title"), tr("mlb_save_label_failed", error=e)
-            )
+            QMessageBox.critical(self, tr("mlb_save_failed_title"), tr("mlb_save_label_failed", error=e))
             return
 
-        QMessageBox.information(
-            self, tr("mlb_saved_title"), tr("mlb_label_saved", path=path)
-        )
+        QMessageBox.information(self, tr("mlb_saved_title"), tr("mlb_label_saved", path=path))
 
     def on_import_chronograph_clicked(self):
         """Open a file dialog, import selected CSV and show stats"""
-        path, _ = QFileDialog.getOpenFileName(
-            self, tr("mlb_select_chrono_csv"), "", "CSV Files (*.csv);;All Files (*)"
-        )
+        path, _ = QFileDialog.getOpenFileName(self, tr("mlb_select_chrono_csv"), "", "CSV Files (*.csv);;All Files (*)")
         if not path:
             return
 
@@ -11693,17 +10555,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         ap_input.setPlaceholderText(tr("mlb_ammo_profile_placeholder"))
         layout.addWidget(ap_input)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         layout.addWidget(buttons)
 
         def on_accept():
             text = vel_text.toPlainText().strip()
             if not text:
-                QMessageBox.warning(
-                    dlg, tr("mlb_no_data_title"), tr("mlb_paste_velocity_first")
-                )
+                QMessageBox.warning(dlg, tr("mlb_no_data_title"), tr("mlb_paste_velocity_first"))
                 return
             # parse values
             normalized = text.replace(",", " ")
@@ -11726,9 +10584,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 try:
                     ap_id = int(ap_text)
                 except Exception:
-                    QMessageBox.warning(
-                        dlg, tr("mlb_parse_error_title"), tr("mlb_ammo_profile_int")
-                    )
+                    QMessageBox.warning(dlg, tr("mlb_parse_error_title"), tr("mlb_ammo_profile_int"))
                     return
 
             # persist
@@ -11801,9 +10657,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
-        cur.execute(
-            "SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,)
-        )
+        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
         row = cur.fetchone()
         if not row:
             return
@@ -11815,9 +10669,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             velocities = []
 
         if not velocities:
-            QMessageBox.information(
-                self, tr("mlb_no_velocities_title"), tr("mlb_no_velocities_message")
-            )
+            QMessageBox.information(self, tr("mlb_no_velocities_title"), tr("mlb_no_velocities_message"))
             return
 
         pg = getattr(self, "_pg", None)
@@ -11829,9 +10681,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 # First draw simulated curve if present
                 if hasattr(self, "_last_velocity_curve") and self._last_velocity_curve:
                     sim_x, sim_y = self._last_velocity_curve
-                    _vplot.plot(
-                        sim_x, sim_y, pen=pg.mkPen(color="#27ae60", width=3), name="sim"
-                    )
+                    _vplot.plot(sim_x, sim_y, pen=pg.mkPen(color="#27ae60", width=3), name="sim")
 
                 # Plot import velocities as points (x = shot index)
                 xs = list(range(1, len(velocities) + 1))
@@ -11843,9 +10693,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     symbolBrush="#34495e",
                 )
             except Exception as e:
-                QMessageBox.warning(
-                    self, "Plot error", f"Could not plot velocities: {e}"
-                )
+                QMessageBox.warning(self, "Plot error", f"Could not plot velocities: {e}")
         else:
             # Fallback: show summary text
             avg = sum(velocities) / len(velocities)
@@ -11858,18 +10706,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         """Attach selected chronograph import to an ammo_profile (create minimal profile if needed)"""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(
-                self, tr("mlb_no_selection_title"), tr("mlb_select_import_first")
-            )
+            QMessageBox.warning(self, tr("mlb_no_selection_title"), tr("mlb_select_import_first"))
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
 
         # If a current ammo selection exists (we created one when creating batch earlier), attach to it.
         # Otherwise create a minimal ammo_profile from current UI selections.
         cur = self.db.cursor
-        cur.execute(
-            "SELECT ammo_profile_id FROM chronograph_imports WHERE id = ?", (import_id,)
-        )
+        cur.execute("SELECT ammo_profile_id FROM chronograph_imports WHERE id = ?", (import_id,))
         existing = cur.fetchone()
         if existing and existing[0]:
             QMessageBox.information(
@@ -11902,9 +10746,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             ammo_profile_id = cur.lastrowid
         else:
             # Prompt for profile id
-            ap_id, ok = QInputDialog.getInt(
-                self, "Ammo Profile ID", "Enter existing Ammo Profile ID to attach to:"
-            )
+            ap_id, ok = QInputDialog.getInt(self, "Ammo Profile ID", "Enter existing Ammo Profile ID to attach to:")
             if not ok:
                 return
             ammo_profile_id = ap_id
@@ -11926,9 +10768,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         """Save selected chronograph import statistics into `test_results` linked to a profile or batch."""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(
-                self, tr("msg_no_selection"), tr("mlb_select_import_first")
-            )
+            QMessageBox.warning(self, tr("msg_no_selection"), tr("mlb_select_import_first"))
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
@@ -11938,17 +10778,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         )
         row = cur.fetchone()
         if not row:
-            QMessageBox.warning(
-                self, tr("mlb_not_found_title"), tr("mlb_import_row_not_found")
-            )
+            QMessageBox.warning(self, tr("mlb_not_found_title"), tr("mlb_import_row_not_found"))
             return
         import json
 
         velocities = json.loads(row[0]) if row[0] else []
         if not velocities:
-            QMessageBox.warning(
-                self, tr("mlb_no_velocities_title"), tr("mlb_no_velocities_message")
-            )
+            QMessageBox.warning(self, tr("mlb_no_velocities_title"), tr("mlb_no_velocities_message"))
             return
 
         # Determine ammo_profile to attach results
@@ -12004,9 +10840,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             rifle_id = self.rifle_data["id"] if self.rifle_data else None
             # determine charge from attached ammo_profile if present
             if ap_id:
-                cur.execute(
-                    "SELECT powder_charge FROM ammo_profiles WHERE id = ?", (ap_id,)
-                )
+                cur.execute("SELECT powder_charge FROM ammo_profiles WHERE id = ?", (ap_id,))
                 r = cur.fetchone()
                 if r and r[0] is not None:
                     chosen_charge = float(r[0])
@@ -12025,21 +10859,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 cbto_mm=cbto,
                 saami_max_psi=saami,
                 note=f"Saved test_results #{inserted_id} from import #{import_id}",
-                temp_c=(
-                    self._current_temperature_c()
-                    if hasattr(self, "temp_spin")
-                    else None
-                ),
-                pressure_kpa=(
-                    self._current_pressure_kpa()
-                    if hasattr(self, "pressure_spin")
-                    else None
-                ),
-                humidity_pct=(
-                    float(self.humidity_spin.value())
-                    if hasattr(self, "humidity_spin")
-                    else None
-                ),
+                temp_c=(self._current_temperature_c() if hasattr(self, "temp_spin") else None),
+                pressure_kpa=(self._current_pressure_kpa() if hasattr(self, "pressure_spin") else None),
+                humidity_pct=(float(self.humidity_spin.value()) if hasattr(self, "humidity_spin") else None),
             )
         except Exception:
             pass
@@ -12059,15 +10881,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         """Analyze selected import (or current test results) and show recommendations."""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(
-                self, tr("msg_no_selection"), tr("mlb_select_import_first")
-            )
+            QMessageBox.warning(self, tr("msg_no_selection"), tr("mlb_select_import_first"))
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
-        cur.execute(
-            "SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,)
-        )
+        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
         row = cur.fetchone()
         if not row:
             QMessageBox.warning(self, "Not found", "Import row not found in DB")
@@ -12076,9 +10894,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         velocities = json.loads(row[0]) if row[0] else []
         if not velocities:
-            QMessageBox.warning(
-                self, "No velocities", "Selected import has no velocities"
-            )
+            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
             return
 
         # Compute stats
@@ -12091,9 +10907,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         from ..utils.recommender import suggest_adjustments
 
         stats = {"count": len(velocities), "avg": avg, "es": es, "sd": sd}
-        suggestions = suggest_adjustments(
-            stats, self.current_charge or 0, self.coal_mm or 0, self.cbto_mm or 0
-        )
+        suggestions = suggest_adjustments(stats, self.current_charge or 0, self.coal_mm or 0, self.cbto_mm or 0)
 
         # Show suggestions in dialog
         dlg = QDialog(self)
@@ -12143,11 +10957,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         samples: list = []
         try:
             _obs = res.get("observed_range")
-            min_c, max_c = (
-                _obs
-                if isinstance(_obs, (list, tuple))
-                else (suggested - 0.5, suggested + 0.5)
-            )
+            min_c, max_c = _obs if isinstance(_obs, (list, tuple)) else (suggested - 0.5, suggested + 0.5)
 
             best_charge: float = suggested
             best_val = None
@@ -12265,24 +11075,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             try:
                 self.charge_slider.setValue(int(round(float(refined) * 10)))
                 self.current_charge = refined
-                self.charge_label.setText(
-                    format_weight_grains(self.current_charge, "powder")
-                )
+                self.charge_label.setText(format_weight_grains(self.current_charge, "powder"))
                 self.update_visualization()
                 # Log predicted pressure for the applied suggestion
                 try:
                     rifle_id = self.rifle_data["id"] if self.rifle_data else None
                     ap_id = getattr(self, "current_ammo_profile_id", None)
-                    coal = (
-                        float(self.coal_spin.value())
-                        if hasattr(self, "coal_spin")
-                        else None
-                    )
-                    cbto = (
-                        float(self.cbto_spin.value())
-                        if hasattr(self, "cbto_spin")
-                        else None
-                    )
+                    coal = float(self.coal_spin.value()) if hasattr(self, "coal_spin") else None
+                    cbto = float(self.cbto_spin.value()) if hasattr(self, "cbto_spin") else None
                     # saami lookup
                     saami = get_rifle_pressure_limit_psi(self.db, self.rifle_data)
                     predict_and_log(
@@ -12295,21 +11095,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         cbto_mm=cbto,
                         saami_max_psi=saami,
                         note="Applied optimizer suggestion",
-                        temp_c=(
-                            self._current_temperature_c()
-                            if hasattr(self, "temp_spin")
-                            else None
-                        ),
-                        pressure_kpa=(
-                            self._current_pressure_kpa()
-                            if hasattr(self, "pressure_spin")
-                            else None
-                        ),
-                        humidity_pct=(
-                            float(self.humidity_spin.value())
-                            if hasattr(self, "humidity_spin")
-                            else None
-                        ),
+                        temp_c=(self._current_temperature_c() if hasattr(self, "temp_spin") else None),
+                        pressure_kpa=(self._current_pressure_kpa() if hasattr(self, "pressure_spin") else None),
+                        humidity_pct=(float(self.humidity_spin.value()) if hasattr(self, "humidity_spin") else None),
                     )
                 except Exception:
                     pass
@@ -12393,9 +11181,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         )
         row = cur.fetchone()
         if not row:
-            QMessageBox.information(
-                self, tr("mlb_no_calibration_title"), tr("mlb_no_calibration_message")
-            )
+            QMessageBox.information(self, tr("mlb_no_calibration_title"), tr("mlb_no_calibration_message"))
             return
 
         cid, slope, intercept, mse, notes, created = row
@@ -12421,14 +11207,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         selected_ids = []
         if hasattr(self, "chrono_list") and getattr(self, "chrono_list") is not None:
             try:
-                items = [
-                    self.chrono_list.item(i) for i in range(self.chrono_list.count())
-                ]
-                selected_ids = [
-                    it.data(Qt.ItemDataRole.UserRole)
-                    for it in items
-                    if it and it.isSelected()
-                ]
+                items = [self.chrono_list.item(i) for i in range(self.chrono_list.count())]
+                selected_ids = [it.data(Qt.ItemDataRole.UserRole) for it in items if it and it.isSelected()]
             except Exception:
                 selected_ids = []
 
@@ -12441,9 +11221,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             )
             if ok and text:
                 try:
-                    selected_ids = [
-                        int(x.strip()) for x in text.split(",") if x.strip()
-                    ]
+                    selected_ids = [int(x.strip()) for x in text.split(",") if x.strip()]
                 except Exception:
                     selected_ids = []
 
@@ -12457,9 +11235,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 try:
                     from ..utils.calibrator import get_calibration_samples
 
-                    samples = get_calibration_samples(
-                        self.db, self.engine, selected_ids
-                    )
+                    samples = get_calibration_samples(self.db, self.engine, selected_ids)
                 except Exception as e:
                     QMessageBox.critical(
                         self,
@@ -12508,9 +11284,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     pdlg.exec()
                 except Exception:
                     # Fallback: show textual summary
-                    pairs = "\n".join(
-                        f"pred:{p:.1f} -> meas:{m:.1f}" for p, m in zip(preds, meas)
-                    )
+                    pairs = "\n".join(f"pred:{p:.1f} -> meas:{m:.1f}" for p, m in zip(preds, meas))
                     QMessageBox.information(self, tr("mlb_samples_title"), f"{pairs}")
 
             plot_btn.clicked.connect(do_plot)
@@ -12614,9 +11388,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         show_key_cb = QCheckBox(tr("mlb_show_api_key"))
 
         def _toggle_show_key(checked: bool):
-            api_input.setEchoMode(
-                QLineEdit.EchoMode.Normal if checked else QLineEdit.EchoMode.Password
-            )
+            api_input.setEchoMode(QLineEdit.EchoMode.Normal if checked else QLineEdit.EchoMode.Password)
 
         show_key_cb.toggled.connect(_toggle_show_key)
         v.addWidget(show_key_cb)
@@ -12636,9 +11408,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             cur.execute(
                 "CREATE TABLE IF NOT EXISTS ai_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, enabled INTEGER, model TEXT, api_key TEXT, created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
             )
-            cur.execute(
-                "SELECT enabled, model, api_key FROM ai_settings ORDER BY id DESC LIMIT 1"
-            )
+            cur.execute("SELECT enabled, model, api_key FROM ai_settings ORDER BY id DESC LIMIT 1")
             row = cur.fetchone()
             if row:
                 enabled_cb.setChecked(bool(row[0]))
@@ -12654,9 +11424,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         else:
             status.setText(tr("mlb_api_key_missing"))
 
-        btns = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         v.addWidget(btns)
 
         def on_ok():
@@ -12670,9 +11438,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
             try:
                 if Assistant is not None:
-                    Assistant(model=model_val, db=self.db).save_settings(
-                        self.db, enabled, model_val, api_val
-                    )
+                    Assistant(model=model_val, db=self.db).save_settings(self.db, enabled, model_val, api_val)
                 else:
                     cur = self.db.cursor
                     cur.execute(
@@ -12700,13 +11466,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             from ..utils.ai_assistant import Assistant  # type: ignore[import]
 
             _svc = Assistant(db=getattr(self, "db", None))  # noqa: F841
-            QMessageBox.information(
-                self, tr("mlb_ai_assistant"), tr("mlb_ai_unavailable")
-            )
+            QMessageBox.information(self, tr("mlb_ai_assistant"), tr("mlb_ai_unavailable"))
         except Exception:
-            QMessageBox.information(
-                self, tr("mlb_ai_assistant"), tr("mlb_ai_unavailable")
-            )
+            QMessageBox.information(self, tr("mlb_ai_assistant"), tr("mlb_ai_unavailable"))
 
     def on_explain_plot_clicked(self):
         """Gather current plot data and ask the assistant to explain it."""
@@ -12736,11 +11498,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         # Persist snapshot if we have series data
         try:
-            if (
-                ctx.get("plot_summary")
-                and hasattr(self, "_last_velocity_curve")
-                and self._last_velocity_curve
-            ):
+            if ctx.get("plot_summary") and hasattr(self, "_last_velocity_curve") and self._last_velocity_curve:
                 xs, ys = self._last_velocity_curve
                 import json
 
@@ -12781,9 +11539,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             assistant = Assistant() if Assistant is not None else None
             try:
                 if assistant:
-                    resp = assistant.chat(
-                        q, [], context={"plot_summary": ctx.get("plot_summary")}
-                    )
+                    resp = assistant.chat(q, [], context={"plot_summary": ctx.get("plot_summary")})
                     result.setPlainText(resp)
                     try:
                         assistant.persist_chat(self.db, q, resp)
@@ -12791,8 +11547,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         pass
                 else:
                     result.setPlainText(
-                        "(stub) No remote assistant available. Plot summary: %s"
-                        % ctx.get("plot_summary")
+                        "(stub) No remote assistant available. Plot summary: %s" % ctx.get("plot_summary")
                     )
             except Exception as e:
                 result.setPlainText(f"Error contacting assistant: {e}")
@@ -12813,9 +11568,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         # Transonic overlay setting
         trans_cb = QCheckBox(tr("mlb_show_transonic_margin"))
-        trans_margin_label = QLabel(
-            f"{tr('mlb_margin_fps')} ({get_velocity_suffix().strip()})"
-        )
+        trans_margin_label = QLabel(f"{tr('mlb_margin_fps')} ({get_velocity_suffix().strip()})")
         trans_spin = QDoubleSpinBox()
         trans_spin.setRange(0.0, float(velocity_fps_to_display_value(500.0) or 500.0))
         trans_spin.setSingleStep(5.0 if "fps" in get_velocity_suffix() else 2.0)
@@ -12834,15 +11587,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     trans_cb.setChecked(bool(int(r[0])))
                 except Exception:
                     trans_cb.setChecked(r[0].lower() in ("1", "true", "yes"))
-            cur.execute(
-                "SELECT value FROM ui_settings WHERE key = ?", ("transonic_margin_fps",)
-            )
+            cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("transonic_margin_fps",))
             r2 = cur.fetchone()
             if r2 and r2[0] is not None:
                 try:
-                    trans_spin.setValue(
-                        float(velocity_fps_to_display_value(float(r2[0])) or r2[0])
-                    )
+                    trans_spin.setValue(float(velocity_fps_to_display_value(float(r2[0])) or r2[0]))
                 except Exception:
                     pass
         except Exception:
@@ -12870,18 +11619,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         # Load persisted values
         try:
             cur = self.db.cursor
-            cur.execute(
-                "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_min",)
-            )
+            cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_min",))
             rmin = cur.fetchone()
             if rmin and rmin[0] is not None:
                 try:
                     y_min_spin.setValue(float(rmin[0]))
                 except Exception:
                     pass
-            cur.execute(
-                "SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_max",)
-            )
+            cur.execute("SELECT value FROM ui_settings WHERE key = ?", ("velocity_y_max",))
             rmax = cur.fetchone()
             if rmax and rmax[0] is not None:
                 try:
@@ -12903,17 +11648,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         theme_h = QHBoxLayout()
         theme_label = QLabel(tr("mlb_theme_label"))
         theme_combo = QComboBox()
-        theme_combo.addItems(
-            [tr("mlb_theme_system"), tr("mlb_theme_light"), tr("mlb_theme_dark")]
-        )
+        theme_combo.addItems([tr("mlb_theme_system"), tr("mlb_theme_light"), tr("mlb_theme_dark")])
         theme_h.addWidget(theme_label)
         theme_h.addWidget(theme_combo)
         # Preview box
         theme_preview = QLabel(tr("mlb_theme_preview"))
         theme_preview.setMinimumHeight(60)
-        theme_preview.setStyleSheet(
-            "padding:8px; border:1px solid #ccc; border-radius:4px;"
-        )
+        theme_preview.setStyleSheet("padding:8px; border:1px solid #ccc; border-radius:4px;")
         v.addLayout(theme_h)
         v.addWidget(theme_preview)
 
@@ -12937,17 +11678,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             try:
                 n = (name or "").lower()
                 if n == "dark":
-                    theme_preview.setStyleSheet(
-                        "background:#2c2c2c; color:#f0f0f0; padding:8px; border-radius:4px;"
-                    )
+                    theme_preview.setStyleSheet("background:#2c2c2c; color:#f0f0f0; padding:8px; border-radius:4px;")
                 elif n == "light" or n == "system":
                     theme_preview.setStyleSheet(
                         "background: #ffffff; color: #222; padding:8px; border-radius:4px; border:1px solid #ddd;"
                     )
                 else:
-                    theme_preview.setStyleSheet(
-                        "padding:8px; border:1px solid #ccc; border-radius:4px;"
-                    )
+                    theme_preview.setStyleSheet("padding:8px; border:1px solid #ccc; border-radius:4px;")
             except Exception:
                 pass
 
@@ -12958,9 +11695,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         except Exception:
             pass
 
-        btns = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         v.addWidget(btns)
 
         # Reset to defaults button
@@ -12983,9 +11718,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 # reset UI elements
                 try:
                     trans_cb.setChecked(False)
-                    trans_spin.setValue(
-                        float(velocity_fps_to_display_value(50.0) or 50.0)
-                    )
+                    trans_spin.setValue(float(velocity_fps_to_display_value(50.0) or 50.0))
                     y_min_spin.setValue(0.0)
                     y_max_spin.setValue(0.0)
                     try:
@@ -13003,15 +11736,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         def on_ok():
             try:
-                self._save_ui_setting(
-                    "transonic_overlay_enabled", "1" if trans_cb.isChecked() else "0"
-                )
+                self._save_ui_setting("transonic_overlay_enabled", "1" if trans_cb.isChecked() else "0")
                 self._save_ui_setting(
                     "transonic_margin_fps",
-                    str(
-                        velocity_display_to_fps(trans_spin.value())
-                        or trans_spin.value()
-                    ),
+                    str(velocity_display_to_fps(trans_spin.value()) or trans_spin.value()),
                 )
                 # velocity y-range
                 try:
@@ -13036,9 +11764,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         # apply immediately to this widget
                         if sel == "dark":
                             try:
-                                self.setStyleSheet(
-                                    "background: #2c2c2c; color: #f0f0f0;"
-                                )
+                                self.setStyleSheet("background: #2c2c2c; color: #f0f0f0;")
                             except Exception:
                                 pass
                         else:
@@ -13072,9 +11798,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         try:
             from ..utils.gp_optimizer import suggest_next_charge
         except Exception:
-            QMessageBox.critical(
-                self, tr("mlb_error_title"), tr("mlb_gp_optimizer_missing")
-            )
+            QMessageBox.critical(self, tr("mlb_error_title"), tr("mlb_gp_optimizer_missing"))
             return
 
         # Collect recent results from test_results (use velocity_avg if present)
@@ -13085,9 +11809,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             )
             rows = cur.fetchall() or []
             if not rows:
-                QMessageBox.information(
-                    self, tr("mlb_no_data_title"), tr("mlb_no_recent_test_results")
-                )
+                QMessageBox.information(self, tr("mlb_no_data_title"), tr("mlb_no_recent_test_results"))
                 return
             charges = []
             velocities = []
@@ -13144,20 +11866,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                             res = self.engine.calculate_load(None, None, None, suggestion, None, None)  # type: ignore[attr-defined, arg-type]
                             if isinstance(res, dict):
                                 sim_v = float(
-                                    res.get("velocity")
-                                    or res.get("velocity_avg")
-                                    or res.get("predicted_velocity")
-                                    or 0
+                                    res.get("velocity") or res.get("velocity_avg") or res.get("predicted_velocity") or 0
                                 )
                         # if predicted is above target, step down by 0.5gr until within bounds or reach min_c
                         step = 0.5
                         attempts = 0
-                        while (
-                            sim_v is not None
-                            and sim_v > target_v
-                            and suggestion > min_c
-                            and attempts < 20
-                        ):
+                        while sim_v is not None and sim_v > target_v and suggestion > min_c and attempts < 20:
                             suggestion = round(max(min_c, suggestion - step), 3)
                             attempts += 1
                             try:
@@ -13235,9 +11949,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 sc = r[1]
                 cd = r[2]
                 basis = (r[3] or "")[:200]
-                item = QListWidgetItem(
-                    f"#{sid} — {format_weight_grains(sc, 'powder')} — {cd} — {basis}"
-                )
+                item = QListWidgetItem(f"#{sid} — {format_weight_grains(sc, 'powder')} — {cd} — {basis}")
                 item.setData(Qt.ItemDataRole.UserRole, sid)
                 listw.addItem(item)
         except Exception:
@@ -13255,9 +11967,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         def create_workflow():
             it = listw.currentItem()
             if not it:
-                QMessageBox.information(
-                    self, tr("mlb_select_title"), tr("mlb_select_suggestion_first")
-                )
+                QMessageBox.information(self, tr("mlb_select_title"), tr("mlb_select_suggestion_first"))
                 return
             sid = it.data(Qt.ItemDataRole.UserRole)
             try:
@@ -13268,9 +11978,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 )
                 row = cur.fetchone()
                 if not row:
-                    QMessageBox.critical(
-                        self, tr("mlb_error_title"), tr("mlb_suggestion_not_found")
-                    )
+                    QMessageBox.critical(self, tr("mlb_error_title"), tr("mlb_suggestion_not_found"))
                     return
                 suggested_charge = float(row[0])
                 basis = (row[1] or "").strip()
@@ -13298,9 +12006,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         def mark_tested():
             it = listw.currentItem()
             if not it:
-                QMessageBox.information(
-                    self, tr("mlb_select_title"), tr("mlb_select_suggestion_first")
-                )
+                QMessageBox.information(self, tr("mlb_select_title"), tr("mlb_select_suggestion_first"))
                 return
             sid = it.data(Qt.ItemDataRole.UserRole)
             # Prompt for test_result id (or choose from recent)
@@ -13345,9 +12051,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             # Update suggestion record to record tested id and refit GP using all recent test_results
             try:
                 # append tested marker to basis_text
-                cur.execute(
-                    "SELECT basis_text FROM optimizer_suggestions WHERE id = ?", (sid,)
-                )
+                cur.execute("SELECT basis_text FROM optimizer_suggestions WHERE id = ?", (sid,))
                 row = cur.fetchone()
                 basis = (row[0] or "") + f"\nTESTED_WITH:{tr_id}"
                 cur.execute(
@@ -13375,9 +12079,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     charges.append(c)
                     velocities.append(v)
                 if not charges:
-                    QMessageBox.information(
-                        self, tr("mlb_no_data_title"), tr("mlb_no_test_results_refit")
-                    )
+                    QMessageBox.information(self, tr("mlb_no_data_title"), tr("mlb_no_test_results_refit"))
                     return
                 from ..utils.gp_optimizer import suggest_next_charge
 
@@ -13407,9 +12109,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     sc2 = r[1]
                     cd2 = r[2]
                     basis2 = (r[3] or "")[:200]
-                    item2 = QListWidgetItem(
-                        f"#{sid2} — {format_weight_grains(sc2, 'powder')} — {cd2} — {basis2}"
-                    )
+                    item2 = QListWidgetItem(f"#{sid2} — {format_weight_grains(sc2, 'powder')} — {cd2} — {basis2}")
 
                     item2.setData(Qt.ItemDataRole.UserRole, sid2)
                     listw.addItem(item2)
@@ -13425,21 +12125,15 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         listw = getattr(self, "_suggestion_listw", None)
         it = listw.currentItem() if listw is not None else None
         if not it:
-            QMessageBox.information(
-                self, tr("mlb_select_title"), tr("mlb_select_suggestion_first")
-            )
+            QMessageBox.information(self, tr("mlb_select_title"), tr("mlb_select_suggestion_first"))
             return
         sid = it.data(Qt.ItemDataRole.UserRole)
         try:
             cur = self.db.cursor
-            cur.execute(
-                "SELECT basis_text FROM optimizer_suggestions WHERE id = ?", (sid,)
-            )
+            cur.execute("SELECT basis_text FROM optimizer_suggestions WHERE id = ?", (sid,))
             row = cur.fetchone()
             if not row or not row[0]:
-                QMessageBox.information(
-                    self, tr("mlb_no_basis_title"), tr("mlb_no_basis_message")
-                )
+                QMessageBox.information(self, tr("mlb_no_basis_title"), tr("mlb_no_basis_message"))
                 return
             import json
 
@@ -13483,23 +12177,17 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             pdlg.setLayout(lv)
             pdlg.exec()
         except Exception as e:
-            QMessageBox.critical(
-                self, tr("mlb_error_title"), tr("mlb_load_basis_failed", error=e)
-            )
+            QMessageBox.critical(self, tr("mlb_error_title"), tr("mlb_load_basis_failed", error=e))
 
     def on_auto_match_suggestions(self):
         """Attempt to auto-match open suggestions to recent test_results within tolerance, mark tested and refit."""
         try:
             cur = self.db.cursor
             # find suggestions not already marked tested
-            cur.execute(
-                "SELECT id, suggested_charge FROM optimizer_suggestions ORDER BY id DESC LIMIT 200"
-            )
+            cur.execute("SELECT id, suggested_charge FROM optimizer_suggestions ORDER BY id DESC LIMIT 200")
             rows = cur.fetchall() or []
             if not rows:
-                QMessageBox.information(
-                    self, "No suggestions", "No optimizer suggestions found."
-                )
+                QMessageBox.information(self, "No suggestions", "No optimizer suggestions found.")
                 return
 
             matched = 0
@@ -13569,9 +12257,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
                         min_c = max(0.0, min(charges) - 1.0)
                         max_c = max(charges) + 1.0
-                        new_sugg = suggest_next_charge(
-                            charges, velocities, (min_c, max_c)
-                        )
+                        new_sugg = suggest_next_charge(charges, velocities, (min_c, max_c))
                         import json
 
                         cur.execute(
@@ -13612,9 +12298,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 cur = self.db.cursor
                 cur.execute("SELECT MAX(id) FROM test_results")
                 row = cur.fetchone()
-                self._last_test_result_id = (
-                    int(row[0]) if row and row[0] is not None else 0
-                )
+                self._last_test_result_id = int(row[0]) if row and row[0] is not None else 0
             except Exception:
                 self._last_test_result_id = 0
             self._auto_match_timer.start()
@@ -13662,9 +12346,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 return
 
             # find suggestions not yet marked TESTED_WITH
-            cur.execute(
-                "SELECT id, suggested_charge, basis_text FROM optimizer_suggestions ORDER BY id DESC LIMIT 500"
-            )
+            cur.execute("SELECT id, suggested_charge, basis_text FROM optimizer_suggestions ORDER BY id DESC LIMIT 500")
             rows = cur.fetchall() or []
             matched_any = False
             for r in rows:
@@ -13709,9 +12391,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
                         min_c = max(0.0, min(charges) - 1.0)
                         max_c = max(charges) + 1.0
-                        new_sugg = suggest_next_charge(
-                            charges, velocities, (min_c, max_c)
-                        )
+                        new_sugg = suggest_next_charge(charges, velocities, (min_c, max_c))
                         import json
 
                         cur.execute(
@@ -13740,9 +12420,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 self._research_service = None
         return self._research_service
 
-    def _record_research_sample(
-        self, ammo_profile_id, velocities, charge_gr, import_id
-    ):
+    def _record_research_sample(self, ammo_profile_id, velocities, charge_gr, import_id):
         service = self._get_research_service()
         if service is None or not ammo_profile_id or not velocities:
             return
@@ -13793,9 +12471,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             except Exception:
                 ammo_profile = None
 
-        case_id = (
-            ammo_profile.get("case_id") if isinstance(ammo_profile, dict) else None
-        )
+        case_id = ammo_profile.get("case_id") if isinstance(ammo_profile, dict) else None
         if not case_id and isinstance(self.brass_data, dict):
             case_id = self.brass_data.get("case_id")
 
@@ -13803,9 +12479,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return None, None
 
         try:
-            rows = self.db.execute_query(
-                "SELECT * FROM cases WHERE id = ?", (int(case_id),)
-            )
+            rows = self.db.execute_query("SELECT * FROM cases WHERE id = ?", (int(case_id),))
         except Exception:
             rows = []
         if rows:
@@ -13818,18 +12492,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         powder_name=None,
         ammo_profile_id=None,
     ):
-        result = (
-            latest_result
-            if isinstance(latest_result, dict)
-            else getattr(self, "_latest_visual_result", None)
-        )
+        result = latest_result if isinstance(latest_result, dict) else getattr(self, "_latest_visual_result", None)
         selected_powder_name = str(
             powder_name
-            or (
-                (self.powder_data or {}).get("name")
-                if isinstance(self.powder_data, dict)
-                else ""
-            )
+            or ((self.powder_data or {}).get("name") if isinstance(self.powder_data, dict) else "")
             or ((result or {}).get("powder_name") if isinstance(result, dict) else "")
             or ""
         )
@@ -13848,9 +12514,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 case_profile = self.db.refresh_case_learning_profile(int(case_id)) or {}
             except Exception:
                 case_profile = {}
-            learned_capacity = self._coerce_float(
-                case_profile.get("avg_case_capacity_h2o")
-            )
+            learned_capacity = self._coerce_float(case_profile.get("avg_case_capacity_h2o"))
             learned_samples = int(case_profile.get("h2o_samples") or 0)
             if learned_capacity is not None:
                 case_capacity_h2o = learned_capacity
@@ -13867,18 +12531,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         case_capacity_ml = (
             case_capacity_h2o * 0.0648
             if case_capacity_h2o is not None
-            else (
-                self._coerce_float((result or {}).get("case_capacity_ml"))
-                if isinstance(result, dict)
-                else None
-            )
+            else (self._coerce_float((result or {}).get("case_capacity_ml")) if isinstance(result, dict) else None)
         )
         load_density_percent = None
         if case_capacity_h2o is None or not selected_powder_name:
             load_density_percent = (
-                self._coerce_float((result or {}).get("load_density_percent"))
-                if isinstance(result, dict)
-                else None
+                self._coerce_float((result or {}).get("load_density_percent")) if isinstance(result, dict) else None
             )
 
         summary = build_internal_ballistics_summary(
@@ -13887,35 +12545,21 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             case_capacity_gr_h2o=case_capacity_h2o,
             case_capacity_ml=case_capacity_ml,
             barrel_length_in=(
-                self._coerce_float((result or {}).get("barrel_length_inches"))
-                if isinstance(result, dict)
-                else None
+                self._coerce_float((result or {}).get("barrel_length_inches")) if isinstance(result, dict) else None
             ),
             load_density_percent=load_density_percent,
             powder_volume_ml=(
-                self._coerce_float((result or {}).get("powder_volume_ml"))
-                if isinstance(result, dict)
-                else None
+                self._coerce_float((result or {}).get("powder_volume_ml")) if isinstance(result, dict) else None
             ),
             available_volume_ml=(
-                self._coerce_float((result or {}).get("available_volume_ml"))
-                if isinstance(result, dict)
-                else None
+                self._coerce_float((result or {}).get("available_volume_ml")) if isinstance(result, dict) else None
             ),
             powder_density_g_ml=(
-                self._coerce_float((result or {}).get("powder_density"))
-                if isinstance(result, dict)
-                else None
+                self._coerce_float((result or {}).get("powder_density")) if isinstance(result, dict) else None
             ),
-            burn_rate_position=(
-                (result or {}).get("burn_rate_position")
-                if isinstance(result, dict)
-                else None
-            ),
+            burn_rate_position=((result or {}).get("burn_rate_position") if isinstance(result, dict) else None),
             pressure_margin_percent=(
-                self._coerce_float((result or {}).get("safety_margin_percent"))
-                if isinstance(result, dict)
-                else None
+                self._coerce_float((result or {}).get("safety_margin_percent")) if isinstance(result, dict) else None
             ),
         )
 
@@ -13993,69 +12637,47 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         bullet_row = None
         bullet_id = ammo_profile.get("bullet_id")
         if bullet_id:
-            rows = self.db.execute_query(
-                "SELECT * FROM bullets WHERE id = ?", (bullet_id,)
-            )
+            rows = self.db.execute_query("SELECT * FROM bullets WHERE id = ?", (bullet_id,))
             if rows:
                 bullet_row = dict(rows[0])
         bullet_source = bullet_row or self.bullet_data or {}
         bullet_values = {
             "make": bullet_source.get("manufacturer") or bullet_source.get("brand"),
-            "model": bullet_source.get("name")
-            or bullet_source.get("model")
-            or bullet_source.get("label"),
+            "model": bullet_source.get("name") or bullet_source.get("model") or bullet_source.get("label"),
             "weight_gr": self._coerce_float(
-                bullet_source.get("weight_grains")
-                or bullet_source.get("weight")
-                or ammo_profile.get("bullet_weight")
+                bullet_source.get("weight_grains") or bullet_source.get("weight") or ammo_profile.get("bullet_weight")
             ),
-            "bc": self._coerce_float(
-                bullet_source.get("bc_g7") or bullet_source.get("bc_g1")
-            ),
+            "bc": self._coerce_float(bullet_source.get("bc_g7") or bullet_source.get("bc_g1")),
             "diameter_mm": self._coerce_float(bullet_source.get("diameter_mm")),
         }
-        components["bullet"] = self._ensure_component_row(
-            "component_bullet", bullet_values
-        )
+        components["bullet"] = self._ensure_component_row("component_bullet", bullet_values)
 
         powder_row = None
         powder_id = ammo_profile.get("powder_id")
         if powder_id:
-            rows = self.db.execute_query(
-                "SELECT * FROM powder WHERE id = ?", (powder_id,)
-            )
+            rows = self.db.execute_query("SELECT * FROM powder WHERE id = ?", (powder_id,))
             if rows:
                 powder_row = dict(rows[0])
         powder_source = powder_row or self.powder_data or {}
         powder_values = {
             "make": powder_source.get("manufacturer") or powder_source.get("brand"),
-            "name": powder_source.get("name")
-            or powder_source.get("display_name")
-            or powder_source.get("model"),
+            "name": powder_source.get("name") or powder_source.get("display_name") or powder_source.get("model"),
         }
-        components["powder"] = self._ensure_component_row(
-            "component_powder", powder_values
-        )
+        components["powder"] = self._ensure_component_row("component_powder", powder_values)
 
         primer_row = None
         primer_id = ammo_profile.get("primer_id")
         if primer_id:
-            rows = self.db.execute_query(
-                "SELECT * FROM primers WHERE id = ?", (primer_id,)
-            )
+            rows = self.db.execute_query("SELECT * FROM primers WHERE id = ?", (primer_id,))
             if rows:
                 primer_row = dict(rows[0])
         primer_source = primer_row or self.primer_data or {}
         primer_values = {
-            "type": primer_source.get("type")
-            or primer_source.get("size")
-            or primer_source.get("category"),
+            "type": primer_source.get("type") or primer_source.get("size") or primer_source.get("category"),
             "make": primer_source.get("manufacturer") or primer_source.get("brand"),
             "model": primer_source.get("name") or primer_source.get("model"),
         }
-        components["primer"] = self._ensure_component_row(
-            "component_primer", primer_values
-        )
+        components["primer"] = self._ensure_component_row("component_primer", primer_values)
 
         case_row = None
         case_id = ammo_profile.get("case_id")
@@ -14083,9 +12705,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 return None
 
         cache = self._component_cache.setdefault(table, {})
-        cache_key = tuple(
-            round(val, 6) if isinstance(val, float) else val for val in values.values()
-        )
+        cache_key = tuple(round(val, 6) if isinstance(val, float) else val for val in values.values())
         cached = cache.get(cache_key)
         if cached:
             return cached
@@ -14121,9 +12741,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         cache[cache_key] = comp_id
         return comp_id
 
-    def _insert_load_recipe_record(
-        self, firearm_id, component_ids, ammo_profile, charge_gr, rifle_row
-    ):
+    def _insert_load_recipe_record(self, firearm_id, component_ids, ammo_profile, charge_gr, rifle_row):
         cur = self.db.cursor
         case_firings = None
         if isinstance(self.brass_data, dict):
@@ -14172,15 +12790,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self.db.conn.commit()
         return cur.lastrowid
 
-    def _insert_test_session_record(
-        self, firearm_id, ammo_profile, rifle_row, import_id
-    ):
+    def _insert_test_session_record(self, firearm_id, ammo_profile, rifle_row, import_id):
         cur = self.db.cursor
-        base_label = (
-            ammo_profile.get("name")
-            or (rifle_row or {}).get("name")
-            or "Chronograph Session"
-        )
+        base_label = ammo_profile.get("name") or (rifle_row or {}).get("name") or "Chronograph Session"
         label = base_label
         if import_id:
             label = f"{base_label} import #{import_id}"
@@ -14262,11 +12874,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         model = str(segment_match.get("model") or drag_model or "AUTO").strip().upper()
         if model == "AUTO":
             model = str(drag_model or "AUTO").strip().upper()
-        bc_value = (
-            segment_match.get("bc_g7")
-            or segment_match.get("bc_g1")
-            or segment_match.get("bc")
-        )
+        bc_value = segment_match.get("bc_g7") or segment_match.get("bc_g1") or segment_match.get("bc")
         min_v = segment_match.get("velocity_fps_min")
         max_v = segment_match.get("velocity_fps_max")
         if bc_value is None:
@@ -14276,9 +12884,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 f"{model} {float(bc_value):.3f} @ "
                 f"{format_velocity_fps(float(min_v or 0))}-{format_velocity_fps(float(max_v))}"
             )
-        return (
-            f"{model} {float(bc_value):.3f} @ {format_velocity_fps(float(min_v or 0))}+"
-        )
+        return f"{model} {float(bc_value):.3f} @ {format_velocity_fps(float(min_v or 0))}+"
 
     @staticmethod
     def _preferred_drag_model() -> str:
@@ -14335,16 +12941,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         ):
             return (
                 "G7",
-                (
-                    float(current["bc_value"])
-                    if isinstance(current["bc_value"], (int, float))
-                    else None
-                ),
-                (
-                    float(previous["bc_value"])
-                    if isinstance(previous["bc_value"], (int, float))
-                    else None
-                ),
+                (float(current["bc_value"]) if isinstance(current["bc_value"], (int, float)) else None),
+                (float(previous["bc_value"]) if isinstance(previous["bc_value"], (int, float)) else None),
                 current_segment,
                 previous_segment,
             )
@@ -14354,15 +12952,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         """Attach selected chronograph import by creating or using existing qc_batch and insert qc_measurements."""
         item = self.chrono_list.currentItem()
         if not item:
-            QMessageBox.warning(
-                self, tr("msg_no_selection"), tr("mlb_select_import_first")
-            )
+            QMessageBox.warning(self, tr("msg_no_selection"), tr("mlb_select_import_first"))
             return
         import_id = item.data(Qt.ItemDataRole.UserRole)
         cur = self.db.cursor
-        cur.execute(
-            "SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,)
-        )
+        cur.execute("SELECT velocities_json FROM chronograph_imports WHERE id = ?", (import_id,))
         row = cur.fetchone()
         if not row:
             QMessageBox.warning(self, "Not found", "Import row not found in DB")
@@ -14371,9 +12965,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         velocities = json.loads(row[0]) if row[0] else []
         if not velocities:
-            QMessageBox.warning(
-                self, "No velocities", "Selected import has no velocities"
-            )
+            QMessageBox.warning(self, "No velocities", "Selected import has no velocities")
             return
 
         # Ask user to either enter existing qc_batch id or create new
@@ -14388,13 +12980,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         if batch_id == 0:
             # create new qc batch
-            name, ok2 = QInputDialog.getText(
-                self, tr("mlb_new_qc_batch_title"), tr("mlb_new_qc_batch_message")
-            )
+            name, ok2 = QInputDialog.getText(self, tr("mlb_new_qc_batch_title"), tr("mlb_new_qc_batch_message"))
             if not ok2 or not name:
-                QMessageBox.warning(
-                    self, tr("mlb_cancelled_title"), tr("mlb_batch_creation_cancelled")
-                )
+                QMessageBox.warning(self, tr("mlb_cancelled_title"), tr("mlb_batch_creation_cancelled"))
                 return
             batch_size, ok3 = QInputDialog.getInt(
                 self,
@@ -14440,9 +13028,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         QMessageBox.information(
             self,
             tr("mlb_qc_batch_updated_title"),
-            tr(
-                "mlb_qc_batch_updated_message", count=len(velocities), batch_id=batch_id
-            ),
+            tr("mlb_qc_batch_updated_message", count=len(velocities), batch_id=batch_id),
         )
         self.on_refresh_chronograph_list()
 
@@ -14476,18 +13062,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
     def add_user_message(self, message):
         """Add user message to chat"""
         self.chat_display.append(
-            f"<div style='text-align: right; margin: 10px;'>"
-            f"<b style='color: #3498db;'>You:</b> {message}"
-            f"</div>"
+            f"<div style='text-align: right; margin: 10px;'>" f"<b style='color: #3498db;'>You:</b> {message}" f"</div>"
         )
         self.chat_display.moveCursor(QTextCursor.MoveOperation.End)
 
     def add_ai_message(self, message):
         """Add AI message to chat"""
         self.chat_display.append(
-            f"<div style='margin: 10px;'>"
-            f"<b style='color: #9b59b6;'>AI:</b> {message}"
-            f"</div>"
+            f"<div style='margin: 10px;'>" f"<b style='color: #9b59b6;'>AI:</b> {message}" f"</div>"
         )
         self.chat_display.moveCursor(QTextCursor.MoveOperation.End)
 
@@ -14500,180 +13082,106 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         # ==================== KRUTT / POWDER ====================
         if any(word in message_lower for word in ["krutt", "powder", "pulver"]):
-            if any(
-                word in message_lower
-                for word in ["anbefal", "recommend", "best", "hvilken"]
-            ):
+            if any(word in message_lower for word in ["anbefal", "recommend", "best", "hvilken"]):
                 return self.get_powder_recommendation_text()
-            elif any(
-                word in message_lower
-                for word in ["mengde", "charge", "hvor mye", "how much"]
-            ):
+            elif any(word in message_lower for word in ["mengde", "charge", "hvor mye", "how much"]):
                 return self.explain_charge_weight()
-            elif any(
-                word in message_lower for word in ["temperatur", "temperature", "temp"]
-            ):
+            elif any(word in message_lower for word in ["temperatur", "temperature", "temp"]):
                 return self.explain_powder_temperature()
-            elif any(
-                word in message_lower
-                for word in ["brennhastighet", "burn rate", "speed"]
-            ):
+            elif any(word in message_lower for word in ["brennhastighet", "burn rate", "speed"]):
                 return self.explain_burn_rate()
-            elif any(
-                word in message_lower for word in ["lagring", "storage", "oppbevaring"]
-            ):
+            elif any(word in message_lower for word in ["lagring", "storage", "oppbevaring"]):
                 return self.explain_powder_storage()
 
         # ==================== KULER / BULLETS ====================
         elif any(word in message_lower for word in ["kule", "bullet", "prosjektil"]):
-            if any(
-                word in message_lower
-                for word in ["seating", "sette", "dybde", "depth", "cbto", "coal"]
-            ):
+            if any(word in message_lower for word in ["seating", "sette", "dybde", "depth", "cbto", "coal"]):
                 return self.explain_seating_depth()
-            elif any(
-                word in message_lower for word in ["jump", "hopp", "lands", "rifling"]
-            ):
+            elif any(word in message_lower for word in ["jump", "hopp", "lands", "rifling"]):
                 return self.explain_bullet_jump()
-            elif any(
-                word in message_lower
-                for word in ["vekt", "weight", "tung", "lett", "heavy", "light"]
-            ):
+            elif any(word in message_lower for word in ["vekt", "weight", "tung", "lett", "heavy", "light"]):
                 return self.explain_bullet_weight()
-            elif any(
-                word in message_lower for word in ["bc", "ballistisk", "ballistic"]
-            ):
+            elif any(word in message_lower for word in ["bc", "ballistisk", "ballistic"]):
                 return self.explain_bc()
 
         # ==================== TENNHETTER / PRIMERS ====================
         elif any(word in message_lower for word in ["tennhette", "primer", "tenner"]):
-            if any(
-                word in message_lower
-                for word in ["anbefal", "recommend", "hvilken", "best"]
-            ):
+            if any(word in message_lower for word in ["anbefal", "recommend", "hvilken", "best"]):
                 return self.get_primer_recommendation()
-            elif any(
-                word in message_lower
-                for word in ["magnum", "standard", "forskjell", "difference"]
-            ):
+            elif any(word in message_lower for word in ["magnum", "standard", "forskjell", "difference"]):
                 return self.explain_primer_types()
-            elif any(
-                word in message_lower
-                for word in ["feil", "problem", "pierced", "cratered"]
-            ):
+            elif any(word in message_lower for word in ["feil", "problem", "pierced", "cratered"]):
                 return self.diagnose_primer_problems()
 
         # ==================== HYLSER / BRASS ====================
         elif any(word in message_lower for word in ["hylse", "brass", "case"]):
-            if any(
-                word in message_lower for word in ["trim", "trimme", "lengde", "length"]
-            ):
+            if any(word in message_lower for word in ["trim", "trimme", "lengde", "length"]):
                 return self.explain_brass_trimming()
             elif any(word in message_lower for word in ["neck", "hals", "tension"]):
                 return self.explain_neck_tension()
             elif any(word in message_lower for word in ["anneal", "gløde", "hardhet"]):
                 return self.explain_annealing()
-            elif any(
-                word in message_lower for word in ["prep", "preparer", "forbered"]
-            ):
+            elif any(word in message_lower for word in ["prep", "preparer", "forbered"]):
                 return self.explain_brass_prep()
-            elif any(
-                word in message_lower for word in ["ganger", "times", "bruk", "levetid"]
-            ):
+            elif any(word in message_lower for word in ["ganger", "times", "bruk", "levetid"]):
                 return self.explain_brass_life()
 
         # ==================== DIER / DIES ====================
         elif any(word in message_lower for word in ["die", "dier", "dies"]):
-            if any(
-                word in message_lower
-                for word in ["innstilling", "setup", "justere", "adjust"]
-            ):
+            if any(word in message_lower for word in ["innstilling", "setup", "justere", "adjust"]):
                 return self.explain_die_setup()
-            elif any(
-                word in message_lower
-                for word in ["full length", "fl", "neck", "sizing"]
-            ):
+            elif any(word in message_lower for word in ["full length", "fl", "neck", "sizing"]):
                 return self.explain_sizing_dies()
             elif any(word in message_lower for word in ["seating", "sette", "bullet"]):
                 return self.explain_seating_die()
             elif any(word in message_lower for word in ["crimping", "crimpe", "crimp"]):
                 return self.explain_crimping()
-            elif any(
-                word in message_lower for word in ["problem", "stuck", "fast", "feil"]
-            ):
+            elif any(word in message_lower for word in ["problem", "stuck", "fast", "feil"]):
                 return self.diagnose_die_problems()
 
         # ==================== TRYKK / PRESSURE ====================
         elif any(word in message_lower for word in ["trykk", "pressure", "psi", "bar"]):
-            if any(
-                word in message_lower for word in ["høy", "high", "for mye", "too much"]
-            ):
+            if any(word in message_lower for word in ["høy", "high", "for mye", "too much"]):
                 return self.explain_high_pressure()
             elif any(word in message_lower for word in ["tegn", "signs", "symptom"]):
                 return self.explain_pressure_signs()
-            elif any(
-                word in message_lower for word in ["saami", "max", "grense", "limit"]
-            ):
+            elif any(word in message_lower for word in ["saami", "max", "grense", "limit"]):
                 return self.explain_saami_limits()
             elif any(word in message_lower for word in ["hvorfor", "why", "årsak"]):
                 return self.explain_pressure()
 
         # ==================== SIKKERHET / SAFETY ====================
-        elif any(
-            word in message_lower
-            for word in ["sikker", "safe", "trygg", "farlig", "danger"]
-        ):
+        elif any(word in message_lower for word in ["sikker", "safe", "trygg", "farlig", "danger"]):
             return self.check_safety_comprehensive()
 
         # ==================== PRESISJON / ACCURACY ====================
-        elif any(
-            word in message_lower
-            for word in ["presisjon", "accuracy", "nøyaktighet", "gruppe", "group"]
-        ):
-            if any(
-                word in message_lower
-                for word in ["forbedre", "improve", "bedre", "better"]
-            ):
+        elif any(word in message_lower for word in ["presisjon", "accuracy", "nøyaktighet", "gruppe", "group"]):
+            if any(word in message_lower for word in ["forbedre", "improve", "bedre", "better"]):
                 return self.improve_accuracy_tips()
             elif any(word in message_lower for word in ["ocw", "ladder", "test"]):
                 return self.suggest_test_plan()
-            elif any(
-                word in message_lower for word in ["es", "sd", "spredning", "spread"]
-            ):
+            elif any(word in message_lower for word in ["es", "sd", "spredning", "spread"]):
                 return self.explain_es_sd()
 
         # ==================== TESTING ====================
-        elif any(
-            word in message_lower for word in ["test", "ocw", "ladder", "sighter"]
-        ):
+        elif any(word in message_lower for word in ["test", "ocw", "ladder", "sighter"]):
             return self.suggest_test_plan()
 
         # ==================== LØP / BARREL ====================
         elif any(word in message_lower for word in ["løp", "barrel", "pipe"]):
-            if any(
-                word in message_lower for word in ["harmonisk", "harmonic", "vibration"]
-            ):
+            if any(word in message_lower for word in ["harmonisk", "harmonic", "vibration"]):
                 return self.explain_barrel_harmonics()
-            elif any(
-                word in message_lower for word in ["lengde", "length", "kort", "lang"]
-            ):
+            elif any(word in message_lower for word in ["lengde", "length", "kort", "lang"]):
                 return self.explain_barrel_length()
-            elif any(
-                word in message_lower for word in ["rengjøring", "cleaning", "fouling"]
-            ):
+            elif any(word in message_lower for word in ["rengjøring", "cleaning", "fouling"]):
                 return self.explain_barrel_cleaning()
 
         # ==================== VERKTØY / TOOLS ====================
-        elif any(
-            word in message_lower for word in ["verktøy", "tool", "utstyr", "equipment"]
-        ):
+        elif any(word in message_lower for word in ["verktøy", "tool", "utstyr", "equipment"]):
             return self.recommend_tools()
 
         # ==================== PROSESS / PROCESS ====================
-        elif any(
-            word in message_lower
-            for word in ["prosess", "process", "hvordan", "how to", "steg", "step"]
-        ):
+        elif any(word in message_lower for word in ["prosess", "process", "hvordan", "how to", "steg", "step"]):
             return self.explain_reloading_process()
 
         # ==================== GENERELL HJELP ====================
@@ -14693,9 +13201,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             ".223 Remington": "For .223 Rem, I recommend:\n\n1. Varget - Excellent accuracy\n2. H4895 - Very versatile\n3. RL15 - Good velocities",
         }
 
-        return recommendations.get(
-            caliber, tr("mlb_powder_recommendation_fallback", caliber=caliber)
-        )
+        return recommendations.get(caliber, tr("mlb_powder_recommendation_fallback", caliber=caliber))
 
     def get_primer_recommendation(self):
         """Get primer recommendation"""
@@ -14846,9 +13352,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                             (f"{diam}%", f".{diam}%", caliber),
                         )
             if not bullets:
-                bullets = self.db.execute_query(
-                    "SELECT * FROM bullets ORDER BY manufacturer, weight_grains, name"
-                )
+                bullets = self.db.execute_query("SELECT * FROM bullets ORDER BY manufacturer, weight_grains, name")
         except Exception:
             bullets = []
         for bullet in bullets or []:
@@ -14856,9 +13360,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 str(bullet.get("manufacturer") or "").strip(),
                 str(bullet.get("name") or "").strip(),
             ]
-            label = " ".join(part for part in label_parts if part).strip() or (
-                f"Bullet #{bullet.get('id')}"
-            )
+            label = " ".join(part for part in label_parts if part).strip() or (f"Bullet #{bullet.get('id')}")
             weight = bullet.get("weight_grains")
             if weight is not None:
                 try:
@@ -14869,9 +13371,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
     def load_powders(self):
         """Load powders from inventory"""
-        powders = self.db.execute_query(
-            "SELECT * FROM powder ORDER BY manufacturer, name"
-        )
+        powders = self.db.execute_query("SELECT * FROM powder ORDER BY manufacturer, name")
         self.powder_combo.clear()
         self.powder_combo.addItem(tr("mlb_select_powder"), None)
         if hasattr(self, "powder_lot_combo"):
@@ -14882,9 +13382,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 str(powder.get("manufacturer") or "").strip(),
                 str(powder.get("name") or "").strip(),
             ]
-            label = " ".join(part for part in label_parts if part).strip() or (
-                f"Powder #{powder.get('id')}"
-            )
+            label = " ".join(part for part in label_parts if part).strip() or (f"Powder #{powder.get('id')}")
             quantity = powder.get("quantity_grams")
             try:
                 qty = float(quantity or 0)
@@ -14923,9 +13421,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 pass
             self.primer_combo.addItem(label, primer)
 
-    def _open_primer_editor_dialog(
-        self, existing_primer: dict | None = None
-    ) -> dict | None:
+    def _open_primer_editor_dialog(self, existing_primer: dict | None = None) -> dict | None:
         """Create or edit a primer reference/inventory entry."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Manual Primer")
@@ -14933,9 +13429,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         layout = QVBoxLayout(dialog)
         form = QFormLayout()
 
-        manufacturer_edit = QLineEdit(
-            str((existing_primer or {}).get("manufacturer") or "")
-        )
+        manufacturer_edit = QLineEdit(str((existing_primer or {}).get("manufacturer") or ""))
         form.addRow("Manufacturer", manufacturer_edit)
 
         name_edit = QLineEdit(str((existing_primer or {}).get("name") or ""))
@@ -14947,14 +13441,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         size_edit = QLineEdit(str((existing_primer or {}).get("size") or ""))
         form.addRow("Size", size_edit)
 
-        product_line_edit = QLineEdit(
-            str((existing_primer or {}).get("product_line") or "")
-        )
+        product_line_edit = QLineEdit(str((existing_primer or {}).get("product_line") or ""))
         form.addRow("Series", product_line_edit)
 
-        part_number_edit = QLineEdit(
-            str((existing_primer or {}).get("part_number") or "")
-        )
+        part_number_edit = QLineEdit(str((existing_primer or {}).get("part_number") or ""))
         form.addRow("Part Number", part_number_edit)
 
         family_edit = QLineEdit(str((existing_primer or {}).get("primer_family") or ""))
@@ -14971,27 +13461,19 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         cup_spin.setRange(0.0, 0.050)
         cup_spin.setDecimals(3)
         cup_spin.setSingleStep(0.001)
-        existing_cup = self._coerce_float(
-            (existing_primer or {}).get("cup_thickness_in")
-        )
+        existing_cup = self._coerce_float((existing_primer or {}).get("cup_thickness_in"))
         if existing_cup:
             cup_spin.setValue(existing_cup)
         cup_spin.setSuffix(" in")
         form.addRow("Cup Thickness", cup_spin)
 
-        pressure_class_edit = QLineEdit(
-            str((existing_primer or {}).get("pressure_tolerance_class") or "")
-        )
+        pressure_class_edit = QLineEdit(str((existing_primer or {}).get("pressure_tolerance_class") or ""))
         form.addRow("Pressure Class", pressure_class_edit)
 
-        ignition_edit = QLineEdit(
-            str((existing_primer or {}).get("ignition_strength_class") or "")
-        )
+        ignition_edit = QLineEdit(str((existing_primer or {}).get("ignition_strength_class") or ""))
         form.addRow("Ignition Strength", ignition_edit)
 
-        ref_source_edit = QLineEdit(
-            str((existing_primer or {}).get("reference_source") or "")
-        )
+        ref_source_edit = QLineEdit(str((existing_primer or {}).get("reference_source") or ""))
         form.addRow("Source", ref_source_edit)
 
         notes_edit = QTextEdit()
@@ -15004,9 +13486,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         )
         help_label.setWordWrap(True)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
 
@@ -15035,18 +13515,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             "part_number": part_number_edit.text().strip() or None,
             "primer_family": family_edit.text().strip() or None,
             "quantity": int(quantity_spin.value()),
-            "cup_thickness_in": (
-                float(cup_spin.value()) if cup_spin.value() > 0 else None
-            ),
+            "cup_thickness_in": (float(cup_spin.value()) if cup_spin.value() > 0 else None),
             "pressure_tolerance_class": pressure_class_edit.text().strip() or None,
             "ignition_strength_class": ignition_edit.text().strip() or None,
             "source_kind": (existing_primer or {}).get("source_kind") or "manual_entry",
-            "evidence_level": (existing_primer or {}).get("evidence_level")
-            or "manual_entry",
+            "evidence_level": (existing_primer or {}).get("evidence_level") or "manual_entry",
             "reference_source": ref_source_edit.text().strip() or None,
             "manufacturer_source": ref_source_edit.text().strip() or None,
-            "notes": notes_edit.toPlainText().strip()
-            or "Created manually from Modern Load Builder",
+            "notes": notes_edit.toPlainText().strip() or "Created manually from Modern Load Builder",
         }
 
     def on_add_manual_primer(self):
@@ -15056,9 +13532,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         primer_id = self.db.insert("primers", payload)
         if primer_id is None:
-            QMessageBox.critical(
-                self, "Could Not Save Primer", "The primer could not be saved."
-            )
+            QMessageBox.critical(self, "Could Not Save Primer", "The primer could not be saved.")
             return
 
         self.load_primers()
@@ -15108,9 +13582,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     bullet.get("bc_g7"),
                     preferred,
                     bullet.get("bc_segments_json"),
-                    velocity_fps=self._coerce_float(
-                        bullet.get("velocity_fps") or bullet.get("velocity")
-                    ),
+                    velocity_fps=self._coerce_float(bullet.get("velocity_fps") or bullet.get("velocity")),
                 )
                 segment_label = self._format_segment_match(
                     resolved.get("segment_match"),
@@ -15120,22 +13592,16 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 details.append(f"Segmented BC: {segment_label}")
             if length_mm:
                 try:
-                    details.append(
-                        f"{tr('mlb_length_label')}: {format_length_mm(float(length_mm))}"
-                    )
+                    details.append(f"{tr('mlb_length_label')}: {format_length_mm(float(length_mm))}")
                 except Exception:
                     details.append(f"{tr('mlb_length_label')}: {length_mm}")
             profile = _safe_json_loads(bullet.get("profile_json"))
-            tail_type = str(
-                (profile or {}).get("tail_type") or bullet.get("bullet_type") or ""
-            ).strip()
+            tail_type = str((profile or {}).get("tail_type") or bullet.get("bullet_type") or "").strip()
             if bullet.get("selected_lot_number"):
                 lot_details = [f"Lot: {bullet.get('selected_lot_number')}"]
                 measured_stats = bullet.get("measured_lot_stats") or {}
                 if measured_stats.get("sample_count"):
-                    lot_details.append(
-                        f"using measured mean ({int(measured_stats.get('sample_count') or 0)} pcs)"
-                    )
+                    lot_details.append(f"using measured mean ({int(measured_stats.get('sample_count') or 0)} pcs)")
                 details.append(" | ".join(lot_details))
             if tail_type and tail_type != str(bullet_type or "").strip():
                 details.append(f"Profile: {tail_type}")
@@ -15161,9 +13627,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     "Select a bullet and powder to assess how well the combination fits the selected firearm and active barrel."
                 )
 
-    def _open_bullet_editor_dialog(
-        self, existing_bullet: dict | None = None
-    ) -> dict | None:
+    def _open_bullet_editor_dialog(self, existing_bullet: dict | None = None) -> dict | None:
         """Open a small bullet editor and return payload if accepted."""
         caliber = ""
         if existing_bullet and existing_bullet.get("caliber"):
@@ -15177,9 +13641,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         layout = QVBoxLayout(dialog)
         form = QFormLayout()
 
-        manufacturer_edit = QLineEdit(
-            str((existing_bullet or {}).get("manufacturer") or "")
-        )
+        manufacturer_edit = QLineEdit(str((existing_bullet or {}).get("manufacturer") or ""))
         form.addRow(tr("mlb_manufacturer_label"), manufacturer_edit)
 
         name_edit = QLineEdit(str((existing_bullet or {}).get("name") or ""))
@@ -15196,17 +13658,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         weight_spin.setDecimals(1)
         weight_spin.setSuffix(get_weight_suffix("bullet"))
         existing_weight = self._coerce_float(
-            (existing_bullet or {}).get(
-                "weight_grains", (existing_bullet or {}).get("weight")
-            )
+            (existing_bullet or {}).get("weight_grains", (existing_bullet or {}).get("weight"))
         )
         if existing_weight:
-            weight_spin.setValue(
-                float(
-                    weight_grains_to_display_value(existing_weight, "bullet")
-                    or existing_weight
-                )
-            )
+            weight_spin.setValue(float(weight_grains_to_display_value(existing_weight, "bullet") or existing_weight))
         form.addRow(tr("mlb_weight_field"), weight_spin)
 
         bc_spin = QDoubleSpinBox()
@@ -15236,9 +13691,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         length_spin.setSuffix(get_length_suffix())
         existing_length = self._coerce_float((existing_bullet or {}).get("length_mm"))
         if existing_length:
-            length_spin.setValue(
-                float(length_mm_to_display_value(existing_length) or existing_length)
-            )
+            length_spin.setValue(float(length_mm_to_display_value(existing_length) or existing_length))
         form.addRow(tr("mlb_length_field"), length_spin)
 
         type_edit = QLineEdit(str((existing_bullet or {}).get("bullet_type") or ""))
@@ -15252,9 +13705,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         help_label = QLabel(tr("mlb_bullet_help"))
         help_label.setWordWrap(True)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
 
@@ -15279,25 +13730,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             "name": bullet_name,
             "manufacturer": manufacturer_edit.text().strip() or None,
             "caliber": bullet_caliber,
-            "weight_grains": float(
-                weight_display_to_grains(weight_spin.value(), "bullet")
-                or weight_spin.value()
-            ),
-            "diameter_mm": self._coerce_float(
-                (existing_bullet or {}).get("diameter_mm")
-            ),
-            "length_mm": (
-                float(length_display_to_mm(length_spin.value()) or 0.0)
-                if length_spin.value() > 0
-                else None
-            ),
+            "weight_grains": float(weight_display_to_grains(weight_spin.value(), "bullet") or weight_spin.value()),
+            "diameter_mm": self._coerce_float((existing_bullet or {}).get("diameter_mm")),
+            "length_mm": (float(length_display_to_mm(length_spin.value()) or 0.0) if length_spin.value() > 0 else None),
             "bc_g1": float(bc_spin.value()) if bc_spin.value() > 0 else None,
             "bc_g7": float(bc_g7_spin.value()) if bc_g7_spin.value() > 0 else None,
             "bullet_type": type_edit.text().strip() or None,
             "quantity": int((existing_bullet or {}).get("quantity") or 0),
-            "cost_per_unit": self._coerce_float(
-                (existing_bullet or {}).get("cost_per_unit")
-            ),
+            "cost_per_unit": self._coerce_float((existing_bullet or {}).get("cost_per_unit")),
             "notes": "Created manually from Modern Load Builder",
             "description": desc_edit.toPlainText().strip() or None,
         }
@@ -15357,6 +13797,29 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
     def on_powder_changed(self, index):
         """Handle powder selection"""
+        try:
+            self._on_powder_changed_impl(index)
+        except Exception:
+            import traceback as _tb
+
+            _trace = _tb.format_exc()
+            try:
+                self._logger.critical("on_powder_changed crashed: %s", _trace)
+            except Exception:
+                pass
+            try:
+                from HjemmeladingApp.utils.safe_logger import append_exception as _ae
+
+                _ae("on_powder_changed crash", None)
+                from HjemmeladingApp.utils.safe_logger import get_debug_log_path as _gdlp
+
+                with open(str(_gdlp()), "a", encoding="utf-8") as _fh:
+                    _fh.write(f"\n--- on_powder_changed traceback ---\n{_trace}\n")
+            except Exception:
+                pass
+            raise
+
+    def _on_powder_changed_impl(self, index):
         powder = self.powder_combo.currentData()
         if powder:
             self._load_component_lot_choices("powder", powder.get("id"))
@@ -15367,37 +13830,21 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             qty = powder.get("quantity_grams", 0)
             published_window = get_published_powder_charge_window(
                 self.db,
-                (
-                    (self.rifle_data or {}).get("caliber")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
+                ((self.rifle_data or {}).get("caliber") if isinstance(self.rifle_data, dict) else None),
                 powder.get("name"),
-                (
-                    (self.bullet_data or {}).get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    (self.bullet_data or {}).get("weight")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
+                ((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+                ((self.bullet_data or {}).get("weight") if isinstance(self.bullet_data, dict) else None),
             )
             info_parts = [f"Type: {powder.get('type', '?')}"]
             try:
-                info_parts.append(
-                    f"{tr('mlb_inventory_label')}: {float(qty or 0):.0f} g"
-                )
+                info_parts.append(f"{tr('mlb_inventory_label')}: {float(qty or 0):.0f} g")
             except Exception:
                 info_parts.append(f"{tr('mlb_inventory_label')}: {qty}")
             if burn_rate:
                 info_parts.append(f"{tr('mlb_burn_rate_label')}: {burn_rate}")
             if density is not None:
                 try:
-                    info_parts.append(
-                        f"{tr('mlb_density_label')}: {float(density):.3f} g/cc"
-                    )
+                    info_parts.append(f"{tr('mlb_density_label')}: {float(density):.3f} g/cc")
                 except Exception:
                     info_parts.append(f"{tr('mlb_density_label')}: {density}")
             _ba = powder.get("quickload_ba_value")
@@ -15423,11 +13870,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             elif powder.get("validation_status"):
                 info_parts.append(f"Profile status: {powder.get('validation_status')}")
             if powder.get("temp_stable") in (0, 1, True, False):
-                info_parts.append(
-                    "Temp stable"
-                    if bool(powder.get("temp_stable"))
-                    else "Temp sensitive/unknown"
-                )
+                info_parts.append("Temp stable" if bool(powder.get("temp_stable")) else "Temp sensitive/unknown")
             if powder.get("selected_lot_number"):
                 info_parts.append(f"Lot: {powder.get('selected_lot_number')}")
             comparison = powder.get("lot_comparison") or {}
@@ -15442,14 +13885,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     f"{format_weight_grains(float(published_window['avg_max_charge_grains']), 'powder')}"
                 )
             variant_count = int(
-                powder.get("reference_variant_count")
-                or powder.get("gordon_reference_variant_count")
-                or 0
+                powder.get("reference_variant_count") or powder.get("gordon_reference_variant_count") or 0
             )
             snapshot_count = int(
-                powder.get("reference_snapshot_count")
-                or powder.get("gordon_reference_snapshot_count")
-                or 0
+                powder.get("reference_snapshot_count") or powder.get("gordon_reference_snapshot_count") or 0
             )
             if variant_count:
                 info_parts.append(f"{variant_count} interne referansevarianter")
@@ -15494,9 +13933,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self._load_component_lot_choices("primers", primer.get("id"))
             self.primer_data = self._apply_primer_lot_context(dict(primer))
             primer = self.primer_data if isinstance(self.primer_data, dict) else {}
-            info_parts = [
-                f"{primer.get('manufacturer') or '?'} {primer.get('name') or '?'}".strip()
-            ]
+            info_parts = [f"{primer.get('manufacturer') or '?'} {primer.get('name') or '?'}".strip()]
             if primer.get("type"):
                 info_parts.append(f"Type: {primer.get('type')}")
             if primer.get("size"):
@@ -15507,9 +13944,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             if primer_profile.get("part_number"):
                 info_parts.append(f"PN: {primer_profile.get('part_number')}")
             if primer_profile.get("pressure_tolerance_class"):
-                info_parts.append(
-                    f"Pressure class: {primer_profile.get('pressure_tolerance_class')}"
-                )
+                info_parts.append(f"Pressure class: {primer_profile.get('pressure_tolerance_class')}")
             if primer_profile.get("magnum"):
                 info_parts.append("Magnum")
             if primer_profile.get("match_grade"):
@@ -15526,9 +13961,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 info_parts.append(f"Lot: {primer.get('selected_lot_number')}")
             learning = primer.get("lot_learning_profile") or {}
             if isinstance(learning.get("typical_es_fps"), (int, float)):
-                info_parts.append(
-                    f"Lot ES: {format_velocity_fps(float(learning['typical_es_fps']))}"
-                )
+                info_parts.append(f"Lot ES: {format_velocity_fps(float(learning['typical_es_fps']))}")
             comparison = primer.get("lot_comparison") or {}
             if comparison.get("title") and comparison.get("severity") in {
                 "watch",
@@ -15604,11 +14037,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         quantity.setDecimals(0)
         try:
             quantity.setValue(
-                float(
-                    existing_lot.get("quantity_remaining")
-                    or existing_lot.get("quantity_initial")
-                    or 250
-                )
+                float(existing_lot.get("quantity_remaining") or existing_lot.get("quantity_initial") or 250)
             )
         except Exception:
             quantity.setValue(250)
@@ -15624,9 +14053,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         notes.setPlainText(str(existing_lot.get("notes") or ""))
         form.addRow("Notes", notes)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
 
@@ -15658,9 +14085,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not payload:
             return
         if not payload.get("lot_number"):
-            QMessageBox.warning(
-                self, "Bullet Lot", "The lot must at least have a lot number."
-            )
+            QMessageBox.warning(self, "Bullet Lot", "The lot must at least have a lot number.")
             return
 
         self.db.update(
@@ -15699,9 +14124,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not payload:
             return
         if not payload.get("lot_number"):
-            QMessageBox.warning(
-                self, "Bullet Lot", "The lot must at least have a lot number."
-            )
+            QMessageBox.warning(self, "Bullet Lot", "The lot must at least have a lot number.")
             return
         self.db.update(
             "component_lots",
@@ -15735,9 +14158,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         payload = dialog.get_lot_data()
         if not payload.get("lot_number"):
-            QMessageBox.warning(
-                self, "Powder Lot", "The lot must at least have a lot number."
-            )
+            QMessageBox.warning(self, "Powder Lot", "The lot must at least have a lot number.")
             return
 
         self.db.update(
@@ -15799,9 +14220,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         payload = dialog.get_lot_data()
         if not payload.get("lot_number"):
-            QMessageBox.warning(
-                self, "Powder Lot", "The lot must at least have a lot number."
-            )
+            QMessageBox.warning(self, "Powder Lot", "The lot must at least have a lot number.")
             return
         self.db.update(
             "component_lots",
@@ -15845,9 +14264,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         payload = dialog.get_lot_data()
         if not payload.get("lot_number"):
-            QMessageBox.warning(
-                self, "Primer Lot", "The lot must at least have a lot number."
-            )
+            QMessageBox.warning(self, "Primer Lot", "The lot must at least have a lot number.")
             return
 
         self.db.update(
@@ -15899,9 +14316,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 **existing_lot,
                 "learning_status": learning.get("status"),
                 "typical_es_fps": learning.get("typical_es_fps"),
-                "typical_sd_fps": (learning.get("profile_data") or {}).get(
-                    "typical_sd_fps"
-                ),
+                "typical_sd_fps": (learning.get("profile_data") or {}).get("typical_sd_fps"),
                 "learning_notes": learning.get("notes"),
             },
         )
@@ -15909,9 +14324,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         payload = dialog.get_lot_data()
         if not payload.get("lot_number"):
-            QMessageBox.warning(
-                self, "Primer Lot", "The lot must at least have a lot number."
-            )
+            QMessageBox.warning(self, "Primer Lot", "The lot must at least have a lot number.")
             return
         self.db.update(
             "component_lots",
@@ -15975,9 +14388,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         help_label = QLabel(tr("mlb_powder_help"))
         help_label.setWordWrap(True)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
 
@@ -16002,9 +14413,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             "manufacturer": manufacturer_edit.text().strip() or None,
             "type": type_edit.text().strip() or None,
             "burn_rate": burn_rate_edit.text().strip() or None,
-            "density": (
-                float(density_spin.value()) if density_spin.value() > 0 else None
-            ),
+            "density": (float(density_spin.value()) if density_spin.value() > 0 else None),
             "quantity_grams": 0.0,
             "cost_per_unit": None,
             "purchase_date": None,
@@ -16077,9 +14486,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return "medium"
         return "unknown"
 
-    def _infer_bullet_diameter_mm(
-        self, bullet: dict, caliber_text: str
-    ) -> float | None:
+    def _infer_bullet_diameter_mm(self, bullet: dict, caliber_text: str) -> float | None:
         """Return bullet diameter in mm from bullet data or a light caliber inference."""
         diameter = self._coerce_float(bullet.get("diameter_mm"))
         if diameter and diameter > 0:
@@ -16113,9 +14520,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not twist_inches or twist_inches <= 0:
             missing_inputs.append("twist")
 
-        weight_gr = self._coerce_float(
-            bullet.get("weight_grains", bullet.get("weight"))
-        )
+        weight_gr = self._coerce_float(bullet.get("weight_grains", bullet.get("weight")))
         length_mm = self._coerce_float(bullet.get("length_mm"))
         diameter_mm = self._infer_bullet_diameter_mm(bullet, caliber_text)
         if not weight_gr:
@@ -16127,9 +14532,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if missing_inputs:
             return {"missing_inputs": missing_inputs}
 
-        assert (
-            twist_inches is not None and twist_inches > 0
-        )  # guaranteed by missing_inputs guard
+        assert twist_inches is not None and twist_inches > 0  # guaranteed by missing_inputs guard
         assert weight_gr is not None  # guaranteed by missing_inputs guard
         assert diameter_mm is not None  # guaranteed by missing_inputs early return
         assert length_mm is not None  # guaranteed by missing_inputs early return
@@ -16145,24 +14548,15 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         velocity = max(float(muzzle_velocity_fps or 2800.0), 500.0)
         _tc3 = self._current_temperature_c()
-        temp_c = (
-            float(_tc3) if hasattr(self, "temp_spin") and _tc3 is not None else 15.0
-        )
+        temp_c = float(_tc3) if hasattr(self, "temp_spin") and _tc3 is not None else 15.0
         _pkpa3 = self._current_pressure_kpa()
-        pressure_kpa = (
-            float(_pkpa3)
-            if hasattr(self, "pressure_spin") and _pkpa3 is not None
-            else 101.325
-        )
+        pressure_kpa = float(_pkpa3) if hasattr(self, "pressure_spin") and _pkpa3 is not None else 101.325
         temp_f = temp_c * 9.0 / 5.0 + 32.0
         pressure_inhg = pressure_kpa * 0.2953
 
         try:
             sg = (30.0 * weight_gr) / (
-                (twist_calibers**2)
-                * (diameter_in**3)
-                * length_calibers
-                * (1.0 + length_calibers**2)
+                (twist_calibers**2) * (diameter_in**3) * length_calibers * (1.0 + length_calibers**2)
             )
             sg *= (velocity / 2800.0) ** (1.0 / 3.0)
             sg *= ((temp_f + 459.67) / (59.0 + 459.67)) * (29.92 / pressure_inhg)
@@ -16197,12 +14591,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
 
         barrel = self._get_active_barrel_details()
-        caliber_text = str(
-            barrel.get("caliber") or (self.rifle_data or {}).get("caliber") or ""
-        ).lower()
-        twist_inches = self._parse_twist_inches(
-            barrel.get("twist") or (self.rifle_data or {}).get("twist_rate")
-        )
+        caliber_text = str(barrel.get("caliber") or (self.rifle_data or {}).get("caliber") or "").lower()
+        twist_inches = self._parse_twist_inches(barrel.get("twist") or (self.rifle_data or {}).get("twist_rate"))
         stability = self._estimate_gyroscopic_stability(
             bullet,
             twist_inches,
@@ -16219,9 +14609,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.edit_bullet_btn.setText("Edit Selected Bullet")
         self.edit_bullet_btn.setEnabled(True)
 
-    def _build_component_fit_assessment(
-        self, result: dict | None = None
-    ) -> tuple[str, list[str]]:
+    def _build_component_fit_assessment(self, result: dict | None = None) -> tuple[str, list[str]]:
         """Return a short fit summary and check lines for selected bullet/powder."""
         if not self.rifle_data or not self.bullet_data or not self.powder_data:
             return (
@@ -16233,20 +14621,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         details = self._get_rifle_profile_details()
         twist_value = barrel.get("twist") or self.rifle_data.get("twist_rate")
         twist_inches = self._parse_twist_inches(twist_value)
-        bullet_weight = self._coerce_float(
-            self.bullet_data.get("weight_grains", self.bullet_data.get("weight"))
-        )
+        bullet_weight = self._coerce_float(self.bullet_data.get("weight_grains", self.bullet_data.get("weight")))
         bullet_length = self._coerce_float(self.bullet_data.get("length_mm"))
         barrel_length_mm = self._coerce_float(
-            barrel.get("length_mm")
-            or details.get("barrel_length_mm")
-            or self.rifle_data.get("barrel_length_mm")
+            barrel.get("length_mm") or details.get("barrel_length_mm") or self.rifle_data.get("barrel_length_mm")
         )
         mag_limit = self._coerce_float(details.get("magazine_length_mm"))
         powder_bucket = self._classify_burn_rate_bucket(self.powder_data)
-        caliber_text = str(
-            barrel.get("caliber") or self.rifle_data.get("caliber") or ""
-        ).lower()
+        caliber_text = str(barrel.get("caliber") or self.rifle_data.get("caliber") or "").lower()
         stability = self._estimate_gyroscopic_stability(
             self.bullet_data,
             twist_inches,
@@ -16258,9 +14640,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         if twist_inches and bullet_weight:
             if twist_inches >= 12 and bullet_weight > 175:
-                notes.append(
-                    "The twist looks slow for this bullet weight. Stabilization may be marginal."
-                )
+                notes.append("The twist looks slow for this bullet weight. Stabilization may be marginal.")
                 checks.append(
                     "WARN: twist looks slow for the selected bullet weight - verify stability and precision in practice"
                 )
@@ -16268,13 +14648,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 notes.append(
                     "The twist is fast, but that is usually perfectly fine. A light bullet can still work well."
                 )
-                checks.append(
-                    "OK: a fast twist usually stabilizes lighter bullets well too"
-                )
+                checks.append("OK: a fast twist usually stabilizes lighter bullets well too")
             else:
-                notes.append(
-                    "Twist and bullet weight look reasonable as a starting point."
-                )
+                notes.append("Twist and bullet weight look reasonable as a starting point.")
                 checks.append("OK: twist and bullet weight look compatible")
 
         if stability:
@@ -16283,9 +14659,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 f"Estimated stability Sg {sg:.2f} ({stability['tier']}) at about {format_velocity_fps(float(stability['velocity_fps']))}."
             )
             if sg < 1.0:
-                checks.append(
-                    "FAIL: estimated Sg is below 1.0 - the bullet may be unstable in this twist"
-                )
+                checks.append("FAIL: estimated Sg is below 1.0 - the bullet may be unstable in this twist")
             elif sg < 1.3:
                 checks.append(
                     "WARN: estimated Sg is marginal - verify carefully with actual groups and preferably yaw signs"
@@ -16307,57 +14681,31 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         if bullet_length and twist_inches:
             if bullet_length > 36 and twist_inches >= 10:
-                notes.append(
-                    "The bullet is relatively long for the stated twist. Pay extra attention to stability."
-                )
-                checks.append(
-                    "WARN: a long bullet may require a faster twist for fully safe stability"
-                )
+                notes.append("The bullet is relatively long for the stated twist. Pay extra attention to stability.")
+                checks.append("WARN: a long bullet may require a faster twist for fully safe stability")
 
         if mag_limit and self.coal_mm:
             if float(self.coal_mm or 0) > mag_limit:
-                notes.append(
-                    "The current COAL appears to exceed the magazine length for this firearm."
-                )
+                notes.append("The current COAL appears to exceed the magazine length for this firearm.")
                 checks.append("FAIL: selected COAL exceeds magazine length")
             elif float(self.coal_mm or 0) > mag_limit - 1.0:
-                notes.append(
-                    "COAL is very close to magazine length. That can limit seating-depth testing."
-                )
+                notes.append("COAL is very close to magazine length. That can limit seating-depth testing.")
                 checks.append("WARN: COAL is very close to magazine length")
             else:
                 checks.append("OK: COAL appears to fit within magazine length")
 
         if barrel_length_mm and bullet_weight:
-            if (
-                barrel_length_mm < 470
-                and bullet_weight >= 175
-                and powder_bucket == "slow"
-            ):
+            if barrel_length_mm < 470 and bullet_weight >= 175 and powder_bucket == "slow":
                 notes.append(
                     "A heavy bullet in a short barrel with slow powder can leave unburned powder and reduce effective velocity."
                 )
-                checks.append(
-                    "WARN: heavy bullet + short barrel + slow powder can be a sluggish combination"
-                )
-            elif (
-                barrel_length_mm >= 600
-                and bullet_weight >= 160
-                and powder_bucket == "slow"
-            ):
-                notes.append(
-                    "A long barrel and heavier bullet often pair well with a slightly slower powder."
-                )
-                checks.append(
-                    "OK: barrel length and powder speed look sensible together"
-                )
+                checks.append("WARN: heavy bullet + short barrel + slow powder can be a sluggish combination")
+            elif barrel_length_mm >= 600 and bullet_weight >= 160 and powder_bucket == "slow":
+                notes.append("A long barrel and heavier bullet often pair well with a slightly slower powder.")
+                checks.append("OK: barrel length and powder speed look sensible together")
             elif barrel_length_mm < 470 and powder_bucket == "fast":
-                notes.append(
-                    "A short barrel and faster powder can be a sensible starting point."
-                )
-                checks.append(
-                    "OK: short barrel and faster powder often work well together"
-                )
+                notes.append("A short barrel and faster powder can be a sensible starting point.")
+                checks.append("OK: short barrel and faster powder often work well together")
 
         if result and result.get("load_density_percent") is not None:
             try:
@@ -16367,9 +14715,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         "Load density is low. The combination can still work, but often with more ES and less even combustion."
                     )
                 elif density > 105:
-                    notes.append(
-                        "The load appears compressed. Be extra conservative and verify carefully."
-                    )
+                    notes.append("The load appears compressed. Be extra conservative and verify carefully.")
             except Exception:
                 pass
 
@@ -16393,9 +14739,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
 
         service_analysis = (
-            self._latest_load_analysis
-            if isinstance(getattr(self, "_latest_load_analysis", None), dict)
-            else {}
+            self._latest_load_analysis if isinstance(getattr(self, "_latest_load_analysis", None), dict) else {}
         )
         if not service_analysis and result is not None:
             try:
@@ -16409,20 +14753,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             twist_inches = self._parse_twist_inches(
                 barrel_details.get("twist") or (self.rifle_data or {}).get("twist_rate")
             )
-            caliber_text = str(
-                barrel_details.get("caliber")
-                or (self.rifle_data or {}).get("caliber")
-                or ""
-            ).lower()
+            caliber_text = str(barrel_details.get("caliber") or (self.rifle_data or {}).get("caliber") or "").lower()
             live_stability = self._estimate_gyroscopic_stability(
                 self.bullet_data if isinstance(self.bullet_data, dict) else {},
                 twist_inches,
                 caliber_text,
                 result.get("muzzle_velocity_fps") if isinstance(result, dict) else None,
             )
-            sub_mode = bool(
-                getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked()
-            )
+            sub_mode = bool(getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked())
             _sub_tgt = getattr(self, "subsonic_target", None)
             target_fps = float(_sub_tgt.value() if _sub_tgt is not None else 1050.0)
             stability_advisory = summarize_stability_advisor(
@@ -16432,9 +14770,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 twist_inches=twist_inches,
                 bullet=self.bullet_data if isinstance(self.bullet_data, dict) else None,
                 barrel_details=barrel_details,
-                rifle_data=(
-                    self.rifle_data if isinstance(self.rifle_data, dict) else None
-                ),
+                rifle_data=(self.rifle_data if isinstance(self.rifle_data, dict) else None),
             )
             subsonic_advisory = summarize_subsonic_advisor(
                 result if isinstance(result, dict) else None,
@@ -16444,21 +14780,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             )
             subsonic_history = summarize_subsonic_history_advisory(
                 self.db,
-                (
-                    (self.rifle_data or {}).get("id")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
-                (
-                    (self.bullet_data or {}).get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    (self.powder_data or {}).get("id")
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
+                ((self.rifle_data or {}).get("id") if isinstance(self.rifle_data, dict) else None),
+                ((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+                ((self.powder_data or {}).get("id") if isinstance(self.powder_data, dict) else None),
             )
             summary = summarize_seating_depth_advisor(
                 self.db,
@@ -16490,128 +14814,56 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         jump_mm = summary.get("jump_mm")
         jam_cbto_mm = summary.get("jam_cbto_mm")
         if jump_mm is not None:
-            self.jump_label.setText(
-                f'Jump: {float(jump_mm):.2f}mm ({float(jump_mm)/25.4:.3f}")'
-            )
+            self.jump_label.setText(f'Jump: {float(jump_mm):.2f}mm ({float(jump_mm)/25.4:.3f}")')
         elif jam_cbto_mm is not None:
             self.jump_label.setText(f"Jam CBTO: {float(jam_cbto_mm):.2f} mm")
         else:
             self.jump_label.setText(tr("mlb_jump_calculating"))
 
         if hasattr(self, "seating_visual_label"):
-            self.seating_visual_label.setText(
-                str(summary.get("visualization_html") or "")
-            )
+            self.seating_visual_label.setText(str(summary.get("visualization_html") or ""))
         if hasattr(self, "seating_confidence_label"):
-            self.seating_confidence_label.setText(
-                str(summary.get("confidence_html") or "")
-            )
+            self.seating_confidence_label.setText(str(summary.get("confidence_html") or ""))
         if hasattr(self, "seating_history_label"):
-            self.seating_history_label.setText(
-                str(summary.get("history_visualization_html") or "")
-            )
+            self.seating_history_label.setText(str(summary.get("history_visualization_html") or ""))
         if hasattr(self, "seating_trend_label"):
-            self.seating_trend_label.setText(
-                str(summary.get("trend_summary_html") or "")
-            )
+            self.seating_trend_label.setText(str(summary.get("trend_summary_html") or ""))
         subsonic_windows: dict[str, Any] | None = None
         if hasattr(self, "seating_sandbox_label"):
             subsonic_windows = get_subsonic_history_windows(
                 self.db,
-                (
-                    (self.rifle_data or {}).get("id")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
-                (
-                    (self.bullet_data or {}).get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    (self.powder_data or {}).get("id")
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
+                ((self.rifle_data or {}).get("id") if isinstance(self.rifle_data, dict) else None),
+                ((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+                ((self.powder_data or {}).get("id") if isinstance(self.powder_data, dict) else None),
             )
             sandbox_html = build_seating_sandbox_html(
                 getattr(self, "engine", None),
-                (
-                    (self.rifle_data or {}).get("id")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
-                (
-                    (self.bullet_data or {}).get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    (self.powder_data or {}).get("id")
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
-                (
-                    float(self.current_charge or 0)
-                    if self.current_charge is not None
-                    else None
-                ),
+                ((self.rifle_data or {}).get("id") if isinstance(self.rifle_data, dict) else None),
+                ((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+                ((self.powder_data or {}).get("id") if isinstance(self.powder_data, dict) else None),
+                (float(self.current_charge or 0) if self.current_charge is not None else None),
                 float(self.coal_mm or 0) if self.coal_mm is not None else None,
                 float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
                 current_result=result,
                 barrel_id=self._get_active_barrel_id(),
-                ranked_candidates=(summary.get("best_known_evidence") or {}).get(
-                    "ranked_candidates"
-                ),
+                ranked_candidates=(summary.get("best_known_evidence") or {}).get("ranked_candidates"),
                 subsonic_history=subsonic_windows,
             )
             self.seating_sandbox_label.setText(sandbox_html)
         if hasattr(self, "powder_sandbox_label"):
             published_window = get_published_powder_charge_window(
                 self.db,
-                (
-                    (self.rifle_data or {}).get("caliber")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
-                (
-                    (self.powder_data or {}).get("name")
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
-                (
-                    (self.bullet_data or {}).get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    (self.bullet_data or {}).get("weight")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
+                ((self.rifle_data or {}).get("caliber") if isinstance(self.rifle_data, dict) else None),
+                ((self.powder_data or {}).get("name") if isinstance(self.powder_data, dict) else None),
+                ((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+                ((self.bullet_data or {}).get("weight") if isinstance(self.bullet_data, dict) else None),
             )
             powder_sandbox_html = build_powder_sandbox_html(
                 getattr(self, "engine", None),
-                (
-                    (self.rifle_data or {}).get("id")
-                    if isinstance(self.rifle_data, dict)
-                    else None
-                ),
-                (
-                    (self.bullet_data or {}).get("id")
-                    if isinstance(self.bullet_data, dict)
-                    else None
-                ),
-                (
-                    (self.powder_data or {}).get("id")
-                    if isinstance(self.powder_data, dict)
-                    else None
-                ),
-                (
-                    float(self.current_charge or 0)
-                    if self.current_charge is not None
-                    else None
-                ),
+                ((self.rifle_data or {}).get("id") if isinstance(self.rifle_data, dict) else None),
+                ((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+                ((self.powder_data or {}).get("id") if isinstance(self.powder_data, dict) else None),
+                (float(self.current_charge or 0) if self.current_charge is not None else None),
                 float(self.coal_mm or 0) if self.coal_mm is not None else None,
                 float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
                 current_result=result,
@@ -16626,9 +14878,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         message = str(summary.get("message") or "").strip()
         title = str(summary.get("title") or "Seating Depth").strip()
         summary_line = str(summary.get("summary") or "").strip()
-        _svc: dict[str, Any] = (
-            service_analysis if isinstance(service_analysis, dict) else {}
-        )
+        _svc: dict[str, Any] = service_analysis if isinstance(service_analysis, dict) else {}
         service_harmonics = _as_dict(_svc, "harmonics")
         service_recommendation = _as_dict(_svc, "recommendation")
         bullet_geometry = _as_dict(_svc, "bullet_geometry")
@@ -16646,27 +14896,17 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if summary_line:
             html += f"<br><span style='font-weight:400'>{summary_line}</span>"
         harmonic_score = service_harmonics.get("harmonic_score")
-        harmonic_confidence = str(
-            service_harmonics.get("harmonics_confidence") or ""
-        ).strip()
-        seating_sensitivity = (service_harmonics.get("sensitivity") or {}).get(
-            "seating_depth"
-        )
+        harmonic_confidence = str(service_harmonics.get("harmonics_confidence") or "").strip()
+        seating_sensitivity = (service_harmonics.get("sensitivity") or {}).get("seating_depth")
         if harmonic_score is not None or seating_sensitivity is not None:
             harmonic_parts = []
             if harmonic_score is not None:
                 harmonic_parts.append(f"Harmonics score {float(harmonic_score):.1f}/20")
             if seating_sensitivity is not None:
-                harmonic_parts.append(
-                    f"seating sensitivity {float(seating_sensitivity):.2f}"
-                )
+                harmonic_parts.append(f"seating sensitivity {float(seating_sensitivity):.2f}")
             if harmonic_confidence:
                 harmonic_parts.append(f"confidence {harmonic_confidence}")
-            html += (
-                "<br><span style='font-weight:400'>"
-                + " | ".join(harmonic_parts)
-                + "</span>"
-            )
+            html += "<br><span style='font-weight:400'>" + " | ".join(harmonic_parts) + "</span>"
         seating_window = service_recommendation.get("seating_window_mm") or []
         if len(seating_window) == 2:
             html += (
@@ -16678,9 +14918,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if geometry_notes:
             html += (
                 "<br><span style='font-weight:400'>"
-                + " | ".join(
-                    str(note) for note in geometry_notes[:2] if str(note).strip()
-                )
+                + " | ".join(str(note) for note in geometry_notes[:2] if str(note).strip())
                 + "</span>"
             )
         node_checks = node_fit.get("checks") or []
@@ -16695,11 +14933,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         self.seating_advisor_label.setText(html)
 
     def _persist_current_seating_depth_profile(self, source: str = "builder") -> None:
-        if not (
-            self.db
-            and isinstance(self.rifle_data, dict)
-            and isinstance(self.bullet_data, dict)
-        ):
+        if not (self.db and isinstance(self.rifle_data, dict) and isinstance(self.bullet_data, dict)):
             return
         rifle_id = self.rifle_data.get("id")
         bullet_id = self.bullet_data.get("id")
@@ -16714,42 +14948,29 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             profile_details=self._get_rifle_profile_details(),
             barrel_details=self._get_active_barrel_details(),
             harmonics=self._get_rifle_harmonics_profile(),
-            current_temperature_c=self._get_current_seating_context().get(
-                "temperature_c"
-            ),
+            current_temperature_c=self._get_current_seating_context().get("temperature_c"),
             current_distance_m=self._get_current_seating_context().get("distance_m"),
         )
         payload = {
             "rifle_id": int(rifle_id),
             "barrel_id": self._get_active_barrel_id(),
-            "barrel_name": str(
-                self._get_active_barrel_details().get("name") or ""
-            ).strip()
-            or None,
+            "barrel_name": str(self._get_active_barrel_details().get("name") or "").strip() or None,
             "bullet_id": int(bullet_id),
             "component_lot_id": self.bullet_data.get("selected_lot_id"),
-            "preferred_coal_mm": (
-                float(self.coal_mm or 0) if self.coal_mm is not None else None
-            ),
-            "preferred_cbto_mm": (
-                float(self.cbto_mm or 0) if self.cbto_mm is not None else None
-            ),
+            "preferred_coal_mm": (float(self.coal_mm or 0) if self.coal_mm is not None else None),
+            "preferred_cbto_mm": (float(self.cbto_mm or 0) if self.cbto_mm is not None else None),
             "preferred_jump_mm": summary.get("jump_mm"),
             "jam_cbto_mm": summary.get("jam_cbto_mm"),
             "standard_oal_mm": summary.get("standard_oal_mm"),
             "evidence_level": (
-                "sweet_spot_promoted"
-                if (summary.get("promotion_candidate") or {}).get("eligible")
-                else "builder_saved"
+                "sweet_spot_promoted" if (summary.get("promotion_candidate") or {}).get("eligible") else "builder_saved"
             ),
             "source": source,
             "notes": " | ".join(
                 part
                 for part in [
                     str(summary.get("message") or "").strip(),
-                    str(
-                        (summary.get("promotion_candidate") or {}).get("message") or ""
-                    ).strip(),
+                    str((summary.get("promotion_candidate") or {}).get("message") or "").strip(),
                 ]
                 if part
             ),
@@ -16760,11 +14981,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             pass
 
     def _get_saved_seating_depth_profile(self) -> dict | None:
-        if not (
-            self.db
-            and isinstance(self.rifle_data, dict)
-            and isinstance(self.bullet_data, dict)
-        ):
+        if not (self.db and isinstance(self.rifle_data, dict) and isinstance(self.bullet_data, dict)):
             return None
         rifle_id = self.rifle_data.get("id")
         bullet_id = self.bullet_data.get("id")
@@ -16782,11 +14999,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return None
 
     def _get_best_known_seating_evidence(self) -> dict | None:
-        if not (
-            self.db
-            and isinstance(self.rifle_data, dict)
-            and isinstance(self.bullet_data, dict)
-        ):
+        if not (self.db and isinstance(self.rifle_data, dict) and isinstance(self.bullet_data, dict)):
             return None
         rifle_id = self.rifle_data.get("id")
         bullet_id = self.bullet_data.get("id")
@@ -16794,9 +15007,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return None
         try:
             component_lot_id = self.bullet_data.get("selected_lot_id")
-            lot_number = (
-                str(self.bullet_data.get("selected_lot_number") or "").strip() or None
-            )
+            lot_number = str(self.bullet_data.get("selected_lot_number") or "").strip() or None
             context = self._get_current_seating_context()
             return self.db.get_best_seating_depth_evidence(
                 int(rifle_id),
@@ -16814,71 +15025,29 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
     def _current_recommendation_signature(self) -> tuple[Any, ...]:
         powder_context = self._get_selected_powder_context()
         return (
-            (
-                (self.rifle_data or {}).get("id")
-                if isinstance(self.rifle_data, dict)
-                else None
-            ),
+            ((self.rifle_data or {}).get("id") if isinstance(self.rifle_data, dict) else None),
             self._get_active_barrel_id(),
-            (
-                (self.bullet_data or {}).get("id")
-                if isinstance(self.bullet_data, dict)
-                else None
-            ),
-            (
-                (self.bullet_data or {}).get("selected_lot_id")
-                if isinstance(self.bullet_data, dict)
-                else None
-            ),
+            ((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+            ((self.bullet_data or {}).get("selected_lot_id") if isinstance(self.bullet_data, dict) else None),
             powder_context.get("id") if isinstance(powder_context, dict) else None,
-            (
-                (self.powder_data or {}).get("selected_lot_id")
-                if isinstance(self.powder_data, dict)
-                else None
-            ),
+            ((self.powder_data or {}).get("selected_lot_id") if isinstance(self.powder_data, dict) else None),
         )
 
     def _build_recommendation_baseline_candidate(self) -> dict[str, Any]:
-        analysis = (
-            self._latest_load_analysis
-            if isinstance(getattr(self, "_latest_load_analysis", None), dict)
-            else {}
-        )
+        analysis = self._latest_load_analysis if isinstance(getattr(self, "_latest_load_analysis", None), dict) else {}
         seating_summary = (
-            self._latest_seating_summary
-            if isinstance(getattr(self, "_latest_seating_summary", None), dict)
-            else {}
+            self._latest_seating_summary if isinstance(getattr(self, "_latest_seating_summary", None), dict) else {}
         )
         charge_promotion_candidate = summarize_charge_promotion_candidate(
             db=self.db,
-            rifle_id=(
-                (self.rifle_data or {}).get("id")
-                if isinstance(self.rifle_data, dict)
-                else None
-            ),
-            bullet_id=(
-                (self.bullet_data or {}).get("id")
-                if isinstance(self.bullet_data, dict)
-                else None
-            ),
-            powder_id=(
-                (self.powder_data or {}).get("id")
-                if isinstance(self.powder_data, dict)
-                else None
-            ),
-            current_charge_gr=(
-                float(self.current_charge or 0)
-                if self.current_charge is not None
-                else None
-            ),
+            rifle_id=((self.rifle_data or {}).get("id") if isinstance(self.rifle_data, dict) else None),
+            bullet_id=((self.bullet_data or {}).get("id") if isinstance(self.bullet_data, dict) else None),
+            powder_id=((self.powder_data or {}).get("id") if isinstance(self.powder_data, dict) else None),
+            current_charge_gr=(float(self.current_charge or 0) if self.current_charge is not None else None),
         )
         return build_evidence_recommendation_baseline(
             analysis=analysis,
-            current_charge_gr=(
-                float(self.current_charge or 0)
-                if self.current_charge is not None
-                else None
-            ),
+            current_charge_gr=(float(self.current_charge or 0) if self.current_charge is not None else None),
             coal_mm=float(self.coal_mm or 0) if self.coal_mm is not None else None,
             cbto_mm=float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
             seating_summary=seating_summary,
@@ -16889,29 +15058,19 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
     def _ensure_recommendation_baseline(self) -> dict[str, Any] | None:
         signature = self._current_recommendation_signature()
         _baseline_raw = getattr(self, "_recommendation_baseline", None)
-        baseline: dict[str, Any] | None = (
-            _baseline_raw if isinstance(_baseline_raw, dict) else None
-        )
-        if (
-            baseline
-            and baseline.get("signature") == signature
-            and baseline.get("available")
-        ):
+        baseline: dict[str, Any] | None = _baseline_raw if isinstance(_baseline_raw, dict) else None
+        if baseline and baseline.get("signature") == signature and baseline.get("available"):
             return baseline
 
         runtime = self._get_cached_or_active_load_session_runtime()
         _rr_raw = runtime.get("recommendation") if isinstance(runtime, dict) else None
-        runtime_recommendation: dict[str, Any] = (
-            _rr_raw if isinstance(_rr_raw, dict) else {}
-        )
+        runtime_recommendation: dict[str, Any] = _rr_raw if isinstance(_rr_raw, dict) else {}
         _rb_raw = runtime_recommendation.get("baseline")
         runtime_baseline: dict[str, Any] = _rb_raw if isinstance(_rb_raw, dict) else {}
         if runtime_baseline.get("available"):
             runtime_signature = tuple(runtime_baseline.get("signature") or ())
             if not runtime_signature or runtime_signature == signature:
-                self._recommendation_baseline: dict[str, Any] | None = dict(
-                    runtime_baseline
-                )
+                self._recommendation_baseline: dict[str, Any] | None = dict(runtime_baseline)
                 return self._recommendation_baseline
 
         candidate = self._build_recommendation_baseline_candidate()
@@ -16928,32 +15087,20 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         baseline = self._ensure_recommendation_baseline()
         state = build_recommendation_control_state(
-            current_charge_gr=(
-                float(self.current_charge or 0)
-                if self.current_charge is not None
-                else None
-            ),
+            current_charge_gr=(float(self.current_charge or 0) if self.current_charge is not None else None),
             coal_mm=float(self.coal_mm or 0) if self.coal_mm is not None else None,
             cbto_mm=float(self.cbto_mm or 0) if self.cbto_mm is not None else None,
             baseline=baseline,
         )
 
-        self.recommendation_state_label.setStyleSheet(
-            _advisory_style(str(state.get("level") or "unknown"))
-        )
+        self.recommendation_state_label.setStyleSheet(_advisory_style(str(state.get("level") or "unknown")))
         if hasattr(self, "use_recommended_btn"):
             self.use_recommended_btn.setEnabled(bool(state.get("can_apply")))
             if state.get("can_apply"):
-                charge_source_label = str(
-                    state.get("charge_source_label") or "frozen baseline"
-                ).strip()
-                seating_source_label = str(
-                    state.get("seating_source_label") or "frozen baseline"
-                ).strip()
+                charge_source_label = str(state.get("charge_source_label") or "frozen baseline").strip()
+                seating_source_label = str(state.get("seating_source_label") or "frozen baseline").strip()
                 if charge_source_label == seating_source_label:
-                    self.use_recommended_btn.setText(
-                        "Use " + charge_source_label.title()
-                    )
+                    self.use_recommended_btn.setText("Use " + charge_source_label.title())
                 else:
                     self.use_recommended_btn.setText("Use Frozen Baseline")
                 self.use_recommended_btn.setToolTip(
@@ -16962,32 +15109,20 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 )
             else:
                 self.use_recommended_btn.setText("Use Frozen Baseline")
-                self.use_recommended_btn.setToolTip(
-                    "Builder is already aligned with the frozen baseline."
-                )
+                self.use_recommended_btn.setToolTip("Builder is already aligned with the frozen baseline.")
 
         if not state.get("available"):
-            self.recommendation_state_label.setText(
-                "<b>Recommendation State</b>: " + str(state.get("message") or "")
-            )
+            self.recommendation_state_label.setText("<b>Recommendation State</b>: " + str(state.get("message") or ""))
             return
 
         chips = [
             _status_pill(
                 "Charge " + str(state.get("charge_state") or "unknown").title(),
-                (
-                    "ok"
-                    if state.get("charge_state") in {"recommended", "learned"}
-                    else "info"
-                ),
+                ("ok" if state.get("charge_state") in {"recommended", "learned"} else "info"),
             ),
             _status_pill(
                 "Seating " + str(state.get("seating_state") or "unknown").title(),
-                (
-                    "ok"
-                    if state.get("seating_state") in {"recommended", "learned"}
-                    else "info"
-                ),
+                ("ok" if state.get("seating_state") in {"recommended", "learned"} else "info"),
             ),
             _status_pill(
                 "Trust " + str(state.get("trust_label") or "unknown").title(),
@@ -17005,28 +15140,16 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         html = "<b>Recommendation State</b>: " + str(state.get("message") or "")
         html += "<br>" + "".join(chips)
         if target_bits:
-            html += (
-                "<br><span style='font-weight:400'>Frozen baseline: "
-                + " | ".join(target_bits)
-                + "</span>"
-            )
+            html += "<br><span style='font-weight:400'>Frozen baseline: " + " | ".join(target_bits) + "</span>"
         source_line_bits: list[str] = []
         if state.get("charge_source_label"):
             source_line_bits.append("Charge " + str(state.get("charge_source_label")))
         if state.get("seating_source_label"):
             source_line_bits.append("Seating " + str(state.get("seating_source_label")))
         if source_line_bits:
-            html += (
-                "<br><span style='font-weight:400'>"
-                + " | ".join(source_line_bits)
-                + "</span>"
-            )
+            html += "<br><span style='font-weight:400'>" + " | ".join(source_line_bits) + "</span>"
         basis_summary = summarize_recommendation_evidence_basis(
-            (
-                self._latest_load_analysis
-                if isinstance(getattr(self, "_latest_load_analysis", None), dict)
-                else {}
-            ),
+            (self._latest_load_analysis if isinstance(getattr(self, "_latest_load_analysis", None), dict) else {}),
             baseline,
         )
         compact_basis = str(basis_summary.get("compact") or "").strip()
@@ -17059,9 +15182,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 if hasattr(self, "charge_slider"):
                     self.charge_slider.setValue(int(round(charge_target * 10.0)))
                 if hasattr(self, "charge_label"):
-                    self.charge_label.setText(
-                        format_weight_grains(charge_target, "powder")
-                    )
+                    self.charge_label.setText(format_weight_grains(charge_target, "powder"))
             if coal_target is not None:
                 self.coal_mm = coal_target
                 if hasattr(self, "coal_spin"):
@@ -17128,9 +15249,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         }
 
     def _get_current_subsonic_context(self) -> dict[str, Any]:
-        enabled = bool(
-            getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked()
-        )
+        enabled = bool(getattr(self, "subsonic_cb", None) and self.subsonic_cb.isChecked())
         target_velocity_fps = 1050.0
         if getattr(self, "subsonic_target", None) is not None:
             try:
@@ -17154,11 +15273,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         }
 
     def _build_seating_profile_compare_text(self) -> str:
-        if not (
-            self.db
-            and isinstance(self.rifle_data, dict)
-            and isinstance(self.bullet_data, dict)
-        ):
+        if not (self.db and isinstance(self.rifle_data, dict) and isinstance(self.bullet_data, dict)):
             return "Select firearm and bullet first."
         rifle_id = self.rifle_data.get("id")
         bullet_id = self.bullet_data.get("id")
@@ -17180,15 +15295,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         current_profile = None
         fallback_profile = None
         for profile in profiles:
-            if (
-                current_lot_id not in (None, "")
-                and profile.get("component_lot_id") == current_lot_id
-            ):
+            if current_lot_id not in (None, "") and profile.get("component_lot_id") == current_lot_id:
                 current_profile = profile
-            elif (
-                profile.get("component_lot_id") in (None, "")
-                and fallback_profile is None
-            ):
+            elif profile.get("component_lot_id") in (None, "") and fallback_profile is None:
                 fallback_profile = profile
         reference_profile = None
         if current_profile:
@@ -17208,9 +15317,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not current_profile:
             return "No active seating profile was found to compare."
         if not reference_profile:
-            return (
-                "Only one seating profile exists for this firearm/bullet combination."
-            )
+            return "Only one seating profile exists for this firearm/bullet combination."
 
         current_jump = current_profile.get("preferred_jump_mm")
         ref_jump = reference_profile.get("preferred_jump_mm")
@@ -17230,14 +15337,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         bits = [f"Sammenligner {current_label} mot {ref_label}."]
         if current_jump not in (None, "") and ref_jump not in (None, ""):
             delta_jump = float(current_jump) - float(ref_jump)
-            bits.append(
-                f"Jump {float(current_jump):.2f} mm vs {float(ref_jump):.2f} mm ({delta_jump:+.2f} mm)."
-            )
+            bits.append(f"Jump {float(current_jump):.2f} mm vs {float(ref_jump):.2f} mm ({delta_jump:+.2f} mm).")
         if current_cbto not in (None, "") and ref_cbto not in (None, ""):
             delta_cbto = float(current_cbto) - float(ref_cbto)
-            bits.append(
-                f"CBTO {float(current_cbto):.2f} mm vs {float(ref_cbto):.2f} mm ({delta_cbto:+.2f} mm)."
-            )
+            bits.append(f"CBTO {float(current_cbto):.2f} mm vs {float(ref_cbto):.2f} mm ({delta_cbto:+.2f} mm).")
         if current_profile.get("notes"):
             bits.append(f"Aktiv profil: {current_profile.get('notes')}")
         if reference_profile.get("notes"):
@@ -17318,13 +15421,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if evidence.get("best_group_moa") not in (None, ""):
             detail_bits.append(f"group {float(evidence['best_group_moa']):.2f} MOA")
         if evidence.get("best_es_fps") not in (None, ""):
-            detail_bits.append(
-                f"ES {format_velocity_fps(float(evidence['best_es_fps']))}"
-            )
+            detail_bits.append(f"ES {format_velocity_fps(float(evidence['best_es_fps']))}")
         if evidence.get("best_sd_fps") not in (None, ""):
-            detail_bits.append(
-                f"SD {format_velocity_fps(float(evidence['best_sd_fps']))}"
-            )
+            detail_bits.append(f"SD {format_velocity_fps(float(evidence['best_sd_fps']))}")
         detail_text = ", ".join(detail_bits) if detail_bits else "historical result"
         QMessageBox.information(
             self,
@@ -17370,24 +15469,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         # Apply environmental corrections and calibration (best-effort)
         try:
-            temp_c = (
-                self._current_temperature_c() if hasattr(self, "temp_spin") else None
-            )
-            pressure_kpa = (
-                self._current_pressure_kpa() if hasattr(self, "pressure_spin") else None
-            )
-            humidity_pct = (
-                float(self.humidity_spin.value())
-                if hasattr(self, "humidity_spin")
-                else None
-            )
+            temp_c = self._current_temperature_c() if hasattr(self, "temp_spin") else None
+            pressure_kpa = self._current_pressure_kpa() if hasattr(self, "pressure_spin") else None
+            humidity_pct = float(self.humidity_spin.value()) if hasattr(self, "humidity_spin") else None
 
             ratio = None
-            if (
-                temp_c is not None
-                and pressure_kpa is not None
-                and humidity_pct is not None
-            ):
+            if temp_c is not None and pressure_kpa is not None and humidity_pct is not None:
                 try:
                     ratio = air_density_ratio(temp_c, pressure_kpa, humidity_pct) if air_density_ratio is not None else None  # type: ignore[misc]
                 except Exception:
@@ -17402,30 +15489,20 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     scale = 1.0 + (ratio - 1.0) * 0.5
                     # pressure_curve: list of (time, pressure)
                     if "pressure_curve" in scaled and scaled["pressure_curve"]:
-                        scaled_pc = [
-                            (t, float(p) * scale) for (t, p) in scaled["pressure_curve"]
-                        ]
+                        scaled_pc = [(t, float(p) * scale) for (t, p) in scaled["pressure_curve"]]
                         scaled["pressure_curve"] = scaled_pc
                         # adjust numeric peak/max fields if present
                         if "max_pressure_psi" in scaled:
-                            scaled["max_pressure_psi"] = (
-                                float(scaled["max_pressure_psi"]) * scale
-                            )
+                            scaled["max_pressure_psi"] = float(scaled["max_pressure_psi"]) * scale
                         if "peak_pressure_psi" in scaled:
-                            scaled["peak_pressure_psi"] = (
-                                float(scaled["peak_pressure_psi"]) * scale
-                            )
+                            scaled["peak_pressure_psi"] = float(scaled["peak_pressure_psi"]) * scale
 
                     # velocity_curve: list of (position, vel)
                     if "velocity_curve" in scaled and scaled["velocity_curve"]:
-                        scaled_vc = [
-                            (x, float(v) * scale) for (x, v) in scaled["velocity_curve"]
-                        ]
+                        scaled_vc = [(x, float(v) * scale) for (x, v) in scaled["velocity_curve"]]
                         scaled["velocity_curve"] = scaled_vc
                         if "muzzle_velocity_fps" in scaled:
-                            scaled["muzzle_velocity_fps"] = (
-                                float(scaled["muzzle_velocity_fps"]) * scale
-                            )
+                            scaled["muzzle_velocity_fps"] = float(scaled["muzzle_velocity_fps"]) * scale
                 except Exception:
                     pass
 
@@ -17442,14 +15519,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     # apply to velocity numbers
                     if "velocity_curve" in scaled and scaled["velocity_curve"]:
                         scaled["velocity_curve"] = [
-                            (x, slope * float(v) + intercept)
-                            for (x, v) in scaled["velocity_curve"]
+                            (x, slope * float(v) + intercept) for (x, v) in scaled["velocity_curve"]
                         ]
                     if "muzzle_velocity_fps" in scaled:
-                        scaled["muzzle_velocity_fps"] = (
-                            slope * float(scaled.get("muzzle_velocity_fps", 0))
-                            + intercept
-                        )
+                        scaled["muzzle_velocity_fps"] = slope * float(scaled.get("muzzle_velocity_fps", 0)) + intercept
                     # attach mse for plotting uncertainty bands
                     if mse is not None:
                         scaled["_calibration_mse"] = mse
@@ -17587,9 +15660,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             if remaining and x2 >= remaining[0]:
                 dist_m = remaining.pop(0)
                 vel_ms = v2
-                bullet_kg = (
-                    (bullet_mass_gr / 7000) * 0.453592 if bullet_mass_gr > 0 else 0
-                )
+                bullet_kg = (bullet_mass_gr / 7000) * 0.453592 if bullet_mass_gr > 0 else 0
                 energy_j = 0.5 * bullet_kg * v2 * v2 if bullet_kg > 0 else 0
                 drop_offset = (y2 - zero_drop) * 100
                 check_data[dist_m] = {
@@ -17616,9 +15687,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         )
 
         # zero line
-        tplot.addLine(
-            y=0, pen=pg.mkPen(color="#2d5a3d", width=1, style=Qt.PenStyle.DashLine)
-        )
+        tplot.addLine(y=0, pen=pg.mkPen(color="#2d5a3d", width=1, style=Qt.PenStyle.DashLine))
 
         # color by drop severity
         pen = pg.mkPen(color="#3a9edf", width=2.0)
@@ -17714,9 +15783,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         # ── Main pressure curve (colour reflects safety) ─────────────────────
         if saami_max and peak_psi:
             pct = peak_psi / saami_max
-            curve_color = (
-                "#2ecc71" if pct < 0.80 else "#e67e22" if pct < 0.95 else "#e74c3c"
-            )
+            curve_color = "#2ecc71" if pct < 0.80 else "#e67e22" if pct < 0.95 else "#e74c3c"
         else:
             curve_color = "#e74c3c"
 
@@ -17777,9 +15844,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         vplot.clear()
 
-        muzzle_fps = result.get("muzzle_velocity_fps") or (
-            velocities[-1] if velocities else 0
-        )
+        muzzle_fps = result.get("muzzle_velocity_fps") or (velocities[-1] if velocities else 0)
 
         # ── Purpose-based velocity threshold lines ───────────────────────────
         purpose = self._get_active_purpose()
@@ -17807,9 +15872,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         # ── Curve colour based on whether muzzle velocity meets purpose threshold ─
         _purpose_thresholds = _thresholds.get(purpose)
-        min_thresh: float = (
-            float(_purpose_thresholds[0][0]) if _purpose_thresholds else 2400.0
-        )
+        min_thresh: float = float(_purpose_thresholds[0][0]) if _purpose_thresholds else 2400.0
         muzzle_fps_f = float(muzzle_fps or 0)
         if muzzle_fps_f >= min_thresh:
             curve_color = "#2ecc71"
@@ -17844,16 +15907,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 vel_unc = math.sqrt(mse)
                 upper = [v + vel_unc for v in velocities]
                 lower = [v - vel_unc for v in velocities]
-                up_curve = vplot.plot(
-                    positions, upper, pen=pg.mkPen(color=(39, 174, 96, 80), width=0)
-                )
-                low_curve = vplot.plot(
-                    positions, lower, pen=pg.mkPen(color=(39, 174, 96, 80), width=0)
-                )
+                up_curve = vplot.plot(positions, upper, pen=pg.mkPen(color=(39, 174, 96, 80), width=0))
+                low_curve = vplot.plot(positions, lower, pen=pg.mkPen(color=(39, 174, 96, 80), width=0))
                 try:
-                    vplot.addItem(
-                        pg.FillBetweenItem(up_curve, low_curve, brush=(39, 174, 96, 50))
-                    )
+                    vplot.addItem(pg.FillBetweenItem(up_curve, low_curve, brush=(39, 174, 96, 50)))
                 except Exception:
                     pass
         except Exception:
@@ -17865,28 +15922,16 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 from ..utils.ballistics_utils import speed_of_sound_fps
 
                 _tc_vis2 = self._current_temperature_c()
-                temp_c = (
-                    float(_tc_vis2)
-                    if hasattr(self, "temp_spin") and _tc_vis2 is not None
-                    else 15.0
-                )
+                temp_c = float(_tc_vis2) if hasattr(self, "temp_spin") and _tc_vis2 is not None else 15.0
                 sos = float(speed_of_sound_fps(temp_c))
                 margin = self._transonic_margin_fps()
                 xs = positions if positions else [0, 1]
                 top = [sos + margin for _ in xs]
                 bot = [sos - margin for _ in xs]
-                top_curve = vplot.plot(
-                    xs, top, pen=pg.mkPen(color=(52, 152, 219, 120), width=0)
-                )
-                bot_curve = vplot.plot(
-                    xs, bot, pen=pg.mkPen(color=(52, 152, 219, 120), width=0)
-                )
+                top_curve = vplot.plot(xs, top, pen=pg.mkPen(color=(52, 152, 219, 120), width=0))
+                bot_curve = vplot.plot(xs, bot, pen=pg.mkPen(color=(52, 152, 219, 120), width=0))
                 try:
-                    vplot.addItem(
-                        pg.FillBetweenItem(
-                            top_curve, bot_curve, brush=(52, 152, 219, 40)
-                        )
-                    )
+                    vplot.addItem(pg.FillBetweenItem(top_curve, bot_curve, brush=(52, 152, 219, 40)))
                 except Exception:
                     pass
                 vplot.addLine(
@@ -17906,10 +15951,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not rifle_id:
             return {}
 
-        if (
-            getattr(self, "_rifle_profile_details_id", None) == rifle_id
-            and self._rifle_profile_details is not None
-        ):
+        if getattr(self, "_rifle_profile_details_id", None) == rifle_id and self._rifle_profile_details is not None:
             return self._rifle_profile_details
 
         details = {}
@@ -17950,9 +15992,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         barrels = details.get("barrels", [])
         if isinstance(barrels, list):
             for barrel in barrels:
-                if isinstance(barrel, dict) and str(barrel.get("id")) == str(
-                    active_barrel_id
-                ):
+                if isinstance(barrel, dict) and str(barrel.get("id")) == str(active_barrel_id):
                     return barrel
             for barrel in barrels:
                 if isinstance(barrel, dict):
@@ -17978,14 +16018,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             for configuration in configurations:
                 if not isinstance(configuration, dict):
                     continue
-                configuration_barrel_id = (
-                    str(configuration.get("barrel_id") or "").strip() or None
-                )
-                if (
-                    barrel_id
-                    and configuration_barrel_id
-                    and configuration_barrel_id != barrel_id
-                ):
+                configuration_barrel_id = str(configuration.get("barrel_id") or "").strip() or None
+                if barrel_id and configuration_barrel_id and configuration_barrel_id != barrel_id:
                     continue
                 if barrel_id and not configuration_barrel_id:
                     continue
@@ -17995,9 +16029,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         fallback = self._get_active_barrel_configuration_context()
         fallback_id = str(fallback.get("barrel_configuration_id") or "").strip() or None
-        fallback_name = (
-            str(fallback.get("barrel_configuration_name") or "").strip() or None
-        )
+        fallback_name = str(fallback.get("barrel_configuration_name") or "").strip() or None
         if not fallback_id and not fallback_name:
             return []
         return [
@@ -18019,18 +16051,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         combo.clear()
         configurations = self._get_available_barrel_configurations()
         for configuration in configurations:
-            configuration_id = (
-                str(configuration.get("id") or "").strip() or "current-setup"
-            )
-            configuration_name = str(
-                configuration.get("name") or configuration_id or "Current setup"
-            ).strip()
+            configuration_id = str(configuration.get("id") or "").strip() or "current-setup"
+            configuration_name = str(configuration.get("name") or configuration_id or "Current setup").strip()
             combo.addItem(configuration_name or "Current setup", configuration_id)
 
         active_context = self._get_active_barrel_configuration_context()
-        active_id = (
-            str(active_context.get("barrel_configuration_id") or "").strip() or None
-        )
+        active_id = str(active_context.get("barrel_configuration_id") or "").strip() or None
         if combo.count() <= 0:
             combo.addItem("Current setup", None)
         target_id = active_id or str(combo.itemData(0) or "").strip() or None
@@ -18041,9 +16067,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         combo.setEnabled(combo.count() > 0)
         combo.blockSignals(False)
 
-    def _apply_active_barrel_configuration_selection(
-        self, configuration_id: str | None
-    ) -> bool:
+    def _apply_active_barrel_configuration_selection(self, configuration_id: str | None) -> bool:
         details = dict(self._get_rifle_profile_details())
         barrel_id = self._get_active_barrel_id()
         if not barrel_id:
@@ -18060,14 +16084,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 updated_configurations.append(configuration)
                 continue
             configuration_copy = dict(configuration)
-            configuration_barrel_id = (
-                str(configuration_copy.get("barrel_id") or "").strip() or None
-            )
+            configuration_barrel_id = str(configuration_copy.get("barrel_id") or "").strip() or None
             configuration_key = str(configuration_copy.get("id") or "").strip() or None
             if barrel_id and configuration_barrel_id == barrel_id:
-                configuration_copy["is_active"] = bool(
-                    configuration_id and configuration_key == configuration_id
-                )
+                configuration_copy["is_active"] = bool(configuration_id and configuration_key == configuration_id)
             if configuration_id and configuration_key == configuration_id:
                 selected_configuration = configuration_copy
             updated_configurations.append(configuration_copy)
@@ -18076,12 +16096,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return False
 
         details["barrel_configurations"] = updated_configurations
-        details["active_barrel_configuration_id"] = (
-            str(selected_configuration.get("id") or "").strip() or None
-        )
-        details["active_barrel_configuration_name"] = (
-            str(selected_configuration.get("name") or "").strip() or None
-        )
+        details["active_barrel_configuration_id"] = str(selected_configuration.get("id") or "").strip() or None
+        details["active_barrel_configuration_name"] = str(selected_configuration.get("name") or "").strip() or None
         return self._save_rifle_profile_details(details)
 
     def on_barrel_configuration_changed(self) -> None:
@@ -18128,21 +16144,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         barrel = self._get_active_barrel_details()
         case_measurements = barrel.get("case_measurements") or {}
         raw_samples = case_measurements.get("h2o_measurements", []) or []
-        _cap_vals = [
-            sample.get("h2o_capacity_grains")
-            for sample in raw_samples
-            if isinstance(sample, dict)
-        ]
+        _cap_vals = [sample.get("h2o_capacity_grains") for sample in raw_samples if isinstance(sample, dict)]
         capacities = [float(v) for v in _cap_vals if v is not None]
         if not capacities:
             return {}
 
         spread = max(capacities) - min(capacities)
-        quality = (
-            "low spread"
-            if spread <= 0.30
-            else "moderate spread" if spread <= 0.75 else "high spread"
-        )
+        quality = "low spread" if spread <= 0.30 else "moderate spread" if spread <= 0.75 else "high spread"
         return {
             "count": len(capacities),
             "average": sum(capacities) / len(capacities),
@@ -18266,9 +16274,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
                 powder_name = str(load.get("powder") or "").strip()
                 powder_make = str(load.get("powder_manufacturer") or "").strip()
-                powder_label = " ".join(
-                    part for part in [powder_make, powder_name] if part
-                )
+                powder_label = " ".join(part for part in [powder_make, powder_name] if part)
                 if powder_label:
                     powder_labels.append(powder_label)
                 elif powder_name:
@@ -18341,16 +16347,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             lot_filter = ""
         try:
             if hasattr(self, "calibration_distance_filter"):
-                distance_filter = str(
-                    self.calibration_distance_filter.currentData() or ""
-                )
+                distance_filter = str(self.calibration_distance_filter.currentData() or "")
         except Exception:
             distance_filter = ""
         try:
             if hasattr(self, "calibration_temperature_filter"):
-                temperature_filter = str(
-                    self.calibration_temperature_filter.currentData() or ""
-                )
+                temperature_filter = str(self.calibration_temperature_filter.currentData() or "")
         except Exception:
             temperature_filter = ""
         for test in reversed(calibration_tests):
@@ -18376,17 +16378,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     continue
                 powder_name = str(load.get("powder") or "").strip()
                 powder_make = str(load.get("powder_manufacturer") or "").strip()
-                powder_label = " ".join(
-                    part for part in [powder_make, powder_name] if part
-                ).strip()
+                powder_label = " ".join(part for part in [powder_make, powder_name] if part).strip()
                 if not powder_label:
                     powder_label = powder_name or "-"
                 bullet_name = str(load.get("bullet") or "").strip()
                 bullet_make = str(load.get("bullet_manufacturer") or "").strip()
                 bullet_weight = load.get("bullet_weight_gr")
-                bullet_label = " ".join(
-                    part for part in [bullet_make, bullet_name] if part
-                ).strip()
+                bullet_label = " ".join(part for part in [bullet_make, bullet_name] if part).strip()
                 if not bullet_label:
                     bullet_label = bullet_name or "-"
                 if bullet_weight is not None:
@@ -18460,9 +16458,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         continue
                     powder_name = str(load.get("powder") or "").strip()
                     powder_make = str(load.get("powder_manufacturer") or "").strip()
-                    powder_label = " ".join(
-                        part for part in [powder_make, powder_name] if part
-                    ).strip()
+                    powder_label = " ".join(part for part in [powder_make, powder_name] if part).strip()
                     if powder_label:
                         powders.append(powder_label)
 
@@ -18496,9 +16492,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                     bullet_name = str(load.get("bullet") or "").strip()
                     bullet_make = str(load.get("bullet_manufacturer") or "").strip()
                     bullet_weight = load.get("bullet_weight_gr")
-                    bullet_label = " ".join(
-                        part for part in [bullet_make, bullet_name] if part
-                    ).strip()
+                    bullet_label = " ".join(part for part in [bullet_make, bullet_name] if part).strip()
                     if bullet_weight is not None:
                         try:
                             bullet_label = (
@@ -18709,19 +16703,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return "Calibration trends will appear here when the active barrel has enough data."
 
         points: list[dict] = []
-        powder_labels = {
-            str(row.get("powder") or "-") for row in rows if row.get("powder")
-        }
-        lot_labels = {
-            str(row.get("lot") or "-")
-            for row in rows
-            if row.get("lot") and row.get("lot") != "-"
-        }
+        powder_labels = {str(row.get("powder") or "-") for row in rows if row.get("powder")}
+        lot_labels = {str(row.get("lot") or "-") for row in rows if row.get("lot") and row.get("lot") != "-"}
         lot_filter = ""
         distance_labels = {
-            str(row.get("distance") or "-")
-            for row in rows
-            if row.get("distance") and row.get("distance") != "-"
+            str(row.get("distance") or "-") for row in rows if row.get("distance") and row.get("distance") != "-"
         }
         distance_filter = ""
         temperature_labels = {
@@ -18737,16 +16723,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             lot_filter = ""
         try:
             if hasattr(self, "calibration_distance_filter"):
-                distance_filter = str(
-                    self.calibration_distance_filter.currentData() or ""
-                )
+                distance_filter = str(self.calibration_distance_filter.currentData() or "")
         except Exception:
             distance_filter = ""
         try:
             if hasattr(self, "calibration_temperature_filter"):
-                temperature_filter = str(
-                    self.calibration_temperature_filter.currentData() or ""
-                )
+                temperature_filter = str(self.calibration_temperature_filter.currentData() or "")
         except Exception:
             temperature_filter = ""
         for row in rows:
@@ -18824,9 +16806,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 + ". Filter by lot when you want to read small differences."
             )
         elif lot_labels:
-            lines.append(
-                "Trend data appears to be based on one lot: " + next(iter(lot_labels))
-            )
+            lines.append("Trend data appears to be based on one lot: " + next(iter(lot_labels)))
         if len(powder_labels) > 1:
             labels = ", ".join(sorted(list(powder_labels))[:2])
             if len(powder_labels) > 2:
@@ -18837,10 +16817,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 + ". Compare within the same powder type and lot when possible."
             )
         elif powder_labels:
-            lines.append(
-                "Trend data appears to use the same powder: "
-                + next(iter(powder_labels))
-            )
+            lines.append("Trend data appears to use the same powder: " + next(iter(powder_labels)))
 
         if fps_per_gr is not None:
             lines.append(
@@ -18916,19 +16893,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not summary:
             return ""
         rows = self._get_calibration_rows(limit=None)
-        lot_labels = sorted(
-            {
-                str(row.get("lot") or "-")
-                for row in rows
-                if row.get("lot") and row.get("lot") != "-"
-            }
-        )
+        lot_labels = sorted({str(row.get("lot") or "-") for row in rows if row.get("lot") and row.get("lot") != "-"})
         distance_labels = sorted(
-            {
-                str(row.get("distance") or "-")
-                for row in rows
-                if row.get("distance") and row.get("distance") != "-"
-            }
+            {str(row.get("distance") or "-") for row in rows if row.get("distance") and row.get("distance") != "-"}
         )
         temperature_labels = sorted(
             {
@@ -18947,16 +16914,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             lot_filter = ""
         try:
             if hasattr(self, "calibration_distance_filter"):
-                distance_filter = str(
-                    self.calibration_distance_filter.currentData() or ""
-                )
+                distance_filter = str(self.calibration_distance_filter.currentData() or "")
         except Exception:
             distance_filter = ""
         try:
             if hasattr(self, "calibration_temperature_filter"):
-                temperature_filter = str(
-                    self.calibration_temperature_filter.currentData() or ""
-                )
+                temperature_filter = str(self.calibration_temperature_filter.currentData() or "")
         except Exception:
             temperature_filter = ""
         if temperature_filter:
@@ -19022,9 +16985,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 f"<b>H2O / case capacity:</b> {h2o_stats['count']} measurements, {h2o_stats['quality']}, spread {format_weight_grains(h2o_stats['spread'], 'powder')}"
             )
         else:
-            parts.append(
-                "<b>H2O / case capacity:</b> not recorded from fired cases in this chamber"
-            )
+            parts.append("<b>H2O / case capacity:</b> not recorded from fired cases in this chamber")
 
         chrono_note = self._get_chrono_ai_note()
         if "under 5 skudd" in chrono_note:
@@ -19047,9 +17008,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         barrel = self._get_active_barrel_details()
         calibration_tests = barrel.get("calibration_tests") or []
-        calibration_count = (
-            len(calibration_tests) if isinstance(calibration_tests, list) else 0
-        )
+        calibration_count = len(calibration_tests) if isinstance(calibration_tests, list) else 0
         group_note = self._get_group_ai_note()
         if calibration_count:
             group_line = f"{calibration_count} calibration series on the active barrel"
@@ -19061,22 +17020,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         calibration_summary = self._get_calibration_summary()
         if calibration_summary:
-            calib_line = (
-                f"{calibration_summary['series_count']} series / "
-                f"{calibration_summary['load_count']} loads"
-            )
-            if (
-                calibration_summary.get("charge_min") is not None
-                and calibration_summary.get("charge_max") is not None
-            ):
+            calib_line = f"{calibration_summary['series_count']} series / " f"{calibration_summary['load_count']} loads"
+            if calibration_summary.get("charge_min") is not None and calibration_summary.get("charge_max") is not None:
                 calib_line += (
                     f" | charge {format_weight_grains(calibration_summary['charge_min'], 'powder')}-"
                     f"{format_weight_grains(calibration_summary['charge_max'], 'powder')}"
                 )
             if calibration_summary.get("mixed_powders"):
-                powder_preview = ", ".join(
-                    calibration_summary.get("unique_powders", [])[:2]
-                )
+                powder_preview = ", ".join(calibration_summary.get("unique_powders", [])[:2])
                 if calibration_summary.get("powder_count", 0) > 2:
                     powder_preview += ", ..."
                 calib_line += f" | multiple powders: {powder_preview}"
@@ -19102,17 +17053,15 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 if len(distance_labels) == 1:
                     calib_line += f" | distance: {distance_labels[0]}"
                 else:
-                    calib_line += (
-                        f" | distances: {distance_labels[0]}, {distance_labels[1]}"
-                        + (", ..." if len(distance_labels) > 2 else "")
+                    calib_line += f" | distances: {distance_labels[0]}, {distance_labels[1]}" + (
+                        ", ..." if len(distance_labels) > 2 else ""
                     )
             if temperature_labels:
                 if len(temperature_labels) == 1:
                     calib_line += f" | temp: {temperature_labels[0]}"
                 else:
-                    calib_line += (
-                        f" | temperatures: {temperature_labels[0]}, {temperature_labels[1]}"
-                        + (", ..." if len(temperature_labels) > 2 else "")
+                    calib_line += f" | temperatures: {temperature_labels[0]}, {temperature_labels[1]}" + (
+                        ", ..." if len(temperature_labels) > 2 else ""
                     )
             parts.append(f"<b>Calibration:</b> {calib_line}")
 
@@ -19122,9 +17071,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 latest_result=latest_result,
                 powder_name=str((self.powder_data or {}).get("name") or ""),
             )
-            parts.append(
-                f"<b>Internal Ballistics:</b> {internal_ballistics['message']}"
-            )
+            parts.append(f"<b>Internal Ballistics:</b> {internal_ballistics['message']}")
 
         return "<br>".join(parts)
 
@@ -19181,9 +17128,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                         "density_gcc": rows[0].get("density_gcc"),
                         "grain_shape": rows[0].get("grain_shape"),
                         "temp_stable": rows[0].get("temp_stable"),
-                        "temp_coefficient_fps_per_f": rows[0].get(
-                            "temp_coefficient_fps_per_f"
-                        ),
+                        "temp_coefficient_fps_per_f": rows[0].get("temp_coefficient_fps_per_f"),
                         "quickload_available": rows[0].get("quickload_available"),
                         "quickload_ba_value": rows[0].get("quickload_ba_value"),
                         "qex_kj_per_kg": rows[0].get("qex_kj_per_kg"),
@@ -19240,28 +17185,20 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             powder["gordon_reference_variant_count"] = len(variant_signatures)
         except Exception:
             powder["reference_snapshot_count"] = (
-                powder.get("reference_snapshot_count")
-                or powder.get("gordon_reference_snapshot_count")
-                or 0
+                powder.get("reference_snapshot_count") or powder.get("gordon_reference_snapshot_count") or 0
             )
             powder["reference_variant_count"] = (
-                powder.get("reference_variant_count")
-                or powder.get("gordon_reference_variant_count")
-                or 0
+                powder.get("reference_variant_count") or powder.get("gordon_reference_variant_count") or 0
             )
             powder["gordon_reference_snapshot_count"] = (
-                powder.get("gordon_reference_snapshot_count")
-                or powder["reference_snapshot_count"]
+                powder.get("gordon_reference_snapshot_count") or powder["reference_snapshot_count"]
             )
             powder["gordon_reference_variant_count"] = (
-                powder.get("gordon_reference_variant_count")
-                or powder["reference_variant_count"]
+                powder.get("gordon_reference_variant_count") or powder["reference_variant_count"]
             )
         return powder
 
-    def _get_component_lot_number(
-        self, component_type: str, component_id
-    ) -> str | None:
+    def _get_component_lot_number(self, component_type: str, component_id) -> str | None:
         """Return latest lot number for a component when available."""
         if not component_id:
             return None
@@ -19292,9 +17229,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             lot_id = None
         return lot_id or None
 
-    def _format_component_lot_choice_label(
-        self, component_type: str, row: dict | None
-    ) -> str:
+    def _format_component_lot_choice_label(self, component_type: str, row: dict | None) -> str:
         """Build an informative dropdown label for a component lot."""
         if not isinstance(row, dict):
             return "Unknown lot"
@@ -19330,18 +17265,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             comparison = {}
             try:
                 if lot_id:
-                    profile = (
-                        self.db.refresh_powder_lot_learning_profile(int(lot_id)) or {}
-                    )
+                    profile = self.db.refresh_powder_lot_learning_profile(int(lot_id)) or {}
             except Exception:
                 profile = {}
             try:
                 component_id = row.get("component_id")
                 if lot_id and component_id:
-                    comparison = (
-                        self.db.compare_powder_lots(int(component_id), int(lot_id))
-                        or {}
-                    )
+                    comparison = self.db.compare_powder_lots(int(component_id), int(lot_id)) or {}
             except Exception:
                 comparison = {}
             if profile.get("confidence_label"):
@@ -19356,18 +17286,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             comparison = {}
             try:
                 if lot_id:
-                    profile = (
-                        self.db.refresh_primer_lot_learning_profile(int(lot_id)) or {}
-                    )
+                    profile = self.db.refresh_primer_lot_learning_profile(int(lot_id)) or {}
             except Exception:
                 profile = {}
             try:
                 component_id = row.get("component_id")
                 if lot_id and component_id:
-                    comparison = (
-                        self.db.compare_primer_lots(int(component_id), int(lot_id))
-                        or {}
-                    )
+                    comparison = self.db.compare_primer_lots(int(component_id), int(lot_id)) or {}
             except Exception:
                 comparison = {}
             if profile.get("typical_es_fps") is not None:
@@ -19412,9 +17337,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             except Exception:
                 rows = []
             for row in rows or []:
-                label = self._format_component_lot_choice_label(
-                    component_type, dict(row)
-                )
+                label = self._format_component_lot_choice_label(component_type, dict(row))
                 combo.addItem(label, row.get("id"))
                 if selected_before and int(row.get("id") or 0) == int(selected_before):
                     selected_index = combo.count() - 1
@@ -19443,9 +17366,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             if rows:
                 selected_lot_fn = getattr(self, "_selected_component_lot_id", None)
                 selected_id = preferred_lot_id or (
-                    selected_lot_fn(component_type)
-                    if callable(selected_lot_fn)
-                    else None
+                    selected_lot_fn(component_type) if callable(selected_lot_fn) else None
                 )
                 if selected_id:
                     for row in rows:
@@ -19464,9 +17385,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not bullet_id:
             return dict(bullet)
         selected_lot_fn = getattr(self, "_selected_component_lot_id", None)
-        selected_lot_id = (
-            selected_lot_fn("bullet") if callable(selected_lot_fn) else None
-        )
+        selected_lot_id = selected_lot_fn("bullet") if callable(selected_lot_fn) else None
         lot_row = self._get_component_lot_record(
             "bullet",
             bullet_id,
@@ -19485,9 +17404,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return merged
 
         merged["measured_lot_stats"] = dict(stats)
-        merged["nominal_weight_grains"] = merged.get(
-            "weight_grains", merged.get("weight")
-        )
+        merged["nominal_weight_grains"] = merged.get("weight_grains", merged.get("weight"))
         merged["nominal_length_mm"] = merged.get("length_mm")
         merged["nominal_diameter_mm"] = merged.get("diameter_mm")
         if stats.get("weight_avg_grains") is not None:
@@ -19507,9 +17424,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not powder_id:
             return dict(powder)
         selected_lot_fn = getattr(self, "_selected_component_lot_id", None)
-        selected_lot_id = (
-            selected_lot_fn("powder") if callable(selected_lot_fn) else None
-        )
+        selected_lot_id = selected_lot_fn("powder") if callable(selected_lot_fn) else None
         lot_row = self._get_component_lot_record(
             "powder",
             powder_id,
@@ -19522,15 +17437,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         merged["selected_lot_number"] = lot_row.get("lot_number")
         merged["selected_lot_quantity_remaining"] = lot_row.get("quantity_remaining")
         try:
-            merged["lot_learning_profile"] = (
-                self.db.refresh_powder_lot_learning_profile(int(lot_row["id"]))
-            )
+            merged["lot_learning_profile"] = self.db.refresh_powder_lot_learning_profile(int(lot_row["id"]))
         except Exception:
             merged["lot_learning_profile"] = {}
         try:
-            merged["lot_comparison"] = self.db.compare_powder_lots(
-                int(powder_id), int(lot_row["id"])
-            )
+            merged["lot_comparison"] = self.db.compare_powder_lots(int(powder_id), int(lot_row["id"]))
         except Exception:
             merged["lot_comparison"] = {}
         return merged
@@ -19543,9 +17454,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         if not primer_id:
             return dict(primer)
         selected_lot_fn = getattr(self, "_selected_component_lot_id", None)
-        selected_lot_id = (
-            selected_lot_fn("primers") if callable(selected_lot_fn) else None
-        )
+        selected_lot_id = selected_lot_fn("primers") if callable(selected_lot_fn) else None
         lot_row = self._get_component_lot_record(
             "primers",
             primer_id,
@@ -19558,15 +17467,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         merged["selected_lot_number"] = lot_row.get("lot_number")
         merged["selected_lot_quantity_remaining"] = lot_row.get("quantity_remaining")
         try:
-            merged["lot_learning_profile"] = (
-                self.db.refresh_primer_lot_learning_profile(int(lot_row["id"]))
-            )
+            merged["lot_learning_profile"] = self.db.refresh_primer_lot_learning_profile(int(lot_row["id"]))
         except Exception:
             merged["lot_learning_profile"] = {}
         try:
-            merged["lot_comparison"] = self.db.compare_primer_lots(
-                int(primer_id), int(lot_row["id"])
-            )
+            merged["lot_comparison"] = self.db.compare_primer_lots(int(primer_id), int(lot_row["id"]))
         except Exception:
             merged["lot_comparison"] = {}
         return merged
@@ -19591,19 +17496,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             )
         except Exception:
             chrono_has_selection = False
-        self.evidence_chrono_btn.setText(
-            "View Selected Chrono" if chrono_has_selection else "Select/Import Chrono"
-        )
+        self.evidence_chrono_btn.setText("View Selected Chrono" if chrono_has_selection else "Select/Import Chrono")
 
         barrel = self._get_active_barrel_details()
         calibration_tests = barrel.get("calibration_tests") or []
-        has_calibration = isinstance(calibration_tests, list) and bool(
-            calibration_tests
-        )
+        has_calibration = isinstance(calibration_tests, list) and bool(calibration_tests)
         self.evidence_group_btn.setText(
-            "Add New Calibration Series"
-            if has_calibration
-            else "Register Calibration Series"
+            "Add New Calibration Series" if has_calibration else "Register Calibration Series"
         )
 
     def _refresh_component_context_label(self) -> None:
@@ -19612,15 +17511,9 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
         self.component_context_label.setText(
             build_component_context_summary(
-                bullet_data=(
-                    self.bullet_data if isinstance(self.bullet_data, dict) else None
-                ),
-                powder_data=(
-                    self.powder_data if isinstance(self.powder_data, dict) else None
-                ),
-                primer_data=(
-                    self.primer_data if isinstance(self.primer_data, dict) else None
-                ),
+                bullet_data=(self.bullet_data if isinstance(self.bullet_data, dict) else None),
+                powder_data=(self.powder_data if isinstance(self.powder_data, dict) else None),
+                primer_data=(self.primer_data if isinstance(self.primer_data, dict) else None),
             )
         )
 
@@ -19709,15 +17602,11 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         return collect_safety_advisories(
             latest_result,
             powder_context=powder_context,
-            primer_context=(
-                self.primer_data if isinstance(self.primer_data, dict) else None
-            ),
+            primer_context=(self.primer_data if isinstance(self.primer_data, dict) else None),
             internal_ballistics=internal_ballistics,
         )
 
-    def _confirm_high_risk_override(
-        self, action_label: str
-    ) -> tuple[bool, list[dict[str, str]]]:
+    def _confirm_high_risk_override(self, action_label: str) -> tuple[bool, list[dict[str, str]]]:
         """Ask for explicit confirmation before continuing under critical risk."""
         advisories = self._collect_current_safety_advisories()
         critical = [item for item in advisories if item.get("level") == "critical"]
@@ -19785,10 +17674,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.temperature_drift_placeholder.setText(
                 "Add comparable series with the same bullet, powder, lot, and roughly the same charge across at least two temperatures to view the temperature-drift graph."
             )
-            if (
-                hasattr(self, "temperature_drift_plot")
-                and self.temperature_drift_plot is not None
-            ):
+            if hasattr(self, "temperature_drift_plot") and self.temperature_drift_plot is not None:
                 self.temperature_drift_plot.hide()
             self.temperature_drift_placeholder.show()
             return
@@ -19805,27 +17691,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.temperature_drift_placeholder.show()
             return
 
-        if (
-            not hasattr(self, "temperature_drift_plot")
-            or self.temperature_drift_plot is None
-        ):
+        if not hasattr(self, "temperature_drift_plot") or self.temperature_drift_plot is None:
             _pw1 = self.temperature_drift_placeholder.parentWidget()
             self.temperature_drift_plot = pg.PlotWidget(_pw1)
             self.temperature_drift_plot.setBackground(ReloadingTheme.PANEL)
             self.temperature_drift_plot.setMinimumHeight(160)
-            self.temperature_drift_plot.setLabel(
-                "bottom", "Temperatur", units="C", color=ReloadingTheme.TEXT_PRIMARY
-            )
-            self.temperature_drift_plot.setLabel(
-                "left", "Velocity", units="fps", color=ReloadingTheme.TEXT_PRIMARY
-            )
+            self.temperature_drift_plot.setLabel("bottom", "Temperatur", units="C", color=ReloadingTheme.TEXT_PRIMARY)
+            self.temperature_drift_plot.setLabel("left", "Velocity", units="fps", color=ReloadingTheme.TEXT_PRIMARY)
             parent_layout = _pw1.layout() if _pw1 is not None else None
             if parent_layout is not None:
                 parent_layout.addWidget(self.temperature_drift_plot)
             try:
-                self.temperature_drift_plot.scene().sigMouseMoved.connect(
-                    self._on_temperature_drift_plot_hover
-                )
+                self.temperature_drift_plot.scene().sigMouseMoved.connect(self._on_temperature_drift_plot_hover)
             except Exception:
                 pass
 
@@ -19880,9 +17757,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         best_distance = None
         for point in points:
             try:
-                scene_point = plot_item.vb.mapViewToScene(
-                    QPointF(float(point["charge"]), float(point["value"]))
-                )
+                scene_point = plot_item.vb.mapViewToScene(QPointF(float(point["charge"]), float(point["value"])))
             except Exception:
                 continue
             dx = scene_point.x() - pos.x()
@@ -19915,10 +17790,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
     def _on_temperature_drift_plot_hover(self, pos) -> None:
         """Show tooltip when hovering near a temperature drift point."""
-        if (
-            not hasattr(self, "temperature_drift_plot")
-            or self.temperature_drift_plot is None
-        ):
+        if not hasattr(self, "temperature_drift_plot") or self.temperature_drift_plot is None:
             return
         points = getattr(self, "_temperature_drift_hover_points", None) or []
         drift = getattr(self, "_temperature_drift_context", None) or {}
@@ -19940,9 +17812,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         best_distance = None
         for point in points:
             try:
-                scene_point = plot_item.vb.mapViewToScene(
-                    QPointF(float(point["temp"]), float(point["velocity"]))
-                )
+                scene_point = plot_item.vb.mapViewToScene(QPointF(float(point["temp"]), float(point["velocity"])))
             except Exception:
                 continue
             dx = scene_point.x() - pos.x()
@@ -19999,16 +17869,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         rows = self._get_calibration_rows()
         self.calibration_table.setRowCount(len(rows))
         for row_index, row in enumerate(rows):
-            charge = (
-                format_weight_grains(float(row["charge"]), "powder")
-                if row.get("charge") is not None
-                else "-"
-            )
-            velocity = (
-                format_velocity_fps(float(row["velocity"]))
-                if row.get("velocity") is not None
-                else "-"
-            )
+            charge = format_weight_grains(float(row["charge"]), "powder") if row.get("charge") is not None else "-"
+            velocity = format_velocity_fps(float(row["velocity"])) if row.get("velocity") is not None else "-"
             es_sd_parts = []
             if row.get("es") is not None:
                 es_sd_parts.append(f"ES {format_velocity_fps(float(row['es']))}")
@@ -20025,17 +17887,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 row.get("series") or "-",
             ]
             for col_index, value in enumerate(values):
-                self.calibration_table.setItem(
-                    row_index, col_index, QTableWidgetItem(str(value))
-                )
+                self.calibration_table.setItem(row_index, col_index, QTableWidgetItem(str(value)))
             _cell = self.calibration_table.item(row_index, 0)
             if _cell is not None:
                 _cell.setData(Qt.ItemDataRole.UserRole, row.get("test_id"))
         if not rows:
             self.calibration_table.setRowCount(1)
-            self.calibration_table.setItem(
-                0, 0, QTableWidgetItem("No calibration series yet")
-            )
+            self.calibration_table.setItem(0, 0, QTableWidgetItem("No calibration series yet"))
             for col_index in range(1, self.calibration_table.columnCount()):
                 self.calibration_table.setItem(0, col_index, QTableWidgetItem(""))
         try:
@@ -20044,9 +17902,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             pass
         try:
             if hasattr(self, "calibration_trend_label"):
-                self.calibration_trend_label.setText(
-                    self._build_calibration_trend_summary()
-                )
+                self.calibration_trend_label.setText(self._build_calibration_trend_summary())
         except Exception:
             pass
         try:
@@ -20084,32 +17940,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self._calibration_hover_points = []
             self._calibration_hover_key = None
             QToolTip.hideText()
-            powders = sorted(
-                {
-                    point["powder"]
-                    for point in points
-                    if point["powder"] and point["powder"] != "-"
-                }
-            )
-            lots = sorted(
-                {
-                    point["lot"]
-                    for point in points
-                    if point.get("lot") and point["lot"] != "-"
-                }
-            )
+            powders = sorted({point["powder"] for point in points if point["powder"] and point["powder"] != "-"})
+            lots = sorted({point["lot"] for point in points if point.get("lot") and point["lot"] != "-"})
             powder_note = ""
             if powders:
-                powder_note = (
-                    " Powder: "
-                    + ", ".join(powders[:2])
-                    + ("..." if len(powders) > 2 else "")
-                )
+                powder_note = " Powder: " + ", ".join(powders[:2]) + ("..." if len(powders) > 2 else "")
             lot_note = ""
             if lots:
-                lot_note = (
-                    " Lot: " + ", ".join(lots[:2]) + ("..." if len(lots) > 2 else "")
-                )
+                lot_note = " Lot: " + ", ".join(lots[:2]) + ("..." if len(lots) > 2 else "")
             self.calibration_plot_placeholder.setText(
                 f"{len(points)} points ready for the {metric.lower()} graph.{powder_note}{lot_note}"
             )
@@ -20121,16 +17959,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.calibration_plot = pg.PlotWidget(_pw2)
             self.calibration_plot.setBackground(ReloadingTheme.PANEL)
             self.calibration_plot.setMinimumHeight(180)
-            self.calibration_plot.setLabel(
-                "bottom", "Charge", units="gr", color=ReloadingTheme.TEXT_PRIMARY
-            )
+            self.calibration_plot.setLabel("bottom", "Charge", units="gr", color=ReloadingTheme.TEXT_PRIMARY)
             parent_layout = _pw2.layout() if _pw2 is not None else None
             if parent_layout is not None:
                 parent_layout.addWidget(self.calibration_plot)
             try:
-                self.calibration_plot.scene().sigMouseMoved.connect(
-                    self._on_calibration_plot_hover
-                )
+                self.calibration_plot.scene().sigMouseMoved.connect(self._on_calibration_plot_hover)
             except Exception:
                 pass
 
@@ -20147,23 +17981,8 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             self.calibration_plot_legend = None
         xs = [point["charge"] for point in points]
         ys = [point["value"] for point in points]
-        mixed_powders = (
-            len(
-                {
-                    point["powder"]
-                    for point in points
-                    if point["powder"] and point["powder"] != "-"
-                }
-            )
-            > 1
-        )
-        lot_labels = sorted(
-            {
-                point["lot"]
-                for point in points
-                if point.get("lot") and point["lot"] != "-"
-            }
-        )
+        mixed_powders = len({point["powder"] for point in points if point["powder"] and point["powder"] != "-"}) > 1
+        lot_labels = sorted({point["lot"] for point in points if point.get("lot") and point["lot"] != "-"})
         mixed_lots = len(lot_labels) > 1
         left_unit = ""
         if metric == "Velocity":
@@ -20174,9 +17993,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             left_unit = "fps"
         elif metric == "Gruppe":
             left_unit = "mm"
-        self.calibration_plot.setLabel(
-            "left", metric, units=left_unit, color=ReloadingTheme.TEXT_PRIMARY
-        )
+        self.calibration_plot.setLabel("left", metric, units=left_unit, color=ReloadingTheme.TEXT_PRIMARY)
         self.calibration_plot.setTitle(
             f"Calibration: Charge vs {metric}",
             color=ReloadingTheme.TEXT_PRIMARY,
@@ -20196,9 +18013,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 label = point.get("lot") or "-"
                 grouped_points.setdefault(label, []).append(point)
             for index, lot_label in enumerate(sorted(grouped_points.keys())):
-                group = sorted(
-                    grouped_points[lot_label], key=lambda item: item["charge"]
-                )
+                group = sorted(grouped_points[lot_label], key=lambda item: item["charge"])
                 color_pair = palette[index % len(palette)]
                 self.calibration_plot.plot(
                     [item["charge"] for item in group],
@@ -20243,9 +18058,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         active_barrel = {}
         if isinstance(barrels, list):
             for index, barrel in enumerate(barrels):
-                if isinstance(barrel, dict) and str(barrel.get("id")) == str(
-                    active_barrel_id
-                ):
+                if isinstance(barrel, dict) and str(barrel.get("id")) == str(active_barrel_id):
                     barrel_index = index
                     active_barrel = dict(barrel)
                     break
@@ -20351,9 +18164,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         active_barrel = {}
         if isinstance(barrels, list):
             for index, barrel in enumerate(barrels):
-                if isinstance(barrel, dict) and str(barrel.get("id")) == str(
-                    active_barrel_id
-                ):
+                if isinstance(barrel, dict) and str(barrel.get("id")) == str(active_barrel_id):
                     barrel_index = index
                     active_barrel = dict(barrel)
                     break
@@ -20387,23 +18198,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             profile=details,
             existing={
                 "distance_m": (
-                    float(self.zero_spin.value())  # type: ignore[attr-defined]
-                    if hasattr(self, "zero_spin")
-                    else None
+                    float(self.zero_spin.value()) if hasattr(self, "zero_spin") else None  # type: ignore[attr-defined]
                 ),
-                "temperature_c": (
-                    self._current_temperature_c()
-                    if hasattr(self, "temp_spin")
-                    else None
-                ),
+                "temperature_c": (self._current_temperature_c() if hasattr(self, "temp_spin") else None),
                 "bullet": self.bullet_data.get("name") if self.bullet_data else "",
-                "bullet_weight_gr": (
-                    self.bullet_data.get("weight") if self.bullet_data else None
-                ),
+                "bullet_weight_gr": (self.bullet_data.get("weight") if self.bullet_data else None),
                 "powder": self.powder_data.get("name") if self.powder_data else "",
-                "charge_weight_gr": (
-                    float(self.current_charge or 0) if self.current_charge else None
-                ),
+                "charge_weight_gr": (float(self.current_charge or 0) if self.current_charge else None),
                 "cbto_mm": float(self.cbto_mm or 0) if self.cbto_mm else None,
                 "coal_mm": float(self.coal_mm or 0) if self.coal_mm else None,
             },
@@ -20422,20 +18223,12 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return
 
         bullet_name = self.bullet_data.get("name") if self.bullet_data else None
-        bullet_manufacturer = (
-            self.bullet_data.get("manufacturer") if self.bullet_data else None
-        )
-        bullet_lot = self._get_component_lot_number(
-            "bullet", self.bullet_data.get("id") if self.bullet_data else None
-        )
+        bullet_manufacturer = self.bullet_data.get("manufacturer") if self.bullet_data else None
+        bullet_lot = self._get_component_lot_number("bullet", self.bullet_data.get("id") if self.bullet_data else None)
         powder_context = self._get_selected_powder_context()
         powder_name = powder_context.get("name") if powder_context else None
-        powder_lot = self._get_component_lot_number(
-            "powder", powder_context.get("id") if powder_context else None
-        )
-        proceed, safety_advisories = self._confirm_high_risk_override(
-            "Save Calibration Series"
-        )
+        powder_lot = self._get_component_lot_number("powder", powder_context.get("id") if powder_context else None)
+        proceed, safety_advisories = self._confirm_high_risk_override("Save Calibration Series")
         if not proceed:
             return
         enriched_loads = []
@@ -20464,24 +18257,14 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 item["powder_manufacturer"] = powder_context.get("manufacturer")
                 item["powder_type"] = powder_context.get("type")
                 item["powder_burn_rate_label"] = powder_context.get("burn_rate")
-                item["powder_burn_rate_position"] = powder_context.get(
-                    "burn_rate_position"
-                )
-                item["powder_relative_burn_rate"] = powder_context.get(
-                    "relative_burn_rate"
-                )
+                item["powder_burn_rate_position"] = powder_context.get("burn_rate_position")
+                item["powder_relative_burn_rate"] = powder_context.get("relative_burn_rate")
                 item["powder_density_gcc"] = powder_context.get("density_gcc")
                 item["powder_grain_shape"] = powder_context.get("grain_shape")
                 item["powder_temp_stable"] = powder_context.get("temp_stable")
-                item["powder_temp_coefficient_fps_per_f"] = powder_context.get(
-                    "temp_coefficient_fps_per_f"
-                )
-                item["powder_validation_status"] = powder_context.get(
-                    "validation_status"
-                )
-                item["powder_usable_for_simulation"] = powder_context.get(
-                    "usable_for_simulation"
-                )
+                item["powder_temp_coefficient_fps_per_f"] = powder_context.get("temp_coefficient_fps_per_f")
+                item["powder_validation_status"] = powder_context.get("validation_status")
+                item["powder_usable_for_simulation"] = powder_context.get("usable_for_simulation")
                 item["powder_data_source"] = powder_context.get("data_source")
             enriched_loads.append(item)
 
@@ -20496,20 +18279,10 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 "temperature_c": data.get("temperature_c"),
                 "loads": enriched_loads,
                 "notes": data.get("notes", ""),
-                "safety_override": bool(
-                    [
-                        item
-                        for item in safety_advisories
-                        if item.get("level") == "critical"
-                    ]
-                ),
+                "safety_override": bool([item for item in safety_advisories if item.get("level") == "critical"]),
                 "safety_override_date": (
                     datetime.now().isoformat(timespec="seconds")
-                    if [
-                        item
-                        for item in safety_advisories
-                        if item.get("level") == "critical"
-                    ]
+                    if [item for item in safety_advisories if item.get("level") == "critical"]
                     else None
                 ),
                 "safety_override_reasons": safety_advisories,
@@ -20605,23 +18378,13 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         barrel = self._get_active_barrel_details()
         barrel_context = self._get_active_barrel_configuration_context() or {}
-        weapon_type = (
-            str(
-                barrel.get("weapon_type")
-                or self.rifle_data.get("weapon_type")
-                or "rifle"
-            )
-            .strip()
-            .lower()
-        )
+        weapon_type = str(barrel.get("weapon_type") or self.rifle_data.get("weapon_type") or "rifle").strip().lower()
         if weapon_type not in {"pistol", "revolver", "handgun"}:
             weapon_type = "rifle"
         else:
             weapon_type = "pistol"
         barrel_name = barrel.get("name") or "Standard barrel"
-        setup_name = (
-            str(barrel_context.get("barrel_configuration_name") or "").strip() or None
-        )
+        setup_name = str(barrel_context.get("barrel_configuration_name") or "").strip() or None
         setup_label = _format_barrel_configuration_label(setup_name, barrel_name)
         caliber = barrel.get("caliber") or self.rifle_data.get("caliber") or "Unknown"
         length_mm = barrel.get("length_mm")
@@ -20655,32 +18418,21 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
         measurements = []
         if h2o:
-            measurements.append(
-                f"case capacity / H2O {format_weight_grains(float(h2o), 'powder')}"
-            )
+            measurements.append(f"case capacity / H2O {format_weight_grains(float(h2o), 'powder')}")
         if h2o_stats:
             quality_hint = (
                 "consistent series"
                 if h2o_stats["spread"] <= 0.30
-                else (
-                    "can be improved"
-                    if h2o_stats["spread"] <= 0.75
-                    else "check the measurements"
-                )
+                else ("can be improved" if h2o_stats["spread"] <= 0.75 else "check the measurements")
             )
-            measurements.append(
-                f"{h2o_stats['count']} H2O measurements ({h2o_stats['quality']}, {quality_hint})"
-            )
+            measurements.append(f"{h2o_stats['count']} H2O measurements ({h2o_stats['quality']}, {quality_hint})")
         if trim_length_mm:
             measurements.append(f"trim {float(trim_length_mm):.2f} mm")
         if neck_diameter_mm:
             measurements.append(f"neck {float(neck_diameter_mm):.2f} mm")
 
         if measurements:
-            lines.append(
-                "<b>Case measurements from this chamber:</b> "
-                + " | ".join(measurements)
-            )
+            lines.append("<b>Case measurements from this chamber:</b> " + " | ".join(measurements))
         else:
             lines.append(
                 "<b>Case measurements from this chamber:</b> Not recorded yet. Enter case capacity / H2O and case dimensions measured from fired cases in this barrel for better precision."
@@ -20695,10 +18447,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             )
         else:
             if missing:
-                lines.append(
-                    "<b>Harmonics Data Quality:</b> "
-                    f"{confidence} | missing: {', '.join(missing)}"
-                )
+                lines.append("<b>Harmonics Data Quality:</b> " f"{confidence} | missing: {', '.join(missing)}")
             else:
                 lines.append(f"<b>Harmonics Data Quality:</b> {confidence}")
 
@@ -20709,13 +18458,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         """Return normalized current weapon type for the active setup."""
         barrel = self._get_active_barrel_details()
         weapon_type = (
-            str(
-                barrel.get("weapon_type")
-                or (self.rifle_data or {}).get("weapon_type")
-                or "rifle"
-            )
-            .strip()
-            .lower()
+            str(barrel.get("weapon_type") or (self.rifle_data or {}).get("weapon_type") or "rifle").strip().lower()
         )
         return "pistol" if weapon_type in {"pistol", "revolver", "handgun"} else "rifle"
 

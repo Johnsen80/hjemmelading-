@@ -27,6 +27,9 @@ extend-ignore = ["C901", "E402", "E501"]
 # modern_load_builder at runtime — F821 false positives are expected here.
 "src/modules/_mlb_stats_mixin.py" = ["F821"]
 
+[tool.black]
+line-length = 120
+
 [tool.isort]
 profile = "black"
 line_length = 120
