@@ -73,8 +73,7 @@ data/gordon_*.json
 data/gordon_temp_extract/
 data/dfs_*.csv
 data/reloading_export.xlsx
-data/fra\ gordon/
-"data fra gordon"/
+data fra gordon/
 
 # External docs (not tracked)
 external_docs/
@@ -86,3 +85,6 @@ uiux_checklist.md
 
 # GitHub actions pytest temp dirs
 .github/.pytest_tmp*/
+
+# Stray root-level dirs not part of src layout
+modules/
