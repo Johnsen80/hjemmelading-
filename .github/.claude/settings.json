@@ -58,7 +58,15 @@
       "Read(//c/Users/bjjoh/OneDrive/Dokumenter/Programering/Hjemmelading/**)",
       "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe roadmap.md run_with_qt.py)",
       "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe run_with_qt.py)",
-      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe run_with_qt.py)"
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe run_with_qt.py)",
+      "Read(//c/Users/bjjoh/AppData/Local/Hjemmelading/logs/**)",
+      "Bash(git check-ignore *)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe --check --diff main.py)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe --check --diff src/modules/modern_load_builder.py)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe --check-only main.py src/modules/modern_load_builder.py)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe --version)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/black.exe --check src/modules/modern_load_builder.py)",
+      "Bash(HjemmeladingApp/ui/.venv/Scripts/isort.exe --check-only src/modules/modern_load_builder.py)"
     ],
     "additionalDirectories": [
       "C:\\Users\\bjjoh\\OneDrive\\Dokumenter\\Programering\\Hjemmelading"
