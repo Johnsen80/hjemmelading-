@@ -225,6 +225,13 @@ def main():
             logger.critical("Uncaught exception: %s", tb)
         except Exception:
             pass
+        # Write to stderr as additional fallback
+        try:
+            import sys as _sys
+
+            _sys.stderr.write(f"\n[CRASH] {tb}\n")
+        except Exception:
+            pass
         # If a QApplication exists, show a simple dialog to inform the user.
         try:
             from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -232,10 +239,11 @@ def main():
             app_inst = QApplication.instance()
             if app_inst is not None:
                 try:
+                    short_err = f"{exc_type.__name__}: {exc_value}"[:200]
                     QMessageBox.critical(
                         None,
                         "Uventet feil",
-                        "Et uventet problem oppstod. Se debug_err.log for detaljer.",
+                        f"Et uventet problem oppstod:\n{short_err}\n\nSe debug_err.log for full detaljer.",
                     )
                 except Exception:
                     pass

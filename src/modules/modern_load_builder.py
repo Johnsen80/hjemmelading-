@@ -13992,6 +13992,26 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
     def on_powder_lot_changed(self, index):
         """Rebuild powder context when the explicit lot selection changes."""
+        try:
+            self._on_powder_lot_changed_impl(index)
+        except Exception:
+            import traceback as _tb
+
+            _trace = _tb.format_exc()
+            try:
+                self._logger.critical("on_powder_lot_changed crashed: %s", _trace)
+            except Exception:
+                pass
+            try:
+                from HjemmeladingApp.utils.safe_logger import get_debug_log_path as _gdlp
+
+                with open(str(_gdlp()), "a", encoding="utf-8") as _fh:
+                    _fh.write(f"\n--- on_powder_lot_changed traceback ---\n{_trace}\n")
+            except Exception:
+                pass
+            raise
+
+    def _on_powder_lot_changed_impl(self, index):
         powder = self.powder_combo.currentData()
         if not powder:
             return
@@ -15443,15 +15463,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
         _rd_vis = self.rifle_data if isinstance(self.rifle_data, dict) else {}
         _bd_vis = self.bullet_data if isinstance(self.bullet_data, dict) else {}
         _pd_vis = self.powder_data if isinstance(self.powder_data, dict) else {}
-        result = self.engine.calculate_load(
-            int(_rd_vis.get("id") or 0),
-            int(_bd_vis.get("id") or 0),
-            int(_pd_vis.get("id") or 0),
-            self.current_charge or 0,
-            self.coal_mm or 0,
-            self.cbto_mm or 0,
-            barrel_id=self._get_active_barrel_id(),
-        )
+        try:
+            result = self.engine.calculate_load(
+                int(_rd_vis.get("id") or 0),
+                int(_bd_vis.get("id") or 0),
+                int(_pd_vis.get("id") or 0),
+                self.current_charge or 0,
+                self.coal_mm or 0,
+                self.cbto_mm or 0,
+                barrel_id=self._get_active_barrel_id(),
+            )
+        except Exception:
+            return
 
         if "error" in result:
             return
