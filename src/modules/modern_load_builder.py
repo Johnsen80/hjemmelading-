@@ -15474,9 +15474,26 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
                 barrel_id=self._get_active_barrel_id(),
             )
         except Exception:
+            import traceback as _tb
+
+            try:
+                self._logger.critical("update_visualization engine crash: %s", _tb.format_exc())
+            except Exception:
+                pass
+            try:
+                from HjemmeladingApp.utils.safe_logger import get_debug_log_path as _gdlp
+
+                with open(str(_gdlp()), "a", encoding="utf-8") as _fh:
+                    _fh.write(f"\n--- update_visualization engine crash ---\n{_tb.format_exc()}\n")
+            except Exception:
+                pass
             return
 
         if "error" in result:
+            try:
+                self._logger.warning("update_visualization engine error: %s", result.get("error"))
+            except Exception:
+                pass
             return
 
         try:
