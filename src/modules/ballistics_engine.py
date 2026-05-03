@@ -237,9 +237,7 @@ class BallisticsEngine:
 
         return details if isinstance(details, dict) else {}
 
-    def _resolve_barrel_profile(
-        self, rifle_id: int, barrel_id: Optional[str]
-    ) -> Optional[Dict[str, Any]]:
+    def _resolve_barrel_profile(self, rifle_id: int, barrel_id: Optional[str]) -> Optional[Dict[str, Any]]:
         """Return selected or active barrel profile for the rifle, if available."""
         details = self._load_rifle_profile_details(rifle_id)
         barrels = details.get("barrels", [])
@@ -249,9 +247,7 @@ class BallisticsEngine:
         selected_id = barrel_id or details.get("active_barrel_id")
         if selected_id:
             for barrel in barrels:
-                if isinstance(barrel, dict) and str(barrel.get("id")) == str(
-                    selected_id
-                ):
+                if isinstance(barrel, dict) and str(barrel.get("id")) == str(selected_id):
                     return barrel
 
         first_barrel = barrels[0]
@@ -261,9 +257,7 @@ class BallisticsEngine:
         """Fetch bullet row from DB or None"""
         if bullet_id in self._bullet_cache:
             return self._bullet_cache[bullet_id]
-        bullet = self.db.execute_query(
-            "SELECT * FROM bullets WHERE id = ?", (bullet_id,)
-        )
+        bullet = self.db.execute_query("SELECT * FROM bullets WHERE id = ?", (bullet_id,))
         if not bullet or len(bullet) == 0:
             return None
         data = dict(bullet[0])
@@ -274,9 +268,7 @@ class BallisticsEngine:
         """Fetch powder row from DB or None"""
         if powder_id in self._powder_cache:
             return self._powder_cache[powder_id]
-        powder = self.db.execute_query(
-            "SELECT * FROM powder WHERE id = ?", (powder_id,)
-        )
+        powder = self.db.execute_query("SELECT * FROM powder WHERE id = ?", (powder_id,))
         if not powder or len(powder) == 0:
             return None
         data = dict(powder[0])
@@ -292,8 +284,8 @@ class BallisticsEngine:
         user-facing warnings related to neck tension and times-fired.
         """
         # Delegate extraction of raw brass/case data
-        case_capacity_ml, brass_times_fired, brass_manufacturer, neck_tension = (
-            self._extract_brass_case_data(brass_batch_id, case_id)
+        case_capacity_ml, brass_times_fired, brass_manufacturer, neck_tension = self._extract_brass_case_data(
+            brass_batch_id, case_id
         )
 
         # Generate warnings (if any) from neck tension
@@ -365,9 +357,7 @@ class BallisticsEngine:
             if barrel_profile.get("muzzle_device_model"):
                 rifle["muzzle_device_model"] = barrel_profile.get("muzzle_device_model")
             if barrel_profile.get("muzzle_device_weight_g") is not None:
-                rifle["muzzle_device_weight_g"] = barrel_profile.get(
-                    "muzzle_device_weight_g"
-                )
+                rifle["muzzle_device_weight_g"] = barrel_profile.get("muzzle_device_weight_g")
             if barrel_profile.get("twist"):
                 rifle["twist"] = barrel_profile.get("twist")
 
@@ -434,7 +424,7 @@ class BallisticsEngine:
             case_capacity_ml,
             bullet["weight_grains"],
             coal_mm,
-            bullet.get("length_mm", 0),
+            bullet.get("length_mm") or 0,
             cbto_mm,
         )
 
@@ -454,19 +444,12 @@ class BallisticsEngine:
         )
 
         # Extract rifle barrel data for harmonics
-        barrel_length_inches = rifle.get(
-            "barrel_length_inches", rifle.get("barrel_length_mm", 0) / 25.4
-        )
-        barrel_contour = rifle.get("barrel_contour", "Medium")
-        barrel_weight_grams = rifle.get("barrel_weight_grams", 0)
-        muzzle_device_weight_g = rifle.get("muzzle_device_weight_g", 0) or 0
-        barrel_weight_kg = (
-            barrel_weight_grams / 1000.0 if barrel_weight_grams > 0 else 2.0
-        )  # Default 2kg
-        if (
-            isinstance(muzzle_device_weight_g, (int, float))
-            and muzzle_device_weight_g > 0
-        ):
+        barrel_length_inches = rifle.get("barrel_length_inches") or (rifle.get("barrel_length_mm") or 0) / 25.4
+        barrel_contour = rifle.get("barrel_contour") or "Medium"
+        barrel_weight_grams = rifle.get("barrel_weight_grams") or 0
+        muzzle_device_weight_g = rifle.get("muzzle_device_weight_g") or 0
+        barrel_weight_kg = barrel_weight_grams / 1000.0 if barrel_weight_grams > 0 else 2.0  # Default 2kg
+        if isinstance(muzzle_device_weight_g, (int, float)) and muzzle_device_weight_g > 0:
             barrel_weight_kg += muzzle_device_weight_g / 1000.0
 
         # Calculate velocity with barrel data
@@ -487,16 +470,12 @@ class BallisticsEngine:
         if bc_warnings:
             warnings.extend(bc_warnings)
 
-        adjusted_velocity_fps, velocity_temp_adjustment_fps = (
-            self._adjust_velocity_for_temp(
-                velocity_result, pressure_result, temperature_c
-            )
+        adjusted_velocity_fps, velocity_temp_adjustment_fps = self._adjust_velocity_for_temp(
+            velocity_result, pressure_result, temperature_c
         )
 
         # Calculate barrel time
-        barrel_time_ms = self._calculate_barrel_time(
-            barrel_length_inches, adjusted_velocity_fps
-        )
+        barrel_time_ms = self._calculate_barrel_time(barrel_length_inches, adjusted_velocity_fps)
 
         # Calculate barrel harmonics (OCW nodes, muzzle displacement)
         harmonics_result = self._maybe_calculate_harmonics(
@@ -510,14 +489,10 @@ class BallisticsEngine:
             warnings.append(f"Barrel harmonic: {harmonics_result['explanation']}")
 
         # Calculate muzzle energy
-        energy_ft_lbs = self._calculate_energy(
-            bullet["weight_grains"], adjusted_velocity_fps
-        )
+        energy_ft_lbs = self._calculate_energy(bullet["weight_grains"], adjusted_velocity_fps)
 
         # Safety checks and powder volume
-        powder_volume_ml = self._calculate_powder_volume(
-            charge_weight_gr, powder_density
-        )
+        powder_volume_ml = self._calculate_powder_volume(charge_weight_gr, powder_density)
         max_pressure = self.PRESSURE_LIMITS.get(rifle["caliber"], 62000)
         safety_margin, safety_warnings = self._safety_and_compression_checks(
             pressure_result["peak_pressure_psi"],
@@ -623,9 +598,7 @@ class BallisticsEngine:
         if bullet_length_mm > 0 and coal_mm > 0:
             # Rough approximation
             intrusion_ratio = 0.7
-            bullet_volume_ml = (
-                bullet_weight_gr * 0.0648
-            ) / 11.34  # Lead/copper density
+            bullet_volume_ml = (bullet_weight_gr * 0.0648) / 11.34  # Lead/copper density
             intrusion_volume_ml = bullet_volume_ml * intrusion_ratio
         else:
             # Fallback: estimate based on bullet weight
@@ -671,13 +644,9 @@ class BallisticsEngine:
         # Each 1 °C above 20 °C raises pressure ~0.1 % for an average powder.
         # Stable powders (Vihtavuori N-series, Hodgdon Extreme) show less shift.
         temp_delta_c = temp_c - 20.0
-        temp_sensitivity = self.TEMP_SENSITIVITY.get(
-            powder_name, self.TEMP_SENSITIVITY["default"]
-        )
+        temp_sensitivity = self.TEMP_SENSITIVITY.get(powder_name, self.TEMP_SENSITIVITY["default"])
         # Scale: 0.1 %/°C for average powder (sensitivity=0.6), proportionally for others
-        effective_temp_k = self.EFFECTIVE_COMBUSTION_TEMP_K * (
-            1.0 + temp_delta_c * 0.001 * (temp_sensitivity / 0.6)
-        )
+        effective_temp_k = self.EFFECTIVE_COMBUSTION_TEMP_K * (1.0 + temp_delta_c * 0.001 * (temp_sensitivity / 0.6))
 
         # Burn rate effect on peak pressure:
         # Faster powders reach peak earlier and exert slightly more pressure at same charge.
@@ -689,9 +658,7 @@ class BallisticsEngine:
         covolume_m3 = moles * self.COVOLUME_M3_PER_MOL
         # Guard: denominator must stay positive; clamp to 15 % of V at minimum
         denom = max(volume_m3 - covolume_m3, volume_m3 * 0.15)
-        peak_pressure_pa = (
-            moles * self.GAS_CONSTANT * effective_temp_k * burn_rate_factor
-        ) / denom
+        peak_pressure_pa = (moles * self.GAS_CONSTANT * effective_temp_k * burn_rate_factor) / denom
         peak_pressure_psi = max(peak_pressure_pa * 0.000145038, 0.1)
 
         # Pressure–time curve (quadratic rise to peak, exponential decay)
@@ -713,10 +680,7 @@ class BallisticsEngine:
             "peak_pressure_psi": peak_pressure_psi,
             "pressure_curve": pressure_curve,
             "temp_sensitivity": temp_sensitivity,
-            "temp_effect_psi": peak_pressure_psi
-            * temp_delta_c
-            * 0.001
-            * (temp_sensitivity / 0.6),
+            "temp_effect_psi": peak_pressure_psi * temp_delta_c * 0.001 * (temp_sensitivity / 0.6),
         }
 
     def _calculate_velocity(
@@ -770,19 +734,14 @@ class BallisticsEngine:
         # Velocity–position curve: bullet accelerates from 0 to muzzle velocity.
         # sqrt approximation is reasonable for a constant-average-pressure model.
         positions = self._velocity_position_ratio * safe_barrel
-        velocity_curve = [
-            (pos, muzzle_velocity_fps * math.sqrt(pos / safe_barrel))
-            for pos in positions
-        ]
+        velocity_curve = [(pos, muzzle_velocity_fps * math.sqrt(pos / safe_barrel)) for pos in positions]
 
         return {
             "muzzle_velocity_fps": muzzle_velocity_fps,
             "velocity_curve": velocity_curve,
         }
 
-    def _calculate_barrel_time(
-        self, barrel_length_in: float, muzzle_velocity_fps: float
-    ) -> float:
+    def _calculate_barrel_time(self, barrel_length_in: float, muzzle_velocity_fps: float) -> float:
         """
         Calculate time bullet spends in barrel
 
@@ -814,9 +773,7 @@ class BallisticsEngine:
         neck_tension = None
 
         if brass_batch_id:
-            brass_batch = self.db.execute_query(
-                "SELECT * FROM brass_batches WHERE id = ?", (brass_batch_id,)
-            )
+            brass_batch = self.db.execute_query("SELECT * FROM brass_batches WHERE id = ?", (brass_batch_id,))
             if brass_batch and len(brass_batch) > 0:
                 brass = brass_batch[0]
                 case_capacity_gr = brass.get("case_capacity_h2o_gr", 0)
@@ -827,16 +784,12 @@ class BallisticsEngine:
 
                 case_link = brass.get("case_id")
                 if case_link:
-                    case_data = self.db.execute_query(
-                        "SELECT manufacturer FROM cases WHERE id = ?", (case_link,)
-                    )
+                    case_data = self.db.execute_query("SELECT manufacturer FROM cases WHERE id = ?", (case_link,))
                     if case_data and len(case_data) > 0:
                         brass_manufacturer = case_data[0].get("manufacturer", "Unknown")
 
         elif case_id:
-            case_data = self.db.execute_query(
-                "SELECT * FROM cases WHERE id = ?", (case_id,)
-            )
+            case_data = self.db.execute_query("SELECT * FROM cases WHERE id = ?", (case_id,))
             if case_data and len(case_data) > 0:
                 case = case_data[0]
                 case_capacity_gr = case.get("case_capacity_gr_h2o", 0)
@@ -853,9 +806,7 @@ class BallisticsEngine:
             return warnings
 
         if 0.002 <= neck_tension <= 0.003:
-            warnings.append(
-                f'Neck tension {neck_tension:.4f}" is optimal (low ES/SD, consistent burn)'
-            )
+            warnings.append(f'Neck tension {neck_tension:.4f}" is optimal (low ES/SD, consistent burn)')
         elif neck_tension < 0.002:
             warnings.append(
                 f'Neck tension {neck_tension:.4f}" is too loose! It can cause ES 25-40 fps and poor consistency.'
@@ -865,9 +816,7 @@ class BallisticsEngine:
                 f'Neck tension {neck_tension:.4f}" is too tight! It can cause ES 25-40 fps and pressure spikes.'
             )
         else:
-            warnings.append(
-                f'Neck tension {neck_tension:.4f}" (recommended 0.002-0.003")'
-            )
+            warnings.append(f'Neck tension {neck_tension:.4f}" (recommended 0.002-0.003")')
 
         return warnings
 
@@ -887,13 +836,9 @@ class BallisticsEngine:
             if rifle_caliber in self._caliber_cache:
                 case_capacity_ml = self._caliber_cache[rifle_caliber]
             else:
-                caliber = self.db.execute_query(
-                    "SELECT * FROM calibers WHERE name = ?", (rifle_caliber,)
-                )
+                caliber = self.db.execute_query("SELECT * FROM calibers WHERE name = ?", (rifle_caliber,))
                 if caliber and len(caliber) > 0:
-                    case_capacity_ml = caliber[0].get(
-                        "case_capacity_ml", self._estimate_case_capacity(rifle_caliber)
-                    )
+                    case_capacity_ml = caliber[0].get("case_capacity_ml", self._estimate_case_capacity(rifle_caliber))
                 else:
                     case_capacity_ml = self._estimate_case_capacity(rifle_caliber)
                 if case_capacity_ml:
@@ -914,9 +859,7 @@ class BallisticsEngine:
 
         return case_capacity_ml, warnings
 
-    def _process_progressive_bc(
-        self, bullet: Dict, velocity_fps: Optional[float]
-    ) -> tuple[float, float, list]:
+    def _process_progressive_bc(self, bullet: Dict, velocity_fps: Optional[float]) -> tuple[float, float, list]:
         """Adjust BC based on velocity and return (g1, g7, warnings)."""
         warnings: list = []
         bc_g1 = float(bullet.get("bc_g1") or 0.0)
@@ -943,17 +886,13 @@ class BallisticsEngine:
                     range_label = f"{min_v:.0f}-{float(max_v):.0f} fps"
                 else:
                     range_label = f"{min_v:.0f}+ fps"
-                warnings.append(
-                    f"Segmentert BC (G7) aktiv: {progressive_bc_g7:.3f} for {range_label}"
-                )
+                warnings.append(f"Segmentert BC (G7) aktiv: {progressive_bc_g7:.3f} for {range_label}")
 
         if velocity_fps and progressive_bc_g7:
             if velocity_fps < 2800:
                 drop_pct = ((2800 - velocity_fps) // 300) * 0.03  # 3% per 300 fps
                 progressive_bc_g7 = progressive_bc_g7 * (1 - drop_pct)
-                warnings.append(
-                    f"BC (G7) faller til {progressive_bc_g7:.3f} pga lav velocity ({velocity_fps:.0f} fps)"
-                )
+                warnings.append(f"BC (G7) faller til {progressive_bc_g7:.3f} pga lav velocity ({velocity_fps:.0f} fps)")
 
         return progressive_bc_g1, progressive_bc_g7, warnings
 
@@ -964,14 +903,10 @@ class BallisticsEngine:
         temp_delta_c = temperature_c - 20.0
         temp_sensitivity_fps = pressure_result.get("temp_sensitivity", 0.6)
         velocity_temp_adjustment_fps = temp_delta_c * temp_sensitivity_fps
-        adjusted_velocity_fps = (
-            velocity_result["muzzle_velocity_fps"] + velocity_temp_adjustment_fps
-        )
+        adjusted_velocity_fps = velocity_result["muzzle_velocity_fps"] + velocity_temp_adjustment_fps
         return adjusted_velocity_fps, velocity_temp_adjustment_fps
 
-    def _calculate_powder_volume(
-        self, charge_weight_gr: float, powder_density: float
-    ) -> float:
+    def _calculate_powder_volume(self, charge_weight_gr: float, powder_density: float) -> float:
         """Return powder volume in ml given charge weight and powder density"""
         return (charge_weight_gr * 0.0648) / powder_density
 
@@ -986,13 +921,9 @@ class BallisticsEngine:
         warnings: list = []
         safety_margin = ((max_pressure - peak_pressure_psi) / max_pressure) * 100
         if safety_margin < 10:
-            warnings.append(
-                f"HIGH PRESSURE: {safety_margin:.1f}% under max - REDUCE LOAD!"
-            )
+            warnings.append(f"HIGH PRESSURE: {safety_margin:.1f}% under max - REDUCE LOAD!")
         elif safety_margin < 20:
-            warnings.append(
-                f"Near max pressure: {safety_margin:.1f}% margin - approach carefully"
-            )
+            warnings.append(f"Near max pressure: {safety_margin:.1f}% margin - approach carefully")
 
         if powder_volume_ml > available_volume_ml * 0.95:
             warnings.append("Compressed load - powder exceeds 95% case capacity")
@@ -1035,17 +966,11 @@ class BallisticsEngine:
         # Estimate effects
         effects = []
         if seating_change_mm < -0.5:
-            effects.append(
-                f"Seating {abs(seating_change_mm):.2f}mm deeper: +{pressure_change_psi:.0f} PSI expected"
-            )
+            effects.append(f"Seating {abs(seating_change_mm):.2f}mm deeper: +{pressure_change_psi:.0f} PSI expected")
         elif seating_change_mm < -0.25:
-            effects.append(
-                f"Seating {abs(seating_change_mm):.2f}mm deeper: +{pressure_change_psi:.0f} PSI"
-            )
+            effects.append(f"Seating {abs(seating_change_mm):.2f}mm deeper: +{pressure_change_psi:.0f} PSI")
         elif seating_change_mm > 0.5:
-            effects.append(
-                f"Seating {seating_change_mm:.2f}mm longer jump: {pressure_change_psi:.0f} PSI (safer)"
-            )
+            effects.append(f"Seating {seating_change_mm:.2f}mm longer jump: {pressure_change_psi:.0f} PSI (safer)")
 
         return {
             "new_pressure_psi": new_pressure_psi,
@@ -1104,26 +1029,22 @@ class BallisticsEngine:
 
         # Natural frequency (first mode)
         lambda_1 = 3.516  # First mode constant for cantilever beam
-        frequency_hz = (
-            lambda_1**2 / (2 * math.pi * barrel_length_m**2)
-        ) * math.sqrt((youngs_modulus * moment_of_inertia) / mass_per_length)
+        frequency_hz = (lambda_1**2 / (2 * math.pi * barrel_length_m**2)) * math.sqrt(
+            (youngs_modulus * moment_of_inertia) / mass_per_length
+        )
 
         # Vibration period
         period_ms = 1000.0 / frequency_hz
 
         # Barrel time (time bullet spends in barrel)
-        barrel_time_ms = self._calculate_barrel_time(
-            barrel_length_in, muzzle_velocity_fps
-        )
+        barrel_time_ms = self._calculate_barrel_time(barrel_length_in, muzzle_velocity_fps)
 
         # Phase angle when bullet exits (radians)
         phase_angle = (barrel_time_ms / period_ms) * 2 * math.pi
 
         # Muzzle displacement at bullet exit (simplified)
         # Amplitude depends on bullet energy and barrel stiffness
-        bullet_energy_j = (
-            bullet_weight_gr * 0.0648 * (muzzle_velocity_fps * 0.3048) ** 2
-        ) / 2
+        bullet_energy_j = (bullet_weight_gr * 0.0648 * (muzzle_velocity_fps * 0.3048) ** 2) / 2
         amplitude_mm = bullet_energy_j / (1000 * stiffness_factor)  # Rough estimate
         muzzle_displacement_mm = amplitude_mm * math.sin(phase_angle)
 
@@ -1198,9 +1119,7 @@ class BallisticsEngine:
             return None, []
 
         # Try to get jam length from rifle record
-        rifle = self.db.execute_query(
-            "SELECT jam_length_cbto_mm FROM rifles WHERE id = ?", (rifle_id,)
-        )
+        rifle = self.db.execute_query("SELECT jam_length_cbto_mm FROM rifles WHERE id = ?", (rifle_id,))
         jam_cbto = 0
         if rifle and len(rifle) > 0:
             jam_cbto = rifle[0].get("jam_length_cbto_mm", 0)
@@ -1248,9 +1167,7 @@ class BallisticsEngine:
                     f"Very close to lands ({jump_mm:.2f}mm jump) - pressure may spike +{abs(seating_depth_result['pressure_change_psi']) if seating_depth_result else 2000:.0f} PSI"
                 )
             elif jump_mm > 3.0:
-                warnings.append(
-                    f"Large jump ({jump_mm:.2f}mm) - accuracy may suffer with VLD bullets"
-                )
+                warnings.append(f"Large jump ({jump_mm:.2f}mm) - accuracy may suffer with VLD bullets")
 
         return seating_depth_result, warnings
 

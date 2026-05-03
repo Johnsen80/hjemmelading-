@@ -212,9 +212,7 @@ def setup_gui_wrappers():
                         _os2.makedirs(ld, exist_ok=True)
                         fn = _os2.path.join(ld, "late_widget_shows.log")
                         with open(fn, "a", encoding="utf-8") as _f:
-                            _f.write(
-                                f"showing top-level: {type(self).__name__} repr={repr(self)[:200]}\n"
-                            )
+                            _f.write(f"showing top-level: {type(self).__name__} repr={repr(self)[:200]}\n")
                             _tb2.print_stack(file=_f)
                             _f.write("---\n")
                     except Exception:
@@ -364,9 +362,7 @@ def setup_gui_wrappers():
                                 "a",
                                 encoding="utf-8",
                             ) as _f:
-                                _f.write(
-                                    f"created time={_dt.now(_tz.utc).isoformat()} type={type(self)}\n"
-                                )
+                                _f.write(f"created time={_dt.now(_tz.utc).isoformat()} type={type(self)}\n")
                         except Exception:
                             pass
             except Exception:
@@ -387,9 +383,7 @@ try:
     append_message = _safe_logger_module.append_message
 except Exception:
 
-    def append_exception(
-        msg: str = "", exc: BaseException | None = None, app_name: str = ""
-    ) -> None:
+    def append_exception(msg: str = "", exc: BaseException | None = None, app_name: str = "") -> None:
         return None
 
     def append_message(msg: str, app_name: str = "") -> None:
@@ -491,9 +485,7 @@ def _run_modal(dialog: Any) -> None:
 
                 def _make_label(*a, **kw):
                     try:
-                        parent_hint = (
-                            dialog if isinstance(dialog, _orig_QWidget) else None
-                        )
+                        parent_hint = dialog if isinstance(dialog, _orig_QWidget) else None
                         if (
                             "parent" not in kw
                             and not (len(a) > 0 and isinstance(a[0], _orig_QWidget))
@@ -506,9 +498,7 @@ def _run_modal(dialog: Any) -> None:
 
                 def _make_button(*a, **kw):
                     try:
-                        parent_hint = (
-                            dialog if isinstance(dialog, _orig_QWidget) else None
-                        )
+                        parent_hint = dialog if isinstance(dialog, _orig_QWidget) else None
                         if (
                             "parent" not in kw
                             and not (len(a) > 0 and isinstance(a[0], _orig_QWidget))
@@ -521,9 +511,7 @@ def _run_modal(dialog: Any) -> None:
 
                 def _make_menu(*a, **kw):
                     try:
-                        parent_hint = (
-                            dialog if isinstance(dialog, _orig_QWidget) else None
-                        )
+                        parent_hint = dialog if isinstance(dialog, _orig_QWidget) else None
                         if (
                             "parent" not in kw
                             and not (len(a) > 0 and isinstance(a[0], _orig_QWidget))
@@ -620,9 +608,7 @@ class MainWindow(QMainWindow):
             dialog.setLayout(layout)
             _run_modal(dialog)
         except Exception as e:
-            self._show_status_message(
-                tr("mw_import_export_report_open_failed", error=e)
-            )
+            self._show_status_message(tr("mw_import_export_report_open_failed", error=e))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -631,9 +617,7 @@ class MainWindow(QMainWindow):
         try:
             ai_helper_module = importlib.import_module("modules.ai_helper")
             ai_helper_factory = getattr(ai_helper_module, "AIHelper", None)
-            self.ai_helper = (
-                ai_helper_factory() if callable(ai_helper_factory) else None
-            )
+            self.ai_helper = ai_helper_factory() if callable(ai_helper_factory) else None
         except Exception:
             self.ai_helper = None
         # Guard to avoid double-initializing the UI (prevents duplicate menus/windows)
@@ -800,9 +784,7 @@ class MainWindow(QMainWindow):
             self._show_status_message(tr("mw_import_failed_status", error=e))
 
     def _import_grt_xml(self):
-        self._show_status_message(
-            "Legacy reference import has been removed from the product."
-        )
+        self._show_status_message("Legacy reference import has been removed from the product.")
 
     def _export_chronograph_data(self):
         try:
@@ -1059,9 +1041,7 @@ class MainWindow(QMainWindow):
 
                     central_layout = self.central_widget.layout()
                     card = DisabledFeatureCard(missing, parent=self)
-                    if central_layout is not None and hasattr(
-                        central_layout, "insertWidget"
-                    ):
+                    if central_layout is not None and hasattr(central_layout, "insertWidget"):
                         central_layout.insertWidget(0, card)
                 except Exception:
                     # non-fatal: ignore UI banner failures in headless environments
@@ -1248,9 +1228,7 @@ class MainWindow(QMainWindow):
         context_card.setObjectName("inspectorCard")
         context_layout = QVBoxLayout()
         context_card.setLayout(context_layout)
-        self.inspector_context_title = QLabel(
-            tr("mw_inspector_current_area"), context_card
-        )
+        self.inspector_context_title = QLabel(tr("mw_inspector_current_area"), context_card)
         self.inspector_context_title.setObjectName("cardTitle")
         context_layout.addWidget(self.inspector_context_title)
         self.inspector_context_body = QLabel("", context_card)
@@ -1331,9 +1309,7 @@ class MainWindow(QMainWindow):
                 [
                     (
                         "Component inventory",
-                        lambda: self._activate_tab_by_text(
-                            tr("mw_inventory_batches_tab")
-                        ),
+                        lambda: self._activate_tab_by_text(tr("mw_inventory_batches_tab")),
                     ),
                     (
                         "Import components",
@@ -1350,9 +1326,7 @@ class MainWindow(QMainWindow):
                 [
                     (
                         "View batches",
-                        lambda: self._activate_tab_by_text(
-                            tr("mw_inventory_batches_tab")
-                        ),
+                        lambda: self._activate_tab_by_text(tr("mw_inventory_batches_tab")),
                     ),
                     (
                         "Batch workspace",
@@ -1462,9 +1436,7 @@ class MainWindow(QMainWindow):
         self,
         title: str,
         subtitle: str,
-        actions: list[
-            tuple[str, Callable[[], Any], str | None] | tuple[str, Callable[[], Any]]
-        ],
+        actions: list[tuple[str, Callable[[], Any], str | None] | tuple[str, Callable[[], Any]]],
     ) -> "QWidget":
         page = QWidget(self.stacked_widget)
         layout = QVBoxLayout()
@@ -1616,12 +1588,8 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
         try:
-            project_name = self._project_name_from_path(
-                self._get_current_project_path()
-            )
-            self._show_status_message(
-                tr("mw_continuing_project", project_name=project_name)
-            )
+            project_name = self._project_name_from_path(self._get_current_project_path())
+            self._show_status_message(tr("mw_continuing_project", project_name=project_name))
         except Exception:
             pass
 
@@ -1636,24 +1604,18 @@ class MainWindow(QMainWindow):
             return
         try:
             self.show_batch_workspace(batch_id=int(batch_id))
-            batch_name = str(
-                latest_batch.get("batch_name", tr("mw_latest_project_batch_default"))
-            )
+            batch_name = str(latest_batch.get("batch_name", tr("mw_latest_project_batch_default")))
             self._show_status_message(tr("mw_opened_batch", batch_name=batch_name))
         except Exception:
             self._show_status_message(tr("mw_could_not_open_latest_project_batch"))
 
-    def _open_project_batch_by_id(
-        self, batch_id: int, status_message: str | None = None
-    ) -> None:
+    def _open_project_batch_by_id(self, batch_id: int, status_message: str | None = None) -> None:
         if batch_id <= 0:
             self._show_status_message(tr("mw_could_not_open_latest_project_batch"))
             return
         try:
             self.show_batch_workspace(batch_id=batch_id)
-            self._show_status_message(
-                status_message or tr("mw_opened_latest_project_batch")
-            )
+            self._show_status_message(status_message or tr("mw_opened_latest_project_batch"))
         except Exception:
             self._show_status_message(tr("mw_could_not_open_latest_project_batch"))
 
@@ -1715,9 +1677,7 @@ class MainWindow(QMainWindow):
             except Exception:
                 return 0
 
-    def _count_inventory_below_threshold(
-        self, component_type: str, threshold: int
-    ) -> int:
+    def _count_inventory_below_threshold(self, component_type: str, threshold: int) -> int:
         if threshold <= 0:
             return 0
         db = getattr(self, "db", None)
@@ -1751,15 +1711,9 @@ class MainWindow(QMainWindow):
         low_bullet = int(settings.value("inventory/low_bullet", 100, type=int))
         low_primer = int(settings.value("inventory/low_primer", 100, type=int))
         return {
-            "low_powder_count": self._count_inventory_below_threshold(
-                "powder", low_powder
-            ),
-            "low_bullet_count": self._count_inventory_below_threshold(
-                "bullet", low_bullet
-            ),
-            "low_primer_count": self._count_inventory_below_threshold(
-                "primer", low_primer
-            ),
+            "low_powder_count": self._count_inventory_below_threshold("powder", low_powder),
+            "low_bullet_count": self._count_inventory_below_threshold("bullet", low_bullet),
+            "low_primer_count": self._count_inventory_below_threshold("primer", low_primer),
         }
 
     def _count_batches_for_project(self, project_path: str) -> int:
@@ -1770,9 +1724,7 @@ class MainWindow(QMainWindow):
         if db is None:
             return 0
         try:
-            rows = db.execute_query(
-                "SELECT analysis_json FROM batch_projects WHERE analysis_json IS NOT NULL"
-            )
+            rows = db.execute_query("SELECT analysis_json FROM batch_projects WHERE analysis_json IS NOT NULL")
         except Exception:
             return 0
         count = 0
@@ -1795,19 +1747,12 @@ class MainWindow(QMainWindow):
             batch_project_path = str(workspace.get("project_path", "") or "").strip()
             if not batch_project_path:
                 continue
-            if (
-                self._normalize_project_path(batch_project_path)
-                == normalized_project_path
-            ):
+            if self._normalize_project_path(batch_project_path) == normalized_project_path:
                 count += 1
         return count
 
-    def _get_latest_batch_for_project(
-        self, project_path: str | None = None
-    ) -> dict[str, object] | None:
-        target_project_path = self._normalize_project_path(
-            project_path or self._get_current_project_path()
-        )
+    def _get_latest_batch_for_project(self, project_path: str | None = None) -> dict[str, object] | None:
+        target_project_path = self._normalize_project_path(project_path or self._get_current_project_path())
         if not target_project_path:
             return None
         db = getattr(self, "db", None)
@@ -1863,83 +1808,45 @@ class MainWindow(QMainWindow):
             "rifle_count": self._fetch_count("rifles"),
             "ammo_profile_count": self._fetch_count("ammo_profiles"),
             "batch_count": self._fetch_count("batch_projects"),
-            "current_project_batch_count": self._count_batches_for_project(
-                current_project_path
-            ),
+            "current_project_batch_count": self._count_batches_for_project(current_project_path),
             "latest_project_batch_name": (
-                str(latest_project_batch.get("batch_name", ""))
-                if latest_project_batch
-                else ""
+                str(latest_project_batch.get("batch_name", "")) if latest_project_batch else ""
             ),
             "latest_project_batch_id": (
-                int(latest_project_batch.get("id", 0))
-                if latest_project_batch and latest_project_batch.get("id")
-                else 0
+                int(latest_project_batch.get("id", 0)) if latest_project_batch and latest_project_batch.get("id") else 0
             ),
             "inventory_item_count": self._fetch_count("inventory_items"),
             "loading_session_count": self._fetch_count("loading_sessions"),
             "shooting_session_count": self._fetch_count("shooting_sessions"),
             "active_workflow_name": str(workflow_status.get("workflow_name", "") or ""),
-            "active_workflow_setup_label": str(
-                workflow_status.get("setup_label", "") or ""
-            ),
+            "active_workflow_setup_label": str(workflow_status.get("setup_label", "") or ""),
             "active_workflow_title": str(workflow_status.get("title", "") or ""),
             "active_workflow_message": str(workflow_status.get("message", "") or ""),
             "active_workflow_level": str(workflow_status.get("level", "") or ""),
-            "active_workflow_confidence_label": str(
-                workflow_status.get("confidence_label", "") or ""
-            ),
-            "active_workflow_confidence_message": str(
-                workflow_status.get("confidence_message", "") or ""
-            ),
-            "active_workflow_robustness_title": str(
-                workflow_status.get("robustness_title", "") or ""
-            ),
-            "active_workflow_robustness_message": str(
-                workflow_status.get("robustness_message", "") or ""
-            ),
-            "active_workflow_robustness_level": str(
-                workflow_status.get("robustness_level", "") or ""
-            ),
-            "active_workflow_robustness_score": str(
-                workflow_status.get("robustness_score", "") or ""
-            ),
+            "active_workflow_confidence_label": str(workflow_status.get("confidence_label", "") or ""),
+            "active_workflow_confidence_message": str(workflow_status.get("confidence_message", "") or ""),
+            "active_workflow_robustness_title": str(workflow_status.get("robustness_title", "") or ""),
+            "active_workflow_robustness_message": str(workflow_status.get("robustness_message", "") or ""),
+            "active_workflow_robustness_level": str(workflow_status.get("robustness_level", "") or ""),
+            "active_workflow_robustness_score": str(workflow_status.get("robustness_score", "") or ""),
             "active_workflow_robustness_uncertainty_message": str(
                 workflow_status.get("robustness_uncertainty_message", "") or ""
             ),
-            "active_workflow_next_test_title": str(
-                workflow_status.get("next_test_title", "") or ""
-            ),
-            "active_workflow_next_test_action": str(
-                workflow_status.get("next_test_action", "") or ""
-            ),
+            "active_workflow_next_test_title": str(workflow_status.get("next_test_title", "") or ""),
+            "active_workflow_next_test_action": str(workflow_status.get("next_test_action", "") or ""),
             "active_workflow_next_test_confidence_label": str(
                 workflow_status.get("next_test_confidence_label", "") or ""
             ),
             "active_workflow_next_test_confidence_message": str(
                 workflow_status.get("next_test_confidence_message", "") or ""
             ),
-            "active_workflow_impact_title": str(
-                workflow_status.get("impact_title", "") or ""
-            ),
-            "active_workflow_impact_message": str(
-                workflow_status.get("impact_message", "") or ""
-            ),
-            "active_workflow_impact_level": str(
-                workflow_status.get("impact_level", "") or ""
-            ),
-            "active_workflow_evidence_quality_title": str(
-                workflow_status.get("evidence_quality_title", "") or ""
-            ),
-            "active_workflow_evidence_quality_message": str(
-                workflow_status.get("evidence_quality_message", "") or ""
-            ),
-            "active_workflow_evidence_quality_level": str(
-                workflow_status.get("evidence_quality_level", "") or ""
-            ),
-            "active_workflow_evidence_quality_checks": list(
-                workflow_status.get("evidence_quality_checks", []) or []
-            ),
+            "active_workflow_impact_title": str(workflow_status.get("impact_title", "") or ""),
+            "active_workflow_impact_message": str(workflow_status.get("impact_message", "") or ""),
+            "active_workflow_impact_level": str(workflow_status.get("impact_level", "") or ""),
+            "active_workflow_evidence_quality_title": str(workflow_status.get("evidence_quality_title", "") or ""),
+            "active_workflow_evidence_quality_message": str(workflow_status.get("evidence_quality_message", "") or ""),
+            "active_workflow_evidence_quality_level": str(workflow_status.get("evidence_quality_level", "") or ""),
+            "active_workflow_evidence_quality_checks": list(workflow_status.get("evidence_quality_checks", []) or []),
         }
 
     def _get_active_workflow_status(self) -> dict[str, object]:
@@ -1967,66 +1874,35 @@ class MainWindow(QMainWindow):
             module = importlib.import_module("src.modules.load_development_workflow")
             collect = getattr(module, "collect_workflow_observations", None)
             summarize = getattr(module, "build_workflow_readiness_summary", None)
-            build_robustness = getattr(
-                module, "build_workflow_component_robustness", None
-            )
-            build_next_test = getattr(
-                module, "build_workflow_next_test_recommendation", None
-            )
+            build_robustness = getattr(module, "build_workflow_component_robustness", None)
+            build_next_test = getattr(module, "build_workflow_next_test_recommendation", None)
             build_impact_window = getattr(module, "build_workflow_impact_window", None)
-            build_evidence_quality = getattr(
-                module, "build_workflow_evidence_quality", None
-            )
-            build_calibration = getattr(
-                module, "build_workflow_calibration_summary", None
-            )
-            build_internal_ballistics = getattr(
-                module, "build_workflow_internal_ballistics_summary", None
-            )
+            build_evidence_quality = getattr(module, "build_workflow_evidence_quality", None)
+            build_calibration = getattr(module, "build_workflow_calibration_summary", None)
+            build_internal_ballistics = getattr(module, "build_workflow_internal_ballistics_summary", None)
             build_environment = getattr(module, "_build_workflow_environment", None)
             if collect is None or summarize is None:
                 return {}
 
             observations = collect(self.db, workflow)
             readiness = summarize(workflow, observations)
-            robustness = (
-                build_robustness(self.db, workflow)
-                if callable(build_robustness)
-                else {}
-            )
-            next_test = (
-                build_next_test(workflow, observations, self.db)
-                if callable(build_next_test)
-                else {}
-            )
+            robustness = build_robustness(self.db, workflow) if callable(build_robustness) else {}
+            next_test = build_next_test(workflow, observations, self.db) if callable(build_next_test) else {}
             impact_window = (
-                build_impact_window(self.db, workflow, observations)
-                if callable(build_impact_window)
-                else {}
+                build_impact_window(self.db, workflow, observations) if callable(build_impact_window) else {}
             )
             evidence_quality = (
-                build_evidence_quality(workflow, observations, self.db)
-                if callable(build_evidence_quality)
-                else {}
+                build_evidence_quality(workflow, observations, self.db) if callable(build_evidence_quality) else {}
             )
-            calibration = (
-                build_calibration(self.db, workflow)
-                if callable(build_calibration)
-                else {}
-            )
+            calibration = build_calibration(self.db, workflow) if callable(build_calibration) else {}
             internal_ballistics = (
-                build_internal_ballistics(self.db, workflow)
-                if callable(build_internal_ballistics)
-                else {}
+                build_internal_ballistics(self.db, workflow) if callable(build_internal_ballistics) else {}
             )
             internal_ballistics_checks = list(internal_ballistics.get("checks") or [])
             internal_ballistics_case_context = [
                 str(item)
                 for item in internal_ballistics_checks
-                if any(
-                    marker in str(item or "").strip().lower()
-                    for marker in ("valgt hylse", "trimlengde")
-                )
+                if any(marker in str(item or "").strip().lower() for marker in ("valgt hylse", "trimlengde"))
             ]
             environment_summary = {}
             if callable(build_environment):
@@ -2039,25 +1915,15 @@ class MainWindow(QMainWindow):
             report_plot_y: list[float] = []
             report_plot_xlabel = "Serie"
             report_plot_ylabel = "Hastighet (fps)"
-            for index, row in enumerate(
-                observations.get("chronograph_sessions") or [], start=1
-            ):
+            for index, row in enumerate(observations.get("chronograph_sessions") or [], start=1):
                 velocity = row.get("avg_velocity_fps")
                 if not isinstance(velocity, (int, float)):
                     continue
-                report_plot_x.append(
-                    str(
-                        row.get("session_date")
-                        or row.get("session_name")
-                        or f"Serie {index}"
-                    )
-                )
+                report_plot_x.append(str(row.get("session_date") or row.get("session_name") or f"Serie {index}"))
                 report_plot_y.append(float(velocity))
             if not report_plot_y:
                 report_plot_ylabel = "Gruppe (mm)"
-                for index, row in enumerate(
-                    observations.get("shooting_sessions") or [], start=1
-                ):
+                for index, row in enumerate(observations.get("shooting_sessions") or [], start=1):
                     group_size = row.get("best_group_mm") or row.get("avg_group_mm")
                     if not isinstance(group_size, (int, float)):
                         continue
@@ -2103,24 +1969,16 @@ class MainWindow(QMainWindow):
                     parts.append(f"{float(avg_velocity):.0f} fps")
                 accuracy_test_summary.append(", ".join(parts))
             pressure_notes = [
-                str(note).strip()
-                for note in (observations.get("pressure_notes") or [])[:5]
-                if str(note or "").strip()
+                str(note).strip() for note in (observations.get("pressure_notes") or [])[:5] if str(note or "").strip()
             ]
             uncertainty_summary: list[str] = []
-            confidence_message = str(
-                readiness.get("confidence_message", "") or ""
-            ).strip()
+            confidence_message = str(readiness.get("confidence_message", "") or "").strip()
             if confidence_message:
                 uncertainty_summary.append(f"Readiness: {confidence_message}")
-            robustness_uncertainty = str(
-                robustness.get("uncertainty_message", "") or ""
-            ).strip()
+            robustness_uncertainty = str(robustness.get("uncertainty_message", "") or "").strip()
             if robustness_uncertainty:
                 uncertainty_summary.append(f"Robustness: {robustness_uncertainty}")
-            impact_confidence_message = str(
-                impact_window.get("confidence_message", "") or ""
-            ).strip()
+            impact_confidence_message = str(impact_window.get("confidence_message", "") or "").strip()
             if impact_confidence_message:
                 uncertainty_summary.append(f"Impact: {impact_confidence_message}")
             setup_label = MainWindow._get_active_workflow_setup_label(self)
@@ -2136,28 +1994,20 @@ class MainWindow(QMainWindow):
                 ),
                 "level": str(readiness.get("level", "") or ""),
                 "confidence_label": str(readiness.get("confidence_label", "") or ""),
-                "confidence_message": str(
-                    readiness.get("confidence_message", "") or ""
-                ),
+                "confidence_message": str(readiness.get("confidence_message", "") or ""),
                 "robustness_title": str(robustness.get("title", "") or ""),
                 "robustness_message": str(robustness.get("message", "") or ""),
                 "robustness_level": str(robustness.get("level", "") or ""),
                 "robustness_score": str(robustness.get("score", "") or ""),
-                "robustness_uncertainty_message": str(
-                    robustness.get("uncertainty_message", "") or ""
-                ),
+                "robustness_uncertainty_message": str(robustness.get("uncertainty_message", "") or ""),
                 "next_test_title": str(next_test.get("title", "") or ""),
                 "next_test_action": MainWindow._apply_setup_context_to_message(
                     self,
                     next_test.get("action", ""),
                     setup_label,
                 ),
-                "next_test_confidence_label": str(
-                    next_test.get("confidence_label", "") or ""
-                ),
-                "next_test_confidence_message": str(
-                    next_test.get("confidence_message", "") or ""
-                ),
+                "next_test_confidence_label": str(next_test.get("confidence_label", "") or ""),
+                "next_test_confidence_message": str(next_test.get("confidence_message", "") or ""),
                 "impact_title": str(impact_window.get("title", "") or ""),
                 "impact_message": MainWindow._apply_setup_context_to_message(
                     self,
@@ -2168,24 +2018,14 @@ class MainWindow(QMainWindow):
                 "impact_checks": list(impact_window.get("checks") or []),
                 "impact_drag_model": str(impact_window.get("drag_model", "") or ""),
                 "impact_bc_used": str(impact_window.get("bc_used", "") or ""),
-                "impact_bc_segment": str(
-                    impact_window.get("bc_segment_label", "") or ""
-                ),
-                "impact_density_altitude_m": str(
-                    impact_window.get("density_altitude_m", "") or ""
-                ),
-                "impact_confidence_label": str(
-                    impact_window.get("confidence_label", "") or ""
-                ),
-                "impact_confidence_message": str(
-                    impact_window.get("confidence_message", "") or ""
-                ),
+                "impact_bc_segment": str(impact_window.get("bc_segment_label", "") or ""),
+                "impact_density_altitude_m": str(impact_window.get("density_altitude_m", "") or ""),
+                "impact_confidence_label": str(impact_window.get("confidence_label", "") or ""),
+                "impact_confidence_message": str(impact_window.get("confidence_message", "") or ""),
                 "pressure_notes": pressure_notes,
                 "uncertainty_summary": uncertainty_summary,
                 "evidence_quality_title": str(evidence_quality.get("title", "") or ""),
-                "evidence_quality_message": str(
-                    evidence_quality.get("message", "") or ""
-                ),
+                "evidence_quality_message": str(evidence_quality.get("message", "") or ""),
                 "evidence_quality_level": str(evidence_quality.get("level", "") or ""),
                 "evidence_quality_checks": list(evidence_quality.get("checks") or []),
                 "calibration_title": str(calibration.get("title", "") or ""),
@@ -2193,19 +2033,11 @@ class MainWindow(QMainWindow):
                 "calibration_level": str(calibration.get("level", "") or ""),
                 "calibration_checks": list(calibration.get("checks") or []),
                 "calibration_score": str(calibration.get("score", "") or ""),
-                "internal_ballistics_title": str(
-                    internal_ballistics.get("title", "") or ""
-                ),
-                "internal_ballistics_message": str(
-                    internal_ballistics.get("message", "") or ""
-                ),
-                "internal_ballistics_level": str(
-                    internal_ballistics.get("level", "") or ""
-                ),
+                "internal_ballistics_title": str(internal_ballistics.get("title", "") or ""),
+                "internal_ballistics_message": str(internal_ballistics.get("message", "") or ""),
+                "internal_ballistics_level": str(internal_ballistics.get("level", "") or ""),
                 "internal_ballistics_checks": internal_ballistics_checks,
-                "internal_ballistics_metrics": list(
-                    internal_ballistics.get("metrics") or []
-                ),
+                "internal_ballistics_metrics": list(internal_ballistics.get("metrics") or []),
                 "internal_ballistics_case_context": internal_ballistics_case_context,
                 "environment_title": "Environment" if environment_summary else "",
                 "environment_message": (
@@ -2222,10 +2054,7 @@ class MainWindow(QMainWindow):
                     [
                         (
                             "Environment basis: measured"
-                            if str(
-                                environment_summary.get("temperature_source", "assumed")
-                            )
-                            == "measured"
+                            if str(environment_summary.get("temperature_source", "assumed")) == "measured"
                             else "Environment basis: assumed standard atmosphere"
                         ),
                         f"Density ratio: {float(environment_summary.get('density_ratio', 1.0)):.3f}",
@@ -2257,18 +2086,14 @@ class MainWindow(QMainWindow):
         except Exception:
             robustness_score = 0
         workspace_snapshot = self._get_workspace_snapshot()
-        latest_project_batch_id = int(
-            workspace_snapshot.get("latest_project_batch_id", 0) or 0
-        )
+        latest_project_batch_id = int(workspace_snapshot.get("latest_project_batch_id", 0) or 0)
         if level == "stop":
             return (
                 tr("mw_recommend_pressure_review"),
                 self._open_target_analyzer_for_pressure_review,
             )
         if level == "ready":
-            if robustness_level == "critical" or (
-                robustness_score > 0 and robustness_score < 50
-            ):
+            if robustness_level == "critical" or (robustness_score > 0 and robustness_score < 50):
                 if latest_project_batch_id > 0:
                     return (
                         tr("mw_recommend_verify_batch_with_chrono"),
@@ -2281,9 +2106,7 @@ class MainWindow(QMainWindow):
                     tr("mw_recommend_import_chrono_before_next_batch"),
                     self._open_chronograph_for_workflow_data_capture,
                 )
-            if robustness_level == "warning" or (
-                robustness_score > 0 and robustness_score < 70
-            ):
+            if robustness_level == "warning" or (robustness_score > 0 and robustness_score < 70):
                 if latest_project_batch_id > 0:
                     return (
                         tr("mw_recommend_open_batch_for_control_series"),
@@ -2420,9 +2243,7 @@ class MainWindow(QMainWindow):
 
     def _sync_mode_combo_from_settings(self) -> None:
         try:
-            val = QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "ui/mode", "beginner"
-            )
+            val = QSettings("ReloadingWorkshop", "ReloadingManager").value("ui/mode", "beginner")
         except Exception:
             val = "beginner"
         try:
@@ -2449,9 +2270,7 @@ class MainWindow(QMainWindow):
                 else:
                     manager.set_mode(getattr(um, "BEGINNER", 0))
             else:
-                QSettings("ReloadingWorkshop", "ReloadingManager").setValue(
-                    "ui/mode", mode
-                )
+                QSettings("ReloadingWorkshop", "ReloadingManager").setValue("ui/mode", mode)
                 try:
                     self._apply_ui_mode_to_actions()
                     self._apply_ui_mode_to_nav()
@@ -2511,9 +2330,7 @@ class MainWindow(QMainWindow):
         try:
             if os.environ.get("VALKYRIE_SAFE_UI", "").lower() in ("1", "true"):
                 return
-            app_settings = getattr(
-                importlib.import_module("HjemmeladingApp.settings"), "settings", None
-            )
+            app_settings = getattr(importlib.import_module("HjemmeladingApp.settings"), "settings", None)
         except Exception:
             app_settings = None
 
@@ -2593,9 +2410,7 @@ class MainWindow(QMainWindow):
             UserModeManager = getattr(mode_manager_module, "UserModeManager")
         except Exception:
             try:
-                mode_manager_module = importlib.import_module(
-                    "HjemmeladingApp.utils.mode_manager"
-                )
+                mode_manager_module = importlib.import_module("HjemmeladingApp.utils.mode_manager")
                 UserMode = getattr(mode_manager_module, "UserMode")
                 UserModeManager = getattr(mode_manager_module, "UserModeManager")
             except Exception:
@@ -2621,10 +2436,7 @@ class MainWindow(QMainWindow):
                         self._mode = UserMode.BEGINNER
 
                     def is_beginner(self):
-                        return (
-                            getattr(self, "_mode", UserMode.BEGINNER)
-                            == UserMode.BEGINNER
-                        )
+                        return getattr(self, "_mode", UserMode.BEGINNER) == UserMode.BEGINNER
 
                     def set_mode(self, mode):
                         self._mode = mode
@@ -2654,9 +2466,7 @@ class MainWindow(QMainWindow):
         try:
             if self.mode_manager is None:
                 return
-            self.mode_manager.mode_changed.connect(
-                getattr(self, "on_mode_changed", lambda *a, **k: None)
-            )
+            self.mode_manager.mode_changed.connect(getattr(self, "on_mode_changed", lambda *a, **k: None))
         except Exception:
             pass
 
@@ -2669,19 +2479,13 @@ class MainWindow(QMainWindow):
         try:
             from src.utils.i18n import normalize_language_code
 
-            language = QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "language", "en"
-            )
+            language = QSettings("ReloadingWorkshop", "ReloadingManager").value("language", "en")
             lang_code = normalize_language_code(language)
             try:
                 try:
-                    set_language = getattr(
-                        importlib.import_module("src.i18n"), "set_language"
-                    )
+                    set_language = getattr(importlib.import_module("src.i18n"), "set_language")
                 except Exception:
-                    set_language = getattr(
-                        importlib.import_module("HjemmeladingApp.i18n"), "set_language"
-                    )
+                    set_language = getattr(importlib.import_module("HjemmeladingApp.i18n"), "set_language")
                 set_language(lang_code)
             except Exception:
                 pass
@@ -2963,9 +2767,7 @@ class MainWindow(QMainWindow):
         weapon_profiles_action.triggered.connect(self.show_weapon_profile_editor)
         tools_menu.addAction(weapon_profiles_action)
 
-        field_planning_action = QAction(
-            "🗺 Field Planning (DOPE / Range / Hunting)", self
-        )
+        field_planning_action = QAction("🗺 Field Planning (DOPE / Range / Hunting)", self)
         field_planning_action.setShortcut("Ctrl+F")
         field_planning_action.triggered.connect(self.show_field_planning)
         tools_menu.addAction(field_planning_action)
@@ -3153,9 +2955,7 @@ class MainWindow(QMainWindow):
                     else:
                         if self._layout is not None:
                             try:
-                                self._layout.addWidget(
-                                    QLabel(tr("mw_loaded_content"), self)
-                                )
+                                self._layout.addWidget(QLabel(tr("mw_loaded_content"), self))
                             except Exception:
                                 pass
                 except Exception:
@@ -3257,11 +3057,7 @@ class MainWindow(QMainWindow):
                 str(spec["unavailable"]),
                 str(spec["log_message"]),
                 allow_non_widget=bool(spec.get("allow_non_widget", False)),
-                wrap_label=(
-                    str(spec["wrap_label"])
-                    if spec.get("wrap_label") is not None
-                    else None
-                ),
+                wrap_label=(str(spec["wrap_label"]) if spec.get("wrap_label") is not None else None),
             )
 
         if include_stats:
@@ -3313,15 +3109,10 @@ class MainWindow(QMainWindow):
         context_layout = QVBoxLayout()
         context.setLayout(context_layout)
         context_layout.addWidget(
-            QLabel(
-                f"{tr('mw_active_project')}: {workspace_snapshot.get('current_project_name', 'Default Project')}"
-            )
+            QLabel(f"{tr('mw_active_project')}: {workspace_snapshot.get('current_project_name', 'Default Project')}")
         )
         context_layout.addWidget(
-            QLabel(
-                f"{tr('mw_project_batches_linked')}: "
-                f"{workspace_snapshot.get('current_project_batch_count', 0)}"
-            )
+            QLabel(f"{tr('mw_project_batches_linked')}: " f"{workspace_snapshot.get('current_project_batch_count', 0)}")
         )
         context_layout.addWidget(
             QLabel(
@@ -3329,9 +3120,7 @@ class MainWindow(QMainWindow):
                 f"{workspace_snapshot.get('rifle_count', 0)} / {workspace_snapshot.get('ammo_profile_count', 0)}"
             )
         )
-        latest_project_batch_name = str(
-            workspace_snapshot.get("latest_project_batch_name", "") or ""
-        )
+        latest_project_batch_name = str(workspace_snapshot.get("latest_project_batch_name", "") or "")
         context_layout.addWidget(
             QLabel(
                 f"{tr('mw_latest_project_batch')}: "
@@ -3339,38 +3128,19 @@ class MainWindow(QMainWindow):
             )
         )
         workflow_title = str(workspace_snapshot.get("active_workflow_title", "") or "")
-        workflow_message = str(
-            workspace_snapshot.get("active_workflow_message", "") or ""
-        )
+        workflow_message = str(workspace_snapshot.get("active_workflow_message", "") or "")
         workflow_name = str(workspace_snapshot.get("active_workflow_name", "") or "")
-        workflow_setup_label = str(
-            workspace_snapshot.get("active_workflow_setup_label", "") or ""
-        )
-        workflow_confidence_label = str(
-            workspace_snapshot.get("active_workflow_confidence_label", "") or ""
-        )
-        workflow_confidence_message = str(
-            workspace_snapshot.get("active_workflow_confidence_message", "") or ""
-        )
-        workflow_robustness_title = str(
-            workspace_snapshot.get("active_workflow_robustness_title", "") or ""
-        )
-        workflow_robustness_message = str(
-            workspace_snapshot.get("active_workflow_robustness_message", "") or ""
-        )
-        workflow_robustness_score = str(
-            workspace_snapshot.get("active_workflow_robustness_score", "") or ""
-        )
+        workflow_setup_label = str(workspace_snapshot.get("active_workflow_setup_label", "") or "")
+        workflow_confidence_label = str(workspace_snapshot.get("active_workflow_confidence_label", "") or "")
+        workflow_confidence_message = str(workspace_snapshot.get("active_workflow_confidence_message", "") or "")
+        workflow_robustness_title = str(workspace_snapshot.get("active_workflow_robustness_title", "") or "")
+        workflow_robustness_message = str(workspace_snapshot.get("active_workflow_robustness_message", "") or "")
+        workflow_robustness_score = str(workspace_snapshot.get("active_workflow_robustness_score", "") or "")
         workflow_robustness_uncertainty_message = str(
-            workspace_snapshot.get("active_workflow_robustness_uncertainty_message", "")
-            or ""
+            workspace_snapshot.get("active_workflow_robustness_uncertainty_message", "") or ""
         )
-        workflow_impact_title = str(
-            workspace_snapshot.get("active_workflow_impact_title", "") or ""
-        )
-        workflow_impact_message = str(
-            workspace_snapshot.get("active_workflow_impact_message", "") or ""
-        )
+        workflow_impact_title = str(workspace_snapshot.get("active_workflow_impact_title", "") or "")
+        workflow_impact_message = str(workspace_snapshot.get("active_workflow_impact_message", "") or "")
         workflow_evidence_quality_title = str(
             workspace_snapshot.get("active_workflow_evidence_quality_title", "") or ""
         )
@@ -3380,39 +3150,23 @@ class MainWindow(QMainWindow):
         workflow_evidence_quality_checks = list(
             workspace_snapshot.get("active_workflow_evidence_quality_checks", []) or []
         )
-        workflow_next_test_title = str(
-            workspace_snapshot.get("active_workflow_next_test_title", "") or ""
-        )
-        workflow_next_test_action = str(
-            workspace_snapshot.get("active_workflow_next_test_action", "") or ""
-        )
+        workflow_next_test_title = str(workspace_snapshot.get("active_workflow_next_test_title", "") or "")
+        workflow_next_test_action = str(workspace_snapshot.get("active_workflow_next_test_action", "") or "")
         workflow_next_test_confidence_label = str(
-            workspace_snapshot.get("active_workflow_next_test_confidence_label", "")
-            or ""
+            workspace_snapshot.get("active_workflow_next_test_confidence_label", "") or ""
         )
         workflow_next_test_confidence_message = str(
-            workspace_snapshot.get("active_workflow_next_test_confidence_message", "")
-            or ""
+            workspace_snapshot.get("active_workflow_next_test_confidence_message", "") or ""
         )
         if workflow_title:
             context_layout.addWidget(
-                QLabel(
-                    f"{tr('mw_active_workflow')}: {workflow_name if workflow_name else tr('tab_dashboard')}"
-                )
+                QLabel(f"{tr('mw_active_workflow')}: {workflow_name if workflow_name else tr('tab_dashboard')}")
             )
             if workflow_setup_label:
                 context_layout.addWidget(QLabel(f"Setup: {workflow_setup_label}"))
-            context_layout.addWidget(
-                QLabel(
-                    f"{tr('mw_workflow_status')}: {workflow_title} - {workflow_message}"
-                )
-            )
+            context_layout.addWidget(QLabel(f"{tr('mw_workflow_status')}: {workflow_title} - {workflow_message}"))
             if workflow_confidence_label:
-                context_layout.addWidget(
-                    QLabel(
-                        f"{tr('mw_readiness_confidence')}: {workflow_confidence_label}"
-                    )
-                )
+                context_layout.addWidget(QLabel(f"{tr('mw_readiness_confidence')}: {workflow_confidence_label}"))
             if workflow_confidence_message:
                 confidence_label = QLabel(workflow_confidence_message)
                 confidence_label.setWordWrap(True)
@@ -3425,9 +3179,7 @@ class MainWindow(QMainWindow):
                 context_layout.addWidget(next_test_label)
             if workflow_next_test_confidence_label:
                 context_layout.addWidget(
-                    QLabel(
-                        f"{tr('mw_next_test_confidence')}: {workflow_next_test_confidence_label}"
-                    )
+                    QLabel(f"{tr('mw_next_test_confidence')}: {workflow_next_test_confidence_label}")
                 )
             if workflow_next_test_confidence_message:
                 next_test_confidence = QLabel(workflow_next_test_confidence_message)
@@ -3437,11 +3189,7 @@ class MainWindow(QMainWindow):
                 context_layout.addWidget(
                     QLabel(
                         f"{tr('mw_robustness')}: {workflow_robustness_title}"
-                        + (
-                            f" ({workflow_robustness_score}/100)"
-                            if workflow_robustness_score
-                            else ""
-                        )
+                        + (f" ({workflow_robustness_score}/100)" if workflow_robustness_score else "")
                     )
                 )
             if workflow_robustness_message:
@@ -3455,15 +3203,11 @@ class MainWindow(QMainWindow):
                 robustness_uncertainty.setWordWrap(True)
                 context_layout.addWidget(robustness_uncertainty)
             if workflow_impact_title and workflow_impact_message:
-                impact_label = QLabel(
-                    f"{workflow_impact_title}: {workflow_impact_message}"
-                )
+                impact_label = QLabel(f"{workflow_impact_title}: {workflow_impact_message}")
                 impact_label.setWordWrap(True)
                 context_layout.addWidget(impact_label)
             if workflow_evidence_quality_title:
-                evidence_label = QLabel(
-                    f"{tr('mw_evidence_quality')}: {workflow_evidence_quality_title}"
-                )
+                evidence_label = QLabel(f"{tr('mw_evidence_quality')}: {workflow_evidence_quality_title}")
                 evidence_label.setWordWrap(True)
                 context_layout.addWidget(evidence_label)
             if workflow_evidence_quality_message:
@@ -3553,14 +3297,10 @@ class MainWindow(QMainWindow):
         status_layout = QVBoxLayout()
         status.setLayout(status_layout)
         status_layout.addWidget(
-            QLabel(
-                f"Aktivt prosjekt: {workspace_snapshot.get('current_project_name', 'Default Project')}"
-            )
+            QLabel(f"Aktivt prosjekt: {workspace_snapshot.get('current_project_name', 'Default Project')}")
         )
         status_layout.addWidget(
-            QLabel(
-                f"{tr('mw_recent_projects_in_list')}: {workspace_snapshot.get('recent_projects_count', 0)}"
-            )
+            QLabel(f"{tr('mw_recent_projects_in_list')}: {workspace_snapshot.get('recent_projects_count', 0)}")
         )
         status_layout.addWidget(
             QLabel(
@@ -3568,9 +3308,7 @@ class MainWindow(QMainWindow):
                 f"{workspace_snapshot.get('current_project_batch_count', 0)}"
             )
         )
-        latest_project_batch_name = str(
-            workspace_snapshot.get("latest_project_batch_name", "") or ""
-        )
+        latest_project_batch_name = str(workspace_snapshot.get("latest_project_batch_name", "") or "")
         status_layout.addWidget(
             QLabel(
                 f"{tr('mw_latest_project_batch')}: "
@@ -3578,43 +3316,22 @@ class MainWindow(QMainWindow):
             )
         )
         status_layout.addWidget(
-            QLabel(
-                f"{tr('mw_available_weapon_profiles')}: {workspace_snapshot.get('rifle_count', 0)}"
-            )
+            QLabel(f"{tr('mw_available_weapon_profiles')}: {workspace_snapshot.get('rifle_count', 0)}")
         )
         workflow_title = str(workspace_snapshot.get("active_workflow_title", "") or "")
-        workflow_message = str(
-            workspace_snapshot.get("active_workflow_message", "") or ""
-        )
+        workflow_message = str(workspace_snapshot.get("active_workflow_message", "") or "")
         workflow_name = str(workspace_snapshot.get("active_workflow_name", "") or "")
-        workflow_setup_label = str(
-            workspace_snapshot.get("active_workflow_setup_label", "") or ""
-        )
-        workflow_confidence_label = str(
-            workspace_snapshot.get("active_workflow_confidence_label", "") or ""
-        )
-        workflow_confidence_message = str(
-            workspace_snapshot.get("active_workflow_confidence_message", "") or ""
-        )
-        workflow_robustness_title = str(
-            workspace_snapshot.get("active_workflow_robustness_title", "") or ""
-        )
-        workflow_robustness_message = str(
-            workspace_snapshot.get("active_workflow_robustness_message", "") or ""
-        )
-        workflow_robustness_score = str(
-            workspace_snapshot.get("active_workflow_robustness_score", "") or ""
-        )
+        workflow_setup_label = str(workspace_snapshot.get("active_workflow_setup_label", "") or "")
+        workflow_confidence_label = str(workspace_snapshot.get("active_workflow_confidence_label", "") or "")
+        workflow_confidence_message = str(workspace_snapshot.get("active_workflow_confidence_message", "") or "")
+        workflow_robustness_title = str(workspace_snapshot.get("active_workflow_robustness_title", "") or "")
+        workflow_robustness_message = str(workspace_snapshot.get("active_workflow_robustness_message", "") or "")
+        workflow_robustness_score = str(workspace_snapshot.get("active_workflow_robustness_score", "") or "")
         workflow_robustness_uncertainty_message = str(
-            workspace_snapshot.get("active_workflow_robustness_uncertainty_message", "")
-            or ""
+            workspace_snapshot.get("active_workflow_robustness_uncertainty_message", "") or ""
         )
-        workflow_impact_title = str(
-            workspace_snapshot.get("active_workflow_impact_title", "") or ""
-        )
-        workflow_impact_message = str(
-            workspace_snapshot.get("active_workflow_impact_message", "") or ""
-        )
+        workflow_impact_title = str(workspace_snapshot.get("active_workflow_impact_title", "") or "")
+        workflow_impact_message = str(workspace_snapshot.get("active_workflow_impact_message", "") or "")
         workflow_evidence_quality_title = str(
             workspace_snapshot.get("active_workflow_evidence_quality_title", "") or ""
         )
@@ -3624,39 +3341,23 @@ class MainWindow(QMainWindow):
         workflow_evidence_quality_checks = list(
             workspace_snapshot.get("active_workflow_evidence_quality_checks", []) or []
         )
-        workflow_next_test_title = str(
-            workspace_snapshot.get("active_workflow_next_test_title", "") or ""
-        )
-        workflow_next_test_action = str(
-            workspace_snapshot.get("active_workflow_next_test_action", "") or ""
-        )
+        workflow_next_test_title = str(workspace_snapshot.get("active_workflow_next_test_title", "") or "")
+        workflow_next_test_action = str(workspace_snapshot.get("active_workflow_next_test_action", "") or "")
         workflow_next_test_confidence_label = str(
-            workspace_snapshot.get("active_workflow_next_test_confidence_label", "")
-            or ""
+            workspace_snapshot.get("active_workflow_next_test_confidence_label", "") or ""
         )
         workflow_next_test_confidence_message = str(
-            workspace_snapshot.get("active_workflow_next_test_confidence_message", "")
-            or ""
+            workspace_snapshot.get("active_workflow_next_test_confidence_message", "") or ""
         )
         if workflow_title:
             status_layout.addWidget(
-                QLabel(
-                    f"{tr('mw_active_workflow')}: {workflow_name if workflow_name else tr('tab_dashboard')}"
-                )
+                QLabel(f"{tr('mw_active_workflow')}: {workflow_name if workflow_name else tr('tab_dashboard')}")
             )
             if workflow_setup_label:
                 status_layout.addWidget(QLabel(f"Setup: {workflow_setup_label}"))
-            status_layout.addWidget(
-                QLabel(
-                    f"{tr('mw_workflow_status')}: {workflow_title} - {workflow_message}"
-                )
-            )
+            status_layout.addWidget(QLabel(f"{tr('mw_workflow_status')}: {workflow_title} - {workflow_message}"))
             if workflow_confidence_label:
-                status_layout.addWidget(
-                    QLabel(
-                        f"{tr('mw_readiness_confidence')}: {workflow_confidence_label}"
-                    )
-                )
+                status_layout.addWidget(QLabel(f"{tr('mw_readiness_confidence')}: {workflow_confidence_label}"))
             if workflow_confidence_message:
                 confidence_label = QLabel(workflow_confidence_message)
                 confidence_label.setWordWrap(True)
@@ -3669,9 +3370,7 @@ class MainWindow(QMainWindow):
                 status_layout.addWidget(next_test_label)
             if workflow_next_test_confidence_label:
                 status_layout.addWidget(
-                    QLabel(
-                        f"{tr('mw_next_test_confidence')}: {workflow_next_test_confidence_label}"
-                    )
+                    QLabel(f"{tr('mw_next_test_confidence')}: {workflow_next_test_confidence_label}")
                 )
             if workflow_next_test_confidence_message:
                 next_test_confidence = QLabel(workflow_next_test_confidence_message)
@@ -3681,11 +3380,7 @@ class MainWindow(QMainWindow):
                 status_layout.addWidget(
                     QLabel(
                         f"Robustness: {workflow_robustness_title}"
-                        + (
-                            f" ({workflow_robustness_score}/100)"
-                            if workflow_robustness_score
-                            else ""
-                        )
+                        + (f" ({workflow_robustness_score}/100)" if workflow_robustness_score else "")
                     )
                 )
             if workflow_robustness_message:
@@ -3699,15 +3394,11 @@ class MainWindow(QMainWindow):
                 robustness_uncertainty.setWordWrap(True)
                 status_layout.addWidget(robustness_uncertainty)
             if workflow_impact_title and workflow_impact_message:
-                impact_label = QLabel(
-                    f"{workflow_impact_title}: {workflow_impact_message}"
-                )
+                impact_label = QLabel(f"{workflow_impact_title}: {workflow_impact_message}")
                 impact_label.setWordWrap(True)
                 status_layout.addWidget(impact_label)
             if workflow_evidence_quality_title:
-                evidence_label = QLabel(
-                    f"{tr('mw_evidence_quality')}: {workflow_evidence_quality_title}"
-                )
+                evidence_label = QLabel(f"{tr('mw_evidence_quality')}: {workflow_evidence_quality_title}")
                 evidence_label.setWordWrap(True)
                 status_layout.addWidget(evidence_label)
             if workflow_evidence_quality_message:
@@ -3782,14 +3473,10 @@ class MainWindow(QMainWindow):
         status_layout = QVBoxLayout()
         status.setLayout(status_layout)
         status_layout.addWidget(
-            QLabel(
-                f"{tr('mw_registered_weapon_profiles')}: {workspace_snapshot.get('rifle_count', 0)}"
-            )
+            QLabel(f"{tr('mw_registered_weapon_profiles')}: {workspace_snapshot.get('rifle_count', 0)}")
         )
         status_layout.addWidget(
-            QLabel(
-                f"{tr('mw_linked_load_profiles')}: {workspace_snapshot.get('ammo_profile_count', 0)}"
-            )
+            QLabel(f"{tr('mw_linked_load_profiles')}: {workspace_snapshot.get('ammo_profile_count', 0)}")
         )
         layout.addWidget(status)
 
@@ -3961,14 +3648,10 @@ class MainWindow(QMainWindow):
         status_layout = QVBoxLayout()
         status.setLayout(status_layout)
         status_layout.addWidget(
-            QLabel(
-                f"{tr('mw_registered_batch_projects')}: {workspace_snapshot.get('batch_count', 0)}"
-            )
+            QLabel(f"{tr('mw_registered_batch_projects')}: {workspace_snapshot.get('batch_count', 0)}")
         )
         status_layout.addWidget(
-            QLabel(
-                f"{tr('mw_registered_inventory_items')}: {workspace_snapshot.get('inventory_item_count', 0)}"
-            )
+            QLabel(f"{tr('mw_registered_inventory_items')}: {workspace_snapshot.get('inventory_item_count', 0)}")
         )
         status_layout.addWidget(
             QLabel(
@@ -4099,11 +3782,7 @@ class MainWindow(QMainWindow):
                 str(spec["unavailable"]),
                 str(spec["log_message"]),
                 allow_non_widget=bool(spec.get("allow_non_widget", False)),
-                wrap_label=(
-                    str(spec["wrap_label"])
-                    if spec.get("wrap_label") is not None
-                    else None
-                ),
+                wrap_label=(str(spec["wrap_label"]) if spec.get("wrap_label") is not None else None),
             )
 
         return widget
@@ -4365,9 +4044,7 @@ class MainWindow(QMainWindow):
             return factory(*call_args, **call_kwargs)
         return factory()
 
-    def _construct_widget(
-        self, factory, parent: "QWidget", *args, **kwargs
-    ) -> "QWidget":
+    def _construct_widget(self, factory, parent: "QWidget", *args, **kwargs) -> "QWidget":
         return self._instantiate_factory(factory, parent, *args, **kwargs)
 
     def _wrap_non_widget(self, obj: object, label: str) -> "QWidget":
@@ -4623,9 +4300,7 @@ class MainWindow(QMainWindow):
                     cur.execute(f"SELECT COUNT(*) FROM {name}")
                     row = cur.fetchone()
                     if row is not None:
-                        metrics.append(
-                            (tr("mw_rows_for_table", table=name), str(row[0]))
-                        )
+                        metrics.append((tr("mw_rows_for_table", table=name), str(row[0])))
                 except Exception:
                     continue
         except Exception:
@@ -4787,14 +4462,10 @@ class MainWindow(QMainWindow):
 
         internal_ballistics_case_context = [
             str(item)
-            for item in (
-                workflow_status.get("internal_ballistics_case_context", []) or []
-            )
+            for item in (workflow_status.get("internal_ballistics_case_context", []) or [])
             if str(item or "").strip()
         ]
-        internal_ballistics_message = str(
-            workflow_status.get("internal_ballistics_message", "") or ""
-        ).strip()
+        internal_ballistics_message = str(workflow_status.get("internal_ballistics_message", "") or "").strip()
         if internal_ballistics_case_context:
             internal_ballistics_message = " | ".join(
                 bit
@@ -4821,9 +4492,7 @@ class MainWindow(QMainWindow):
             {
                 "section": "Evidenskvalitet",
                 "title": str(workflow_status.get("evidence_quality_title", "") or ""),
-                "message": str(
-                    workflow_status.get("evidence_quality_message", "") or ""
-                ),
+                "message": str(workflow_status.get("evidence_quality_message", "") or ""),
                 "level": str(workflow_status.get("evidence_quality_level", "") or ""),
             },
             {
@@ -4834,13 +4503,9 @@ class MainWindow(QMainWindow):
             },
             {
                 "section": "Internal Ballistics",
-                "title": str(
-                    workflow_status.get("internal_ballistics_title", "") or ""
-                ),
+                "title": str(workflow_status.get("internal_ballistics_title", "") or ""),
                 "message": internal_ballistics_message,
-                "level": str(
-                    workflow_status.get("internal_ballistics_level", "") or ""
-                ),
+                "level": str(workflow_status.get("internal_ballistics_level", "") or ""),
             },
             {
                 "section": "Environment",
@@ -4851,28 +4516,18 @@ class MainWindow(QMainWindow):
             {
                 "section": "Uncertainty",
                 "title": "Uncertainty Summary",
-                "message": " | ".join(
-                    str(item)
-                    for item in (workflow_status.get("uncertainty_summary", []) or [])
-                ),
+                "message": " | ".join(str(item) for item in (workflow_status.get("uncertainty_summary", []) or [])),
                 "level": "",
             },
             {
                 "section": "Observerte trykksignaler",
                 "title": "Trykknotater",
-                "message": " | ".join(
-                    str(item)
-                    for item in (workflow_status.get("pressure_notes", []) or [])
-                ),
+                "message": " | ".join(str(item) for item in (workflow_status.get("pressure_notes", []) or [])),
                 "level": "",
             },
         ]
         summary_rows = [
-            row
-            for row in summary_rows
-            if any(
-                str(row.get(key) or "").strip() for key in ("title", "message", "level")
-            )
+            row for row in summary_rows if any(str(row.get(key) or "").strip() for key in ("title", "message", "level"))
         ]
 
         return {
@@ -4882,12 +4537,8 @@ class MainWindow(QMainWindow):
                 "title": str(workflow_status.get("title", "") or ""),
                 "message": str(workflow_status.get("message", "") or ""),
                 "level": str(workflow_status.get("level", "") or ""),
-                "confidence_label": str(
-                    workflow_status.get("confidence_label", "") or ""
-                ),
-                "confidence_message": str(
-                    workflow_status.get("confidence_message", "") or ""
-                ),
+                "confidence_label": str(workflow_status.get("confidence_label", "") or ""),
+                "confidence_message": str(workflow_status.get("confidence_message", "") or ""),
             },
             "uncertainty": {
                 "checks": list(workflow_status.get("uncertainty_summary", []) or []),
@@ -4900,25 +4551,15 @@ class MainWindow(QMainWindow):
                 "drag_model": str(workflow_status.get("impact_drag_model", "") or ""),
                 "bc_used": str(workflow_status.get("impact_bc_used", "") or ""),
                 "bc_segment": str(workflow_status.get("impact_bc_segment", "") or ""),
-                "density_altitude_m": str(
-                    workflow_status.get("impact_density_altitude_m", "") or ""
-                ),
-                "confidence_label": str(
-                    workflow_status.get("impact_confidence_label", "") or ""
-                ),
-                "confidence_message": str(
-                    workflow_status.get("impact_confidence_message", "") or ""
-                ),
+                "density_altitude_m": str(workflow_status.get("impact_density_altitude_m", "") or ""),
+                "confidence_label": str(workflow_status.get("impact_confidence_label", "") or ""),
+                "confidence_message": str(workflow_status.get("impact_confidence_message", "") or ""),
             },
             "evidence_quality": {
                 "title": str(workflow_status.get("evidence_quality_title", "") or ""),
-                "message": str(
-                    workflow_status.get("evidence_quality_message", "") or ""
-                ),
+                "message": str(workflow_status.get("evidence_quality_message", "") or ""),
                 "level": str(workflow_status.get("evidence_quality_level", "") or ""),
-                "checks": list(
-                    workflow_status.get("evidence_quality_checks", []) or []
-                ),
+                "checks": list(workflow_status.get("evidence_quality_checks", []) or []),
             },
             "calibration": {
                 "title": str(workflow_status.get("calibration_title", "") or ""),
@@ -4928,21 +4569,11 @@ class MainWindow(QMainWindow):
                 "checks": list(workflow_status.get("calibration_checks", []) or []),
             },
             "internal_ballistics": {
-                "title": str(
-                    workflow_status.get("internal_ballistics_title", "") or ""
-                ),
-                "message": str(
-                    workflow_status.get("internal_ballistics_message", "") or ""
-                ),
-                "level": str(
-                    workflow_status.get("internal_ballistics_level", "") or ""
-                ),
-                "metrics": list(
-                    workflow_status.get("internal_ballistics_metrics", []) or []
-                ),
-                "checks": list(
-                    workflow_status.get("internal_ballistics_checks", []) or []
-                ),
+                "title": str(workflow_status.get("internal_ballistics_title", "") or ""),
+                "message": str(workflow_status.get("internal_ballistics_message", "") or ""),
+                "level": str(workflow_status.get("internal_ballistics_level", "") or ""),
+                "metrics": list(workflow_status.get("internal_ballistics_metrics", []) or []),
+                "checks": list(workflow_status.get("internal_ballistics_checks", []) or []),
                 "case_context": internal_ballistics_case_context,
             },
             "environment": {
@@ -4952,13 +4583,9 @@ class MainWindow(QMainWindow):
             },
             "pressure_notes": list(workflow_status.get("pressure_notes", []) or []),
             "measured_series": {
-                "chronograph": list(
-                    workflow_status.get("chronograph_summary", []) or []
-                ),
+                "chronograph": list(workflow_status.get("chronograph_summary", []) or []),
                 "shooting": list(workflow_status.get("shooting_summary", []) or []),
-                "accuracy_tests": list(
-                    workflow_status.get("accuracy_test_summary", []) or []
-                ),
+                "accuracy_tests": list(workflow_status.get("accuracy_test_summary", []) or []),
             },
             "report_plot": {
                 "x": list(workflow_status.get("report_plot_x", []) or []),
@@ -4973,9 +4600,7 @@ class MainWindow(QMainWindow):
         workflow_status = self._get_active_workflow_status()
         workflow_name = str(workflow_status.get("workflow_name", "") or "").strip()
         setup_label = str(workflow_status.get("setup_label", "") or "").strip()
-        title = (
-            f"Workflow Report - {workflow_name}" if workflow_name else "Session Report"
-        )
+        title = f"Workflow Report - {workflow_name}" if workflow_name else "Session Report"
         sections: dict[str, list[str]] = {}
         if setup_label:
             sections["Setup"] = [setup_label]
@@ -4986,12 +4611,8 @@ class MainWindow(QMainWindow):
         if uncertainty_summary:
             sections["Uncertainty"] = [str(item) for item in uncertainty_summary[:5]]
         calibration_checks = list(workflow_status.get("calibration_checks", []) or [])
-        calibration_title = str(
-            workflow_status.get("calibration_title", "") or ""
-        ).strip()
-        calibration_message = str(
-            workflow_status.get("calibration_message", "") or ""
-        ).strip()
+        calibration_title = str(workflow_status.get("calibration_title", "") or "").strip()
+        calibration_message = str(workflow_status.get("calibration_message", "") or "").strip()
         if calibration_message:
             sections[calibration_title or "Calibration Profile"] = [
                 calibration_message,
@@ -4999,62 +4620,34 @@ class MainWindow(QMainWindow):
             ]
         impact_message = str(workflow_status.get("impact_message", "") or "").strip()
         impact_checks = list(workflow_status.get("impact_checks", []) or [])
-        impact_drag_model = str(
-            workflow_status.get("impact_drag_model", "") or ""
-        ).strip()
+        impact_drag_model = str(workflow_status.get("impact_drag_model", "") or "").strip()
         impact_bc_used = str(workflow_status.get("impact_bc_used", "") or "").strip()
-        impact_bc_segment = str(
-            workflow_status.get("impact_bc_segment", "") or ""
-        ).strip()
-        impact_confidence_label = str(
-            workflow_status.get("impact_confidence_label", "") or ""
-        ).strip()
-        impact_confidence_message = str(
-            workflow_status.get("impact_confidence_message", "") or ""
-        ).strip()
-        impact_density_altitude_m = str(
-            workflow_status.get("impact_density_altitude_m", "") or ""
-        ).strip()
+        impact_bc_segment = str(workflow_status.get("impact_bc_segment", "") or "").strip()
+        impact_confidence_label = str(workflow_status.get("impact_confidence_label", "") or "").strip()
+        impact_confidence_message = str(workflow_status.get("impact_confidence_message", "") or "").strip()
+        impact_density_altitude_m = str(workflow_status.get("impact_density_altitude_m", "") or "").strip()
         impact_lines: list[str] = []
         if impact_message:
             impact_lines.append(impact_message)
         if impact_drag_model or impact_bc_used:
-            impact_lines.append(
-                f"Drag basis: {impact_drag_model or '-'} / BC {impact_bc_used or '-'}"
-            )
+            impact_lines.append(f"Drag basis: {impact_drag_model or '-'} / BC {impact_bc_used or '-'}")
         if impact_bc_segment:
             impact_lines.append(f"Segmented BC: {impact_bc_segment}")
         if impact_density_altitude_m:
-            impact_lines.append(
-                f"Density altitude in the assessment: approx. {impact_density_altitude_m} m"
-            )
+            impact_lines.append(f"Density altitude in the assessment: approx. {impact_density_altitude_m} m")
         if impact_confidence_label or impact_confidence_message:
-            impact_lines.append(
-                f"{impact_confidence_label}: {impact_confidence_message}".strip(": ")
-            )
+            impact_lines.append(f"{impact_confidence_label}: {impact_confidence_message}".strip(": "))
         impact_lines.extend(str(item) for item in impact_checks[:4])
         if impact_lines:
-            sections[
-                str(workflow_status.get("impact_title", "") or "Impact Window")
-            ] = impact_lines
+            sections[str(workflow_status.get("impact_title", "") or "Impact Window")] = impact_lines
         internal_ballistics_summary = None
-        internal_ballistics_title = str(
-            workflow_status.get("internal_ballistics_title", "") or ""
-        ).strip()
-        internal_ballistics_message = str(
-            workflow_status.get("internal_ballistics_message", "") or ""
-        ).strip()
-        internal_ballistics_checks = list(
-            workflow_status.get("internal_ballistics_checks", []) or []
-        )
-        internal_ballistics_metrics = list(
-            workflow_status.get("internal_ballistics_metrics", []) or []
-        )
+        internal_ballistics_title = str(workflow_status.get("internal_ballistics_title", "") or "").strip()
+        internal_ballistics_message = str(workflow_status.get("internal_ballistics_message", "") or "").strip()
+        internal_ballistics_checks = list(workflow_status.get("internal_ballistics_checks", []) or [])
+        internal_ballistics_metrics = list(workflow_status.get("internal_ballistics_metrics", []) or [])
         internal_ballistics_case_context = [
             str(item)
-            for item in (
-                workflow_status.get("internal_ballistics_case_context", []) or []
-            )
+            for item in (workflow_status.get("internal_ballistics_case_context", []) or [])
             if str(item or "").strip()
         ]
         if (
@@ -5070,49 +4663,33 @@ class MainWindow(QMainWindow):
                 "context_lines": internal_ballistics_case_context,
             }
             if internal_ballistics_checks:
-                sections["Internal Ballistics Checks"] = [
-                    str(item) for item in internal_ballistics_checks[:5]
-                ]
-        environment_message = str(
-            workflow_status.get("environment_message", "") or ""
-        ).strip()
+                sections["Internal Ballistics Checks"] = [str(item) for item in internal_ballistics_checks[:5]]
+        environment_message = str(workflow_status.get("environment_message", "") or "").strip()
         environment_checks = list(workflow_status.get("environment_checks", []) or [])
         if environment_message or environment_checks:
-            sections[
-                str(workflow_status.get("environment_title", "") or "Environment")
-            ] = [
+            sections[str(workflow_status.get("environment_title", "") or "Environment")] = [
                 *([environment_message] if environment_message else []),
                 *[str(item) for item in environment_checks[:4]],
             ]
         chronograph_summary = list(workflow_status.get("chronograph_summary", []) or [])
         if chronograph_summary:
-            sections["Chronograph Series"] = [
-                str(item) for item in chronograph_summary[:5]
-            ]
+            sections["Chronograph Series"] = [str(item) for item in chronograph_summary[:5]]
         shooting_summary = list(workflow_status.get("shooting_summary", []) or [])
         if shooting_summary:
             sections["Group Series"] = [str(item) for item in shooting_summary[:5]]
-        accuracy_test_summary = list(
-            workflow_status.get("accuracy_test_summary", []) or []
-        )
+        accuracy_test_summary = list(workflow_status.get("accuracy_test_summary", []) or [])
         if accuracy_test_summary:
-            sections["Accuracy Tests"] = [
-                str(item) for item in accuracy_test_summary[:5]
-            ]
+            sections["Accuracy Tests"] = [str(item) for item in accuracy_test_summary[:5]]
         pressure_notes = list(workflow_status.get("pressure_notes", []) or [])
         if pressure_notes:
-            sections["Observerte trykksignaler"] = [
-                str(item) for item in pressure_notes[:5]
-            ]
+            sections["Observerte trykksignaler"] = [str(item) for item in pressure_notes[:5]]
         data = {
             "title": title,
             "stats": {
                 "workflow": workflow_name or "-",
                 "readiness": str(workflow_status.get("title", "") or "-"),
                 "impact_window": str(workflow_status.get("impact_title", "") or "-"),
-                "evidence_quality": str(
-                    workflow_status.get("evidence_quality_title", "") or "-"
-                ),
+                "evidence_quality": str(workflow_status.get("evidence_quality_title", "") or "-"),
                 "calibration": str(workflow_status.get("calibration_title", "") or "-"),
             },
             "internal_ballistics_summary": internal_ballistics_summary,
@@ -5120,9 +4697,7 @@ class MainWindow(QMainWindow):
             "x": list(workflow_status.get("report_plot_x", []) or []),
             "y": list(workflow_status.get("report_plot_y", []) or []),
             "x_label": str(workflow_status.get("report_plot_xlabel", "") or "Serie"),
-            "y_label": str(
-                workflow_status.get("report_plot_ylabel", "") or "Hastighet (fps)"
-            ),
+            "y_label": str(workflow_status.get("report_plot_ylabel", "") or "Hastighet (fps)"),
         }
         if not data["x"] or not data["y"] or len(data["x"]) != len(data["y"]):
             data["x"] = ["Serie 1", "Serie 2", "Serie 3"]
@@ -5194,9 +4769,7 @@ class MainWindow(QMainWindow):
             except Exception:
                 return None
 
-        def _query_rows(
-            sql: str, params: tuple = (), label: str | None = None
-        ) -> list[dict[str, Any]]:
+        def _query_rows(sql: str, params: tuple = (), label: str | None = None) -> list[dict[str, Any]]:
             try:
                 if db is None or getattr(db, "conn", None) is None:
                     return []
@@ -5272,9 +4845,7 @@ class MainWindow(QMainWindow):
                 errors.append(f"workflow_report_pdf: {exc}")
 
         try:
-            get_config_path = getattr(
-                importlib.import_module("HjemmeladingApp.config"), "get_config_path"
-            )
+            get_config_path = getattr(importlib.import_module("HjemmeladingApp.config"), "get_config_path")
             cfg_path = get_config_path()
             if cfg_path.exists():
                 entries.append((str(cfg_path), "config/config.json"))
@@ -5577,9 +5148,7 @@ class MainWindow(QMainWindow):
                 continue
             if not path:
                 continue
-            projects.append(
-                {"name": name or self._project_name_from_path(path), "path": path}
-            )
+            projects.append({"name": name or self._project_name_from_path(path), "path": path})
 
         seen: set[str] = set()
         deduped: list[dict[str, str]] = []
@@ -5668,11 +5237,7 @@ class MainWindow(QMainWindow):
         if not path:
             return
         norm = self._normalize_project_path(path)
-        projects = [
-            p
-            for p in self._load_recent_projects()
-            if self._normalize_project_path(p.get("path", "")) != norm
-        ]
+        projects = [p for p in self._load_recent_projects() if self._normalize_project_path(p.get("path", "")) != norm]
         self._save_recent_projects(projects)
         self._unpin_project(norm)
         self._refresh_project_picker()
@@ -5745,9 +5310,7 @@ class MainWindow(QMainWindow):
             os.environ["HJEMMELADING_DB_PATH"] = str(get_default_db_path())
         except Exception:
             pass
-        self._show_status_message(
-            f"Active project: {self._project_name_from_path(path)}"
-        )
+        self._show_status_message(f"Active project: {self._project_name_from_path(path)}")
 
     def _refresh_project_picker(self) -> None:
         combo = getattr(self, "project_combo", None)
@@ -5832,9 +5395,7 @@ class MainWindow(QMainWindow):
 
     def _prompt_add_project(self) -> None:
         try:
-            path = QFileDialog.getExistingDirectory(
-                self, tr("mw_select_project_folder")
-            )
+            path = QFileDialog.getExistingDirectory(self, tr("mw_select_project_folder"))
         except Exception:
             path = ""
 
@@ -5933,25 +5494,17 @@ class MainWindow(QMainWindow):
                     btn.setToolTip(proj["path"])
                 except Exception:
                     pass
-                btn.clicked.connect(
-                    lambda _=False, path=proj["path"]: self._activate_project(path)
-                )
+                btn.clicked.connect(lambda _=False, path=proj["path"]: self._activate_project(path))
                 row_layout.addWidget(btn, 1)
 
                 pin_label = tr("mw_unpin") if is_pinned else tr("mw_pin")
                 pin_btn = QPushButton(pin_label)
-                pin_btn.clicked.connect(
-                    lambda _=False, path=proj["path"]: self._toggle_pin_project(path)
-                )
+                pin_btn.clicked.connect(lambda _=False, path=proj["path"]: self._toggle_pin_project(path))
                 row_layout.addWidget(pin_btn)
 
                 if not is_pinned:
                     remove_btn = QPushButton(tr("mw_remove"))
-                    remove_btn.clicked.connect(
-                        lambda _=False, path=proj["path"]: self._remove_recent_project(
-                            path
-                        )
-                    )
+                    remove_btn.clicked.connect(lambda _=False, path=proj["path"]: self._remove_recent_project(path))
                     row_layout.addWidget(remove_btn)
 
                 layout.addWidget(row)
@@ -6091,9 +5644,7 @@ class MainWindow(QMainWindow):
 
                 trace_file = _P(get_log_dir()) / "startup_trace.log"
                 with open(trace_file, "a", encoding="utf-8") as _tf:
-                    _tf.write(
-                        f"startup: enter_show_workflow_hub time={_dt.utcnow().isoformat()}\n"
-                    )
+                    _tf.write(f"startup: enter_show_workflow_hub time={_dt.utcnow().isoformat()}\n")
             except Exception:
                 pass
 
@@ -6170,9 +5721,7 @@ class MainWindow(QMainWindow):
 
                 trace_file = _P(get_log_dir()) / "startup_trace.log"
                 with open(trace_file, "a", encoding="utf-8") as _tf:
-                    _tf.write(
-                        f"startup: exit_show_workflow_hub time={_dt.utcnow().isoformat()}\n"
-                    )
+                    _tf.write(f"startup: exit_show_workflow_hub time={_dt.utcnow().isoformat()}\n")
             except Exception:
                 pass
         except Exception as e:
@@ -6303,8 +5852,7 @@ class MainWindow(QMainWindow):
         if (
             resolved_barrel_name
             and resolved_configuration_name
-            and resolved_barrel_name.casefold()
-            != resolved_configuration_name.casefold()
+            and resolved_barrel_name.casefold() != resolved_configuration_name.casefold()
         ):
             return f"{resolved_barrel_name} / {resolved_configuration_name}"
         return resolved_configuration_name or resolved_barrel_name
@@ -6321,31 +5869,23 @@ class MainWindow(QMainWindow):
                 getattr(self, "db", None),
             )
             barrel_name = str(workflow_context.get("barrel_name") or "").strip()
-            barrel_configuration_name = str(
-                workflow_context.get("barrel_configuration_name") or ""
-            ).strip()
+            barrel_configuration_name = str(workflow_context.get("barrel_configuration_name") or "").strip()
             load_session_id = workflow_context.get("load_session_id")
         except Exception:
             return ""
 
-        if (
-            not barrel_name or not barrel_configuration_name
-        ) and load_session_id not in (None, ""):
+        if (not barrel_name or not barrel_configuration_name) and load_session_id not in (None, ""):
             db = getattr(self, "db", None)
             if db is not None:
                 try:
-                    session = db.get_by_id(
-                        "load_development_sessions", int(load_session_id)
-                    )
+                    session = db.get_by_id("load_development_sessions", int(load_session_id))
                 except Exception:
                     session = None
                 if session:
                     if not barrel_name:
                         barrel_name = str(session.get("barrel_name") or "").strip()
                     if not barrel_configuration_name:
-                        barrel_configuration_name = str(
-                            session.get("barrel_configuration_name") or ""
-                        ).strip()
+                        barrel_configuration_name = str(session.get("barrel_configuration_name") or "").strip()
 
         return MainWindow._format_active_setup_label(
             self,
@@ -6399,12 +5939,8 @@ class MainWindow(QMainWindow):
             return resolved_message
         return f"Setup {resolved_setup_label}. {resolved_message}"
 
-    def _activate_workflow_tab(
-        self, workflow_id: str, workflow_name: str, tab_idx: int
-    ) -> None:
-        display_name = MainWindow._format_workflow_display_name(
-            self, workflow_name, workflow_id
-        )
+    def _activate_workflow_tab(self, workflow_id: str, workflow_name: str, tab_idx: int) -> None:
+        display_name = MainWindow._format_workflow_display_name(self, workflow_name, workflow_id)
         try:
             self._show_tabs_widget()
             self.tabs.setCurrentIndex(tab_idx)
@@ -6425,12 +5961,8 @@ class MainWindow(QMainWindow):
 
         try:
             workflow_hub = getattr(self, "workflow_hub", None)
-            if workflow_hub is not None and hasattr(
-                workflow_hub, "mark_workflow_active"
-            ):
-                workflow_hub.mark_workflow_active(
-                    workflow_id, display_name or workflow_name
-                )
+            if workflow_hub is not None and hasattr(workflow_hub, "mark_workflow_active"):
+                workflow_hub.mark_workflow_active(workflow_id, display_name or workflow_name)
         except Exception:
             pass
 
@@ -6438,9 +5970,7 @@ class MainWindow(QMainWindow):
         """Launch specific workflow"""
         workflow_map = self._get_workflow_map()
         if workflow_id not in workflow_map:
-            self._show_status_message(
-                tr("mw_workflow_not_implemented_yet", workflow_id=workflow_id)
-            )
+            self._show_status_message(tr("mw_workflow_not_implemented_yet", workflow_id=workflow_id))
             return
 
         workflow_name, tab_idx = workflow_map[workflow_id]
@@ -6452,9 +5982,7 @@ class MainWindow(QMainWindow):
         if tab_idx is not None:
             self._activate_workflow_tab(workflow_id, workflow_name, tab_idx)
         else:
-            self._show_status_message(
-                tr("mw_workflow_coming_soon", workflow_name=workflow_name)
-            )
+            self._show_status_message(tr("mw_workflow_coming_soon", workflow_name=workflow_name))
 
     def launch_smart_wizard(self):
         """Launch the streamlined load assistant."""
@@ -6489,9 +6017,7 @@ class MainWindow(QMainWindow):
                 self._saved_workflows_available = True
                 self._saved_states_preview = active_states
                 try:
-                    self._show_status_message(
-                        tr("mw_saved_workflows_available", count=len(active_states))
-                    )
+                    self._show_status_message(tr("mw_saved_workflows_available", count=len(active_states)))
                 except Exception:
                     pass
             else:
@@ -6501,9 +6027,7 @@ class MainWindow(QMainWindow):
             self._saved_workflows_available = False
             self._saved_states_preview = []
 
-    def _restore_resumed_rifle_profile_context(
-        self, workflow_context: dict[str, object]
-    ) -> None:
+    def _restore_resumed_rifle_profile_context(self, workflow_context: dict[str, object]) -> None:
         db = getattr(self, "db", None)
         if db is None:
             return
@@ -6535,17 +6059,10 @@ class MainWindow(QMainWindow):
 
         changed = False
         barrel_id = str(workflow_context.get("barrel_id") or "").strip() or None
-        configuration_id = (
-            str(workflow_context.get("barrel_configuration_id") or "").strip() or None
-        )
-        configuration_name = (
-            str(workflow_context.get("barrel_configuration_name") or "").strip() or None
-        )
+        configuration_id = str(workflow_context.get("barrel_configuration_id") or "").strip() or None
+        configuration_name = str(workflow_context.get("barrel_configuration_name") or "").strip() or None
 
-        if (
-            barrel_id
-            and str(details.get("active_barrel_id") or "").strip() != barrel_id
-        ):
+        if barrel_id and str(details.get("active_barrel_id") or "").strip() != barrel_id:
             details["active_barrel_id"] = barrel_id
             changed = True
 
@@ -6567,15 +6084,11 @@ class MainWindow(QMainWindow):
                 details["barrels"] = updated_barrels
                 changed = True
 
-        if configuration_id and (
-            str(details.get("active_barrel_configuration_id") or "").strip()
-            != configuration_id
-        ):
+        if configuration_id and (str(details.get("active_barrel_configuration_id") or "").strip() != configuration_id):
             details["active_barrel_configuration_id"] = configuration_id
             changed = True
         if configuration_name and (
-            str(details.get("active_barrel_configuration_name") or "").strip()
-            != configuration_name
+            str(details.get("active_barrel_configuration_name") or "").strip() != configuration_name
         ):
             details["active_barrel_configuration_name"] = configuration_name
             changed = True
@@ -6597,19 +6110,11 @@ class MainWindow(QMainWindow):
                     configurations_changed = True
                 if is_selected:
                     matched_configuration = True
-                    if (
-                        barrel_id
-                        and (
-                            str(updated_configuration.get("barrel_id") or "").strip()
-                            or None
-                        )
-                        != barrel_id
-                    ):
+                    if barrel_id and (str(updated_configuration.get("barrel_id") or "").strip() or None) != barrel_id:
                         updated_configuration["barrel_id"] = barrel_id
                         configurations_changed = True
                     if configuration_name and (
-                        str(updated_configuration.get("name") or "").strip()
-                        != configuration_name
+                        str(updated_configuration.get("name") or "").strip() != configuration_name
                     ):
                         updated_configuration["name"] = configuration_name
                         configurations_changed = True
@@ -6647,75 +6152,55 @@ class MainWindow(QMainWindow):
         db = getattr(self, "db", None)
         if load_session_id not in (None, "") and db is not None:
             try:
-                session = db.get_by_id(
-                    "load_development_sessions", int(load_session_id)
-                )
+                session = db.get_by_id("load_development_sessions", int(load_session_id))
             except Exception:
                 session = None
 
         context = {
-            "workflow_id": state_data.get("workflow_id")
-            or getattr(state, "workflow_id", None),
-            "workflow_name": str(
-                state_data.get("workflow_name")
-                or getattr(state, "workflow_name", "")
-                or ""
-            ).strip(),
+            "workflow_id": state_data.get("workflow_id") or getattr(state, "workflow_id", None),
+            "workflow_name": str(state_data.get("workflow_name") or getattr(state, "workflow_name", "") or "").strip(),
             "load_session_id": _coerce_optional_int(
-                (session or {}).get("id")
-                if isinstance(session, dict)
-                else load_session_id
+                (session or {}).get("id") if isinstance(session, dict) else load_session_id
             ),
             "ammo_profile_id": _coerce_optional_int(
                 (session or {}).get("ammo_profile_id")
-                if isinstance(session, dict)
-                and (session or {}).get("ammo_profile_id") not in (None, "")
+                if isinstance(session, dict) and (session or {}).get("ammo_profile_id") not in (None, "")
                 else state_data.get("ammo_profile_id")
             ),
             "rifle_id": _coerce_optional_int(
                 (session or {}).get("rifle_id")
-                if isinstance(session, dict)
-                and (session or {}).get("rifle_id") not in (None, "")
+                if isinstance(session, dict) and (session or {}).get("rifle_id") not in (None, "")
                 else state_data.get("rifle_id")
             ),
             "barrel_id": str(
                 (session or {}).get("barrel_id")
-                if isinstance(session, dict)
-                and (session or {}).get("barrel_id") not in (None, "")
+                if isinstance(session, dict) and (session or {}).get("barrel_id") not in (None, "")
                 else state_data.get("barrel_id") or ""
             ).strip(),
             "barrel_name": str(
                 (session or {}).get("barrel_name")
-                if isinstance(session, dict)
-                and (session or {}).get("barrel_name") not in (None, "")
+                if isinstance(session, dict) and (session or {}).get("barrel_name") not in (None, "")
                 else state_data.get("barrel_name") or ""
             ).strip(),
             "barrel_configuration_id": str(
                 (session or {}).get("barrel_configuration_id")
-                if isinstance(session, dict)
-                and (session or {}).get("barrel_configuration_id") not in (None, "")
+                if isinstance(session, dict) and (session or {}).get("barrel_configuration_id") not in (None, "")
                 else state_data.get("barrel_configuration_id") or ""
             ).strip()
             or None,
             "barrel_configuration_name": str(
                 (session or {}).get("barrel_configuration_name")
-                if isinstance(session, dict)
-                and (session or {}).get("barrel_configuration_name") not in (None, "")
+                if isinstance(session, dict) and (session or {}).get("barrel_configuration_name") not in (None, "")
                 else state_data.get("barrel_configuration_name") or ""
             ).strip(),
             "session_name": str(
                 (session or {}).get("session_name")
-                if isinstance(session, dict)
-                and (session or {}).get("session_name") not in (None, "")
+                if isinstance(session, dict) and (session or {}).get("session_name") not in (None, "")
                 else state_data.get("session_name") or ""
             ).strip(),
             "created_date": str(
                 state_data.get("created_date")
-                or (
-                    (session or {}).get("created_date")
-                    if isinstance(session, dict)
-                    else ""
-                )
+                or ((session or {}).get("created_date") if isinstance(session, dict) else "")
                 or ((session or {}).get("date") if isinstance(session, dict) else "")
                 or ""
             ).strip(),
@@ -6738,16 +6223,12 @@ class MainWindow(QMainWindow):
         try:
             MainWindow._restore_resumed_workflow_context(self, state)
         except Exception as e:
-            logger.exception(
-                "Failed to restore workflow context for %s: %s", workflow_id, e
-            )
+            logger.exception("Failed to restore workflow context for %s: %s", workflow_id, e)
 
         # Try to launch the workflow and notify the user
         try:
             self.launch_workflow(workflow_id)
-            self._show_status_message(
-                tr("mw_resumed_workflow_status", workflow_name=state.workflow_name)
-            )
+            self._show_status_message(tr("mw_resumed_workflow_status", workflow_name=state.workflow_name))
             QMessageBox.information(
                 self,
                 tr("mw_workflow_resumed_title"),
@@ -6830,9 +6311,7 @@ class MainWindow(QMainWindow):
 
                 db = getattr(self, "db", None)
                 if db is not None:
-                    rifles = (
-                        db.execute_query("SELECT id FROM rifles ORDER BY name") or []
-                    )
+                    rifles = db.execute_query("SELECT id FROM rifles ORDER BY name") or []
                     profiles = []
                     for r in rifles:
                         try:
@@ -6867,16 +6346,9 @@ class MainWindow(QMainWindow):
                     build_weapon_ballistic_profile,
                 )
 
-                rifles = (
-                    self.db.execute_query("SELECT id FROM rifles ORDER BY name LIMIT 1")
-                    or []
-                )
+                rifles = self.db.execute_query("SELECT id FROM rifles ORDER BY name LIMIT 1") or []
                 if rifles:
-                    rid = (
-                        rifles[0][0]
-                        if not isinstance(rifles[0], dict)
-                        else rifles[0]["id"]
-                    )
+                    rid = rifles[0][0] if not isinstance(rifles[0], dict) else rifles[0]["id"]
                     p = build_weapon_ballistic_profile(self.db, rid)
                     dlg.set_profile(p)
             except Exception:
@@ -6899,11 +6371,7 @@ class MainWindow(QMainWindow):
                     "SELECT id FROM rifles ORDER BY name LIMIT 1"
                 )
                 if rifles:
-                    rid = (
-                        rifles[0][0]
-                        if not isinstance(rifles[0], dict)
-                        else rifles[0]["id"]
-                    )
+                    rid = rifles[0][0] if not isinstance(rifles[0], dict) else rifles[0]["id"]
                     dlg.set_rifle(rid)
             except Exception:
                 pass
@@ -6925,9 +6393,7 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
         try:
-            val = QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "ui/mode", "beginner"
-            )
+            val = QSettings("ReloadingWorkshop", "ReloadingManager").value("ui/mode", "beginner")
             return str(val).lower()
         except Exception:
             return "beginner"
@@ -6953,9 +6419,7 @@ class MainWindow(QMainWindow):
         if not getattr(self, "mode_manager", None):
             return
         try:
-            val = QSettings("ReloadingWorkshop", "ReloadingManager").value(
-                "ui/mode", "beginner"
-            )
+            val = QSettings("ReloadingWorkshop", "ReloadingManager").value("ui/mode", "beginner")
         except Exception:
             val = "beginner"
 
@@ -7085,9 +6549,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 tr("mw_mode_changed_title"),
-                tr("mw_user_mode_changed_to", mode_name=mode_name)
-                + "\n\n"
-                + "\n".join(features),
+                tr("mw_user_mode_changed_to", mode_name=mode_name) + "\n\n" + "\n".join(features),
             )
 
         try:
@@ -7106,9 +6568,7 @@ class MainWindow(QMainWindow):
         dialog.resize(1000, 600)
         dialog.show()
 
-    def show_component_database(
-        self, component_type: str | None = None, component_id: int | None = None
-    ):
+    def show_component_database(self, component_type: str | None = None, component_id: int | None = None):
         """Show component database and optionally focus a specific component."""
         dialog = QWidget(self)
         dialog.setWindowTitle(tr("component_db_title"))
@@ -7117,9 +6577,7 @@ class MainWindow(QMainWindow):
         try:
             from ..layers import component_layer
 
-            manager = self._construct_widget(
-                component_layer.db.ComponentDatabaseManager, self, self.db
-            )
+            manager = self._construct_widget(component_layer.db.ComponentDatabaseManager, self, self.db)
             layout.addWidget(manager)
             if component_type and component_id:
                 try:
@@ -7165,9 +6623,7 @@ class MainWindow(QMainWindow):
         workflow_hub = getattr(self, "workflow_hub", None)
         if workflow_hub is not None:
             try:
-                workflow_hub.mark_workflow_active(
-                    "brass_manager", tr("mw_brass_manager_title")
-                )
+                workflow_hub.mark_workflow_active("brass_manager", tr("mw_brass_manager_title"))
             except Exception:
                 pass
         self._show_status_message(tr("mw_brass_lifecycle_activated"))
@@ -7344,18 +6800,25 @@ class MainWindow(QMainWindow):
             dialog = QDialog(self)
             dialog.setWindowTitle(tr("mw_tactical_load_builder_title"))
             dialog.setWindowIcon(self.windowIcon())
-            dialog.resize(1600, 1000)
+            dialog.setWindowFlags(
+                Qt.WindowType.Window
+                | Qt.WindowType.WindowCloseButtonHint
+                | Qt.WindowType.WindowMaximizeButtonHint
+                | Qt.WindowType.WindowMinimizeButtonHint
+            )
+            screen = QGuiApplication.primaryScreen()
+            if screen is not None:
+                ag = screen.availableGeometry()
+                dialog.resize(min(1600, ag.width()), min(1000, ag.height()))
+            else:
+                dialog.resize(1600, 1000)
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 0, 0, 0)
 
             logger.info("Creating ModernLoadBuilder widget...")
             builder = self._construct_widget(ModernLoadBuilder, self)
             try:
-                builder.batch_created.connect(
-                    lambda batch_id: setattr(
-                        self, "_pending_batch_workspace_id", batch_id
-                    )
-                )
+                builder.batch_created.connect(lambda batch_id: setattr(self, "_pending_batch_workspace_id", batch_id))
             except Exception:
                 pass
             layout.addWidget(builder)
@@ -7444,9 +6907,7 @@ class MainWindow(QMainWindow):
 
     def show_reference_integration(self):
         """Show reference and measurement integration."""
-        self._show_status_message(
-            "Tidligere referanseintegrasjon er arkivert utenfor produktet."
-        )
+        self._show_status_message("Tidligere referanseintegrasjon er arkivert utenfor produktet.")
         QMessageBox.information(
             self,
             tr("mw_unavailable"),
