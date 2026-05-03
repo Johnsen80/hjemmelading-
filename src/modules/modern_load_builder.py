@@ -7467,6 +7467,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
     def on_rifle_combo_changed(self, index: int) -> None:
         """Handle rifle selection from the top-bar dropdown."""
+        try:
+            self._on_rifle_combo_changed_impl(index)
+        except Exception:
+            import traceback as _tb
+
+            try:
+                self._logger.critical("on_rifle_combo_changed crashed: %s", _tb.format_exc())
+            except Exception:
+                pass
+            raise
+
+    def _on_rifle_combo_changed_impl(self, index: int) -> None:
         rifle_data = self.rifle_combo.itemData(index)
         if not isinstance(rifle_data, dict):
             return
@@ -13545,6 +13557,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
     def on_bullet_changed(self, index):
         """Handle bullet selection"""
+        try:
+            self._on_bullet_changed_impl(index)
+        except Exception:
+            import traceback as _tb
+
+            try:
+                self._logger.critical("on_bullet_changed crashed: %s", _tb.format_exc())
+            except Exception:
+                pass
+            raise
+
+    def _on_bullet_changed_impl(self, index):
         bullet = self.bullet_combo.currentData()
         if bullet:
             self._load_component_lot_choices("bullet", bullet.get("id"))
@@ -13928,6 +13952,18 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
 
     def on_primer_changed(self, index):
         """Handle primer selection and active primer lot context."""
+        try:
+            self._on_primer_changed_impl(index)
+        except Exception:
+            import traceback as _tb
+
+            try:
+                self._logger.critical("on_primer_changed crashed: %s", _tb.format_exc())
+            except Exception:
+                pass
+            raise
+
+    def _on_primer_changed_impl(self, index):
         primer = self.primer_combo.currentData()
         if primer:
             self._load_component_lot_choices("primers", primer.get("id"))
