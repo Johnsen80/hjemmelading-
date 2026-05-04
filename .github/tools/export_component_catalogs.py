@@ -42,9 +42,7 @@ def infer_primer_fields(row: dict[str, Any]) -> dict[str, Any]:
     primer_type = str(row.get("type") or "").strip()
     size = str(row.get("size") or "").strip()
     notes = str(row.get("notes") or "").strip()
-    combined = " ".join(
-        bit for bit in [manufacturer, name, primer_type, size, notes] if bit
-    )
+    combined = " ".join(bit for bit in [manufacturer, name, primer_type, size, notes] if bit)
     lowered = _normalize_text_token(combined)
 
     size_lower = _normalize_text_token(size)
@@ -67,9 +65,7 @@ def infer_primer_fields(row: dict[str, Any]) -> dict[str, Any]:
                 family = f"{family}_benchrest"
             elif _contains_any(lowered, " match", "gold medal", " gm "):
                 family = f"{family}_match"
-            elif _contains_any(
-                lowered, " magnum", "450", "250", "215", "205m ar", "41"
-            ):
+            elif _contains_any(lowered, " magnum", "450", "250", "215", "205m ar", "41"):
                 family = f"{family}_magnum"
             elif _contains_any(lowered, " ar ", "military", "#41", "41 "):
                 family = f"{family}_military"
@@ -141,21 +137,17 @@ def infer_primer_fields(row: dict[str, Any]) -> dict[str, Any]:
 def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8-sig") as handle:
-        writer = csv.DictWriter(
-            handle, fieldnames=fieldnames, delimiter=";", extrasaction="ignore"
-        )
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter=";", extrasaction="ignore")
         writer.writeheader()
         for row in rows:
             writer.writerow({name: row.get(name) for name in fieldnames})
 
 
 def export_primers(conn: sqlite3.Connection, export_dir: Path) -> dict[str, Any]:
-    rows = [
-        dict(row)
-        for row in conn.execute(
-            "SELECT * FROM primers ORDER BY manufacturer, name, id"
-        ).fetchall()
-    ]
+    try:
+        rows = [dict(row) for row in conn.execute("SELECT * FROM primers ORDER BY manufacturer, name, id").fetchall()]
+    except sqlite3.OperationalError:
+        rows = []
     enriched: list[dict[str, Any]] = []
     for row in rows:
         inferred = infer_primer_fields(row)
@@ -224,9 +216,7 @@ def export_primers(conn: sqlite3.Connection, export_dir: Path) -> dict[str, Any]
         "case_count",
     ]
     master_fields = (
-        list(enriched[0].keys())
-        if enriched
-        else ["id", "display_name", "manufacturer", "name", "type", "size"]
+        list(enriched[0].keys()) if enriched else ["id", "display_name", "manufacturer", "name", "type", "size"]
     )
 
     tidy_path = export_dir / "primers_catalog_tidy.csv"
@@ -237,12 +227,12 @@ def export_primers(conn: sqlite3.Connection, export_dir: Path) -> dict[str, Any]
 
 
 def export_cases(conn: sqlite3.Connection, export_dir: Path) -> dict[str, Any]:
-    rows = [
-        dict(row)
-        for row in conn.execute(
-            "SELECT * FROM cases ORDER BY manufacturer, caliber, name, id"
-        ).fetchall()
-    ]
+    try:
+        rows = [
+            dict(row) for row in conn.execute("SELECT * FROM cases ORDER BY manufacturer, caliber, name, id").fetchall()
+        ]
+    except sqlite3.OperationalError:
+        rows = []
     enriched: list[dict[str, Any]] = []
     for row in rows:
         enriched.append(
@@ -275,9 +265,7 @@ def export_cases(conn: sqlite3.Connection, export_dir: Path) -> dict[str, Any]:
         "notes",
     ]
     master_fields = (
-        list(enriched[0].keys())
-        if enriched
-        else ["id", "display_name", "manufacturer", "name", "caliber", "material"]
+        list(enriched[0].keys()) if enriched else ["id", "display_name", "manufacturer", "name", "caliber", "material"]
     )
 
     tidy_path = export_dir / "cases_catalog_tidy.csv"
@@ -287,17 +275,13 @@ def export_cases(conn: sqlite3.Connection, export_dir: Path) -> dict[str, Any]:
     return {"rows": len(enriched), "tidy": str(tidy_path), "master": str(master_path)}
 
 
-def export_manifest(
-    results: dict[str, dict[str, Any]], db_path: Path, export_dir: Path
-) -> str:
+def export_manifest(results: dict[str, dict[str, Any]], db_path: Path, export_dir: Path) -> str:
     manifest_path = export_dir / "components_catalog_manifest.json"
     payload = {
         "generated_from": str(db_path),
         "exports": results,
     }
-    manifest_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return str(manifest_path)
 
 
@@ -308,8 +292,11 @@ def main() -> None:
     args = parser.parse_args()
 
     args.export_dir.mkdir(parents=True, exist_ok=True)
-    bootstrap_db = Database(str(args.db_path))
-    bootstrap_db.close()
+    try:
+        bootstrap_db = Database(str(args.db_path))
+        bootstrap_db.close()
+    except Exception as _exc:
+        print(f"[export] DB bootstrap warning (continuing): {_exc}", file=sys.stderr)
     conn = sqlite3.connect(args.db_path)
     conn.row_factory = sqlite3.Row
     try:
