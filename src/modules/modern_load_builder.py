@@ -4813,7 +4813,7 @@ def build_active_component_context_payload(
             "uses_measured_lot_stats": bool(measured_stats.get("sample_count")),
             "sample_count": measured_stats.get("sample_count"),
             "nominal_weight_grains": bullet_data.get("nominal_weight_grains"),
-            "effective_weight_grains": bullet_data.get("weight_grains", bullet_data.get("weight")),
+            "effective_weight_grains": bullet_data.get("weight_grains") or bullet_data.get("weight"),
             "nominal_length_mm": bullet_data.get("nominal_length_mm"),
             "effective_length_mm": bullet_data.get("length_mm"),
             "nominal_diameter_mm": bullet_data.get("nominal_diameter_mm"),
@@ -17480,7 +17480,7 @@ class ModernLoadBuilder(QWidget, _MLBHelpMixin, _MLBStatsMixin):
             return merged
 
         merged["measured_lot_stats"] = dict(stats)
-        merged["nominal_weight_grains"] = merged.get("weight_grains", merged.get("weight"))
+        merged["nominal_weight_grains"] = merged.get("weight_grains") or merged.get("weight")
         merged["nominal_length_mm"] = merged.get("length_mm")
         merged["nominal_diameter_mm"] = merged.get("diameter_mm")
         if stats.get("weight_avg_grains") is not None:

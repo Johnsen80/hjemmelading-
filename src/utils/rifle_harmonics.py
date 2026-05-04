@@ -73,19 +73,13 @@ def normalize_node_bands(raw: Any) -> List[Dict[str, Any]]:
             if isinstance(item, dict):
                 bands.append(
                     {
-                        "start_mm": _first_float(
-                            [item.get("start_mm"), item.get("start"), item.get("from")]
-                        ),
-                        "end_mm": _first_float(
-                            [item.get("end_mm"), item.get("end"), item.get("to")]
-                        ),
+                        "start_mm": _first_float([item.get("start_mm"), item.get("start"), item.get("from")]),
+                        "end_mm": _first_float([item.get("end_mm"), item.get("end"), item.get("to")]),
                         "robustness": max(
                             0.0,
                             min(
                                 1.0,
-                                _first_float(
-                                    [item.get("robustness"), item.get("score")], 0.5
-                                ),
+                                _first_float([item.get("robustness"), item.get("score")], 0.5),
                             ),
                         ),
                         "label": item.get("label") or item.get("name") or "node",
@@ -136,27 +130,15 @@ def _resolve_active_barrel_details(
     details.setdefault("selected_barrel_name", selected_barrel.get("name"))
     details.setdefault("barrel_length_mm", selected_barrel.get("length_mm"))
     details.setdefault("barrel_profile", selected_barrel.get("barrel_profile"))
-    details.setdefault(
-        "barrel_attachment_type", selected_barrel.get("barrel_attachment_type")
-    )
-    details.setdefault(
-        "free_float_length_mm", selected_barrel.get("free_float_length_mm")
-    )
+    details.setdefault("barrel_attachment_type", selected_barrel.get("barrel_attachment_type"))
+    details.setdefault("free_float_length_mm", selected_barrel.get("free_float_length_mm"))
     details.setdefault("action_stiffness", selected_barrel.get("action_stiffness"))
     details.setdefault("support_type", selected_barrel.get("support_type"))
     details.setdefault("barrel_torque_nm", selected_barrel.get("barrel_torque_nm"))
-    details.setdefault(
-        "barrel_return_to_zero", selected_barrel.get("barrel_return_to_zero")
-    )
-    details.setdefault(
-        "muzzle_device_weight_g", selected_barrel.get("muzzle_device_weight_g")
-    )
-    details.setdefault(
-        "muzzle_device_length_mm", selected_barrel.get("muzzle_device_length_mm")
-    )
-    details.setdefault(
-        "has_muzzle_device", bool(selected_barrel.get("muzzle_device_type"))
-    )
+    details.setdefault("barrel_return_to_zero", selected_barrel.get("barrel_return_to_zero"))
+    details.setdefault("muzzle_device_weight_g", selected_barrel.get("muzzle_device_weight_g"))
+    details.setdefault("muzzle_device_length_mm", selected_barrel.get("muzzle_device_length_mm"))
+    details.setdefault("has_muzzle_device", bool(selected_barrel.get("muzzle_device_type")))
 
     for key in ("tuner_mass_g", "tuner_position_mm", "node_bands", "harmonic_score"):
         if key in selected_barrel and key not in details:
@@ -184,19 +166,10 @@ def calculate_harmonics_profile(
     if not isinstance(harmonics, dict):
         harmonics = {}
 
-    rifle_id = rifle.get("id", profile_details.get("rifle_id"))
+    rifle_id = rifle.get("id") or profile_details.get("rifle_id")
     rifle_name = rifle.get("name") or profile_details.get("rifle_name") or "unknown"
-    barrel_name = (
-        profile_details.get("selected_barrel_name")
-        or profile_details.get("barrel_name")
-        or "standard"
-    )
-    caliber_name = (
-        rifle.get("caliber")
-        or profile_details.get("caliber")
-        or profile_details.get("cartridge_name")
-        or ""
-    )
+    barrel_name = profile_details.get("selected_barrel_name") or profile_details.get("barrel_name") or "standard"
+    caliber_name = rifle.get("caliber") or profile_details.get("caliber") or profile_details.get("cartridge_name") or ""
     profile_scope = "rifle-bound" if rifle_id is not None else "unbound"
 
     barrel_length_mm = _first_float(
@@ -209,10 +182,7 @@ def calculate_harmonics_profile(
         600.0,
     )
     barrel_profile = (
-        profile_details.get("barrel_profile")
-        or rifle.get("barrel_contour")
-        or rifle.get("barrel_profile")
-        or "medium"
+        profile_details.get("barrel_profile") or rifle.get("barrel_contour") or rifle.get("barrel_profile") or "medium"
     )
     barrel_profile_text = str(barrel_profile).lower()
     profile_factor = _STIFFNESS_ORDER.get(barrel_profile_text, 1.0)
@@ -233,9 +203,7 @@ def calculate_harmonics_profile(
         ],
         28.0,
     )
-    barrel_weight_g = _first_float(
-        [rifle.get("barrel_weight_grams"), profile_details.get("barrel_weight")], 2200.0
-    )
+    barrel_weight_g = _first_float([rifle.get("barrel_weight_grams"), profile_details.get("barrel_weight")], 2200.0)
     free_float_mm = _first_float(
         [
             harmonics.get("free_float_length_mm"),
@@ -246,17 +214,11 @@ def calculate_harmonics_profile(
     tuner_mass_g = _first_float([harmonics.get("tuner_mass_g")], 0.0)
     tuner_position_mm = _first_float([harmonics.get("tuner_position_mm")], 0.0)
     action_stiffness = str(
-        harmonics.get("action_stiffness")
-        or profile_details.get("action_stiffness")
-        or "normal"
+        harmonics.get("action_stiffness") or profile_details.get("action_stiffness") or "normal"
     ).lower()
-    support_type = str(
-        harmonics.get("support_type") or profile_details.get("support_type") or "bipod"
-    ).lower()
+    support_type = str(harmonics.get("support_type") or profile_details.get("support_type") or "bipod").lower()
     attachment_type = str(
-        profile_details.get("barrel_attachment_type")
-        or profile_details.get("mount_type")
-        or "unknown"
+        profile_details.get("barrel_attachment_type") or profile_details.get("mount_type") or "unknown"
     ).lower()
     attachment_factor = _ATTACHMENT_FACTOR.get(attachment_type, 1.0)
     barrel_torque_nm = _first_float([profile_details.get("barrel_torque_nm")], 0.0)
@@ -278,18 +240,14 @@ def calculate_harmonics_profile(
         0.0,
     )
     has_muzzle_device = bool(
-        profile_details.get("has_muzzle_device")
-        or muzzle_device_mass_g > 0
-        or muzzle_device_length_mm > 0
+        profile_details.get("has_muzzle_device") or muzzle_device_mass_g > 0 or muzzle_device_length_mm > 0
     )
 
     case_measurements = profile_details.get("case_measurements", {}) or {}
     chamber_inputs = {
         "freebore_mm": profile_details.get("freebore_mm") or rifle.get("freebore_mm"),
-        "throat_angle_deg": profile_details.get("throat_angle_deg")
-        or rifle.get("throat_angle_deg"),
-        "throat_erosion_mm": profile_details.get("throat_erosion_mm")
-        or rifle.get("throat_erosion_mm"),
+        "throat_angle_deg": profile_details.get("throat_angle_deg") or rifle.get("throat_angle_deg"),
+        "throat_erosion_mm": profile_details.get("throat_erosion_mm") or rifle.get("throat_erosion_mm"),
         "case_neck_diameter_mm": case_measurements.get("neck_diameter_mm"),
         "trim_length_mm": case_measurements.get("trim_length_mm"),
     }
@@ -329,23 +287,13 @@ def calculate_harmonics_profile(
     if not required_inputs["support_type"]:
         estimated_inputs.append("support type defaulted to bipod")
 
-    effective_length_mm = max(
-        1.0, barrel_length_mm - min(free_float_mm, barrel_length_mm * 0.35)
-    )
+    effective_length_mm = max(1.0, barrel_length_mm - min(free_float_mm, barrel_length_mm * 0.35))
     muzzle_ratio = max(0.5, muzzle_dia / max(breech_dia, 1.0))
-    mass_factor = max(
-        0.55, min(1.65, barrel_weight_g / max(barrel_length_mm, 1.0) / 3.0)
-    )
-    stiffness_factor = (
-        profile_factor * (1.0 + (muzzle_ratio - 0.65) * 0.45) * mass_factor
-    )
+    mass_factor = max(0.55, min(1.65, barrel_weight_g / max(barrel_length_mm, 1.0) / 3.0))
+    stiffness_factor = profile_factor * (1.0 + (muzzle_ratio - 0.65) * 0.45) * mass_factor
     action_factor = _ACTION_STIFFNESS.get(action_stiffness, 1.0)
     support_factor = _SUPPORT_STABILITY.get(support_type, 1.0)
-    muzzle_device_factor = (
-        1.0
-        + (muzzle_device_mass_g / 1000.0) * 0.08
-        + (muzzle_device_length_mm / 100.0) * 0.04
-    )
+    muzzle_device_factor = 1.0 + (muzzle_device_mass_g / 1000.0) * 0.08 + (muzzle_device_length_mm / 100.0) * 0.04
     tuner_factor = 1.0 + (tuner_mass_g / 500.0) * 0.06
 
     estimated_frequency_hz = max(
@@ -391,19 +339,13 @@ def calculate_harmonics_profile(
         )
     freebore_delta = chamber_comparison.get("freebore_delta_mm")
     if isinstance(freebore_delta, (int, float)) and abs(float(freebore_delta)) >= 0.15:
-        sensitivity["seating_depth"] = round(
-            min(2.2, sensitivity["seating_depth"] + 0.12), 2
-        )
+        sensitivity["seating_depth"] = round(min(2.2, sensitivity["seating_depth"] + 0.12), 2)
     neck_clearance = chamber_comparison.get("neck_clearance_mm")
     if isinstance(neck_clearance, (int, float)):
         if float(neck_clearance) < 0.02:
-            sensitivity["neck_tension"] = round(
-                min(2.0, sensitivity["neck_tension"] + 0.25), 2
-            )
+            sensitivity["neck_tension"] = round(min(2.0, sensitivity["neck_tension"] + 0.25), 2)
         elif float(neck_clearance) < 0.05:
-            sensitivity["neck_tension"] = round(
-                min(2.0, sensitivity["neck_tension"] + 0.12), 2
-            )
+            sensitivity["neck_tension"] = round(min(2.0, sensitivity["neck_tension"] + 0.12), 2)
 
     bands = normalize_node_bands(harmonics.get("node_bands"))
     if not bands:
@@ -435,29 +377,21 @@ def calculate_harmonics_profile(
     if has_muzzle_device:
         notes.append("Muzzle device er tatt med i modellen")
     if tuner_mass_g > 0:
-        notes.append(
-            f"Tuner på {tuner_position_mm:.0f} mm med {tuner_mass_g:.0f} g masse er medregnet"
-        )
+        notes.append(f"Tuner på {tuner_position_mm:.0f} mm med {tuner_mass_g:.0f} g masse er medregnet")
     if barrel_torque_nm > 0:
         notes.append(f"Registrert pipemoment: {barrel_torque_nm:.1f} Nm")
     if return_to_zero:
         notes.append(f"Return-to-zero: {return_to_zero}")
     if attachment_type == "quick_change":
-        notes.append(
-            "Quick-change system kan være mer følsomt for pipebytte og krever ofte ekstra verifisering"
-        )
+        notes.append("Quick-change system kan være mer følsomt for pipebytte og krever ofte ekstra verifisering")
     if chamber_comparison:
         notes.extend(chamber_comparison.get("notes") or [])
     if missing_required:
-        notes.append(
-            "Datagrunnlaget er delvis generelt: mangler " + ", ".join(missing_required)
-        )
+        notes.append("Datagrunnlaget er delvis generelt: mangler " + ", ".join(missing_required))
 
     required_score = sum(1 for ok in required_inputs.values() if ok)
     optional_score = sum(1 for ok in optional_inputs.values() if ok)
-    completeness_ratio = (required_score + optional_score * 0.35) / (
-        len(required_inputs) + len(optional_inputs) * 0.35
-    )
+    completeness_ratio = (required_score + optional_score * 0.35) / (len(required_inputs) + len(optional_inputs) * 0.35)
     harmonics_confidence = (
         "high"
         if required_score >= 5 and completeness_ratio >= 0.8
@@ -487,11 +421,7 @@ def calculate_harmonics_profile(
         "stability_tier": (
             "very-stable"
             if harmonic_score >= 16
-            else (
-                "stable"
-                if harmonic_score >= 12
-                else "moderate" if harmonic_score >= 8 else "sensitive"
-            )
+            else ("stable" if harmonic_score >= 12 else "moderate" if harmonic_score >= 8 else "sensitive")
         ),
         "support_type": support_type,
         "action_stiffness": action_stiffness,
@@ -524,9 +454,7 @@ def build_harmonics_html(rifle: Dict[str, Any], profile_details: Dict[str, Any])
     note_html = "".join(f"<li>{note}</li>" for note in summary["notes"])
     sensitivity = summary["sensitivity"]
     comparison = summary.get("chamber_comparison") or {}
-    comparison_notes = "".join(
-        f"<li>{note}</li>" for note in (comparison.get("notes") or [])
-    )
+    comparison_notes = "".join(f"<li>{note}</li>" for note in (comparison.get("notes") or []))
     return f"""
     <h3>Harmonisk analyse</h3>
     <ul>

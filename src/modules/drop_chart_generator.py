@@ -3,6 +3,7 @@ Drop Chart Generator & Wind Drift Calculator
 Genererer drop tables og DOPE cards med PDF export
 """
 
+import logging
 import math
 from datetime import datetime
 
@@ -80,6 +81,9 @@ def _build_environment(
     )
 
 
+_logger = logging.getLogger(__name__)
+
+
 class DropChartGenerator(QWidget):
     """Widget for drop chart generering og wind drift beregning"""
 
@@ -107,19 +111,13 @@ class DropChartGenerator(QWidget):
         layout.addWidget(tabs)
 
         # Tab 1: Drop Chart
-        tabs.addTab(
-            self.create_drop_chart_tab(), tr("drop_chart_tab", self.current_language)
-        )
+        tabs.addTab(self.create_drop_chart_tab(), tr("drop_chart_tab", self.current_language))
 
         # Tab 2: Wind Drift
-        tabs.addTab(
-            self.create_wind_drift_tab(), tr("wind_drift_tab", self.current_language)
-        )
+        tabs.addTab(self.create_wind_drift_tab(), tr("wind_drift_tab", self.current_language))
 
         # Tab 3: Combined DOPE Card
-        tabs.addTab(
-            self.create_dope_card_tab(), tr("dope_card_tab", self.current_language)
-        )
+        tabs.addTab(self.create_dope_card_tab(), tr("dope_card_tab", self.current_language))
 
     def create_drop_chart_tab(self):
         """Oppretter drop chart tab"""
@@ -179,9 +177,7 @@ class DropChartGenerator(QWidget):
         input_layout.addRow(tr("drop_chart_unit"), self.drop_units)
 
         self.drop_drag_model = QComboBox()
-        self.drop_drag_model.addItem(
-            tr("drop_chart_drag_model_auto", self.current_language), "AUTO"
-        )
+        self.drop_drag_model.addItem(tr("drop_chart_drag_model_auto", self.current_language), "AUTO")
         self.drop_drag_model.addItem("G1", "G1")
         self.drop_drag_model.addItem("G7", "G7")
         preferred_drag = _preferred_drag_model()
@@ -190,13 +186,9 @@ class DropChartGenerator(QWidget):
                 self.drop_drag_model.setCurrentIndex(idx)
                 break
         self.drop_drag_model.currentIndexChanged.connect(self.on_ammo_selected)
-        input_layout.addRow(
-            tr("drop_chart_drag_model", self.current_language), self.drop_drag_model
-        )
+        input_layout.addRow(tr("drop_chart_drag_model", self.current_language), self.drop_drag_model)
 
-        self.drop_drag_info = QLabel(
-            tr("drop_chart_drag_model_hint", self.current_language)
-        )
+        self.drop_drag_info = QLabel(tr("drop_chart_drag_model_hint", self.current_language))
         self.drop_drag_info.setWordWrap(True)
         self.drop_drag_info.setStyleSheet("color: gray; font-size: 9pt;")
         input_layout.addRow("", self.drop_drag_info)
@@ -269,13 +261,9 @@ class DropChartGenerator(QWidget):
         scope_layout = QVBoxLayout()
         self.scope_adjustment_group.setLayout(scope_layout)
 
-        self.scope_adjustment_label = QLabel(
-            tr("drop_chart_scope_adjustment_placeholder")
-        )
+        self.scope_adjustment_label = QLabel(tr("drop_chart_scope_adjustment_placeholder"))
         self.scope_adjustment_label.setWordWrap(True)
-        self.scope_adjustment_label.setStyleSheet(
-            "color: #856404; font-weight: normal; padding: 10px;"
-        )
+        self.scope_adjustment_label.setStyleSheet("color: #856404; font-weight: normal; padding: 10px;")
         scope_layout.addWidget(self.scope_adjustment_label)
 
         self.scope_adjustment_group.setVisible(False)
@@ -284,9 +272,7 @@ class DropChartGenerator(QWidget):
         # Generer-knapp
         generate_btn = QPushButton(tr("drop_chart_generate"))
         generate_btn.setMinimumHeight(50)
-        generate_btn.setStyleSheet(
-            "font-size: 14pt; font-weight: bold; background-color: #2196F3; color: white;"
-        )
+        generate_btn.setStyleSheet("font-size: 14pt; font-weight: bold; background-color: #2196F3; color: white;")
         generate_btn.clicked.connect(self.generate_drop_chart)
         layout.addWidget(generate_btn)
 
@@ -417,9 +403,7 @@ class DropChartGenerator(QWidget):
         # Generer-knapp
         calc_wind_btn = QPushButton(tr("drop_chart_calculate_wind"))
         calc_wind_btn.setMinimumHeight(50)
-        calc_wind_btn.setStyleSheet(
-            "font-size: 14pt; font-weight: bold; background-color: #4CAF50; color: white;"
-        )
+        calc_wind_btn.setStyleSheet("font-size: 14pt; font-weight: bold; background-color: #4CAF50; color: white;")
         calc_wind_btn.clicked.connect(self.calculate_wind_drift)
         layout.addWidget(calc_wind_btn)
 
@@ -469,9 +453,7 @@ class DropChartGenerator(QWidget):
         # Generer
         generate_dope_btn = QPushButton(tr("dope_card_generate"))
         generate_dope_btn.setMinimumHeight(50)
-        generate_dope_btn.setStyleSheet(
-            "font-size: 14pt; font-weight: bold; background-color: #FF9800; color: white;"
-        )
+        generate_dope_btn.setStyleSheet("font-size: 14pt; font-weight: bold; background-color: #FF9800; color: white;")
         generate_dope_btn.clicked.connect(self.generate_dope_card)
         layout.addWidget(generate_dope_btn)
 
@@ -498,9 +480,7 @@ class DropChartGenerator(QWidget):
         )
 
         for row in ammos:
-            ammo_id, name, velocity, bc_g1, bc_g7, bc_segments_json, caliber, weight = (
-                row
-            )
+            ammo_id, name, velocity, bc_g1, bc_g7, bc_segments_json, caliber, weight = row
             bc_label = ""
             if parse_bc_segments(bc_segments_json):
                 bc_label = " | Segmented BC"
@@ -554,17 +534,9 @@ class DropChartGenerator(QWidget):
         resolved_model = str(resolved["resolved_model"])
         note_key = "drop_chart_drag_using_g1"
         if requested_model == "AUTO":
-            note_key = (
-                "drop_chart_drag_auto_g7"
-                if resolved_model == "G7"
-                else "drop_chart_drag_auto_g1"
-            )
+            note_key = "drop_chart_drag_auto_g7" if resolved_model == "G7" else "drop_chart_drag_auto_g1"
         elif requested_model == "G7":
-            note_key = (
-                "drop_chart_drag_using_g7"
-                if resolved_model == "G7"
-                else "drop_chart_drag_g7_missing"
-            )
+            note_key = "drop_chart_drag_using_g7" if resolved_model == "G7" else "drop_chart_drag_g7_missing"
         elif requested_model == "G1" and resolved_model != "G1":
             note_key = "drop_chart_drag_g1_missing"
 
@@ -578,38 +550,39 @@ class DropChartGenerator(QWidget):
         }
 
     @staticmethod
-    def _format_segment_match(
-        segment_match: dict[str, object] | None, drag_model: str
-    ) -> str:
+    def _format_segment_match(segment_match: dict[str, object] | None, drag_model: str) -> str:
         if not segment_match:
             return ""
         model = str(segment_match.get("model") or drag_model or "AUTO").strip().upper()
         if model == "AUTO":
             model = str(drag_model or "AUTO").strip().upper()
-        bc_value = (
-            segment_match.get("bc_g7")
-            or segment_match.get("bc_g1")
-            or segment_match.get("bc")
-        )
+        bc_value = segment_match.get("bc_g7") or segment_match.get("bc_g1") or segment_match.get("bc")
         min_v = segment_match.get("velocity_fps_min")
         max_v = segment_match.get("velocity_fps_max")
         if bc_value is None:
             return ""
         if max_v is not None:
-            return (
-                f"{model} {float(bc_value):.3f} @ "
-                f"{float(min_v or 0):.0f}-{float(max_v):.0f} fps"
-            )
+            return f"{model} {float(bc_value):.3f} @ " f"{float(min_v or 0):.0f}-{float(max_v):.0f} fps"
         return f"{model} {float(bc_value):.3f} @ {float(min_v or 0):.0f}+ fps"
 
     def on_ammo_selected(self):
         """Håndterer ammunisjonsvalg og viser sammenligning med forrige ladning"""
+        try:
+            self._on_ammo_selected_impl()
+        except Exception:
+            import traceback as _tb
+
+            try:
+                _logger.critical("on_ammo_selected crashed: %s", _tb.format_exc())
+            except Exception:
+                pass
+            raise
+
+    def _on_ammo_selected_impl(self):
         ammo_id = self.drop_ammo.currentData()
         if not ammo_id:
             self.scope_adjustment_group.setVisible(False)
-            self.drop_drag_info.setText(
-                tr("drop_chart_drag_model_hint", self.current_language)
-            )
+            self.drop_drag_info.setText(tr("drop_chart_drag_model_hint", self.current_language))
             return
 
         # Hent valgt ammunisjon
@@ -640,20 +613,14 @@ class DropChartGenerator(QWidget):
         drag_resolution = self._resolve_drag_model(
             bc_g1,
             bc_g7,
-            (
-                self.drop_drag_model.currentData()
-                if hasattr(self, "drop_drag_model")
-                else "AUTO"
-            ),
+            (self.drop_drag_model.currentData() if hasattr(self, "drop_drag_model") else "AUTO"),
             bc_segments_json,
             velocity,
         )
         self._last_drag_resolution = drag_resolution
         bc = drag_resolution["bc_value"]
         drag_model = str(drag_resolution["resolved_model"])
-        segment_label = self._format_segment_match(
-            drag_resolution.get("segment_match"), drag_model
-        )
+        segment_label = self._format_segment_match(drag_resolution.get("segment_match"), drag_model)
         drag_info_text = tr(
             str(drag_resolution["note_key"]),
             self.current_language,
@@ -727,15 +694,11 @@ class DropChartGenerator(QWidget):
 
         for dist in test_distances:
             # Drop for the new load
-            drop_new = self.ballistics_calc.calculate_drop(
-                velocity, float(bc), dist, zero_dist, drag_model
-            )
+            drop_new = self.ballistics_calc.calculate_drop(velocity, float(bc), dist, zero_dist, drag_model)
             drop_new_moa = self.ballistics_calc.cm_to_moa(drop_new, dist)
 
             # Drop for the previous load
-            drop_prev = self.ballistics_calc.calculate_drop(
-                prev_vel, float(prev_bc), dist, zero_dist, drag_model
-            )
+            drop_prev = self.ballistics_calc.calculate_drop(prev_vel, float(prev_bc), dist, zero_dist, drag_model)
             drop_prev_moa = self.ballistics_calc.cm_to_moa(drop_prev, dist)
 
             # Difference (negative = the new load drops less)
@@ -746,11 +709,7 @@ class DropChartGenerator(QWidget):
             clicks = diff_moa / 0.25
             direction = "UP ↑" if clicks > 0 else "DOWN ↓" if clicks < 0 else "NONE"
 
-            color = (
-                "#27ae60"
-                if abs(diff_cm) < 5
-                else "#f39c12" if abs(diff_cm) < 15 else "#e74c3c"
-            )
+            color = "#27ae60" if abs(diff_cm) < 5 else "#f39c12" if abs(diff_cm) < 15 else "#e74c3c"
 
             comparison_html += f"""
             <tr>
@@ -787,11 +746,7 @@ class DropChartGenerator(QWidget):
             return
 
         name, velocity, bc_g1, bc_g7, weight, caliber = ammo_row
-        requested_model = (
-            self.drop_drag_model.currentData()
-            if hasattr(self, "drop_drag_model")
-            else "AUTO"
-        )
+        requested_model = self.drop_drag_model.currentData() if hasattr(self, "drop_drag_model") else "AUTO"
         drag_resolution = self._resolve_drag_model(bc_g1, bc_g7, requested_model)
         drag_model = str(drag_resolution["resolved_model"])
         bc = drag_resolution["bc_value"]
@@ -848,9 +803,7 @@ class DropChartGenerator(QWidget):
                 density_ratio=environment.density_ratio(),
             )
 
-            value = self._convert_drop_value(
-                drop_cm, distance, unit, self.ballistics_calc
-            )
+            value = self._convert_drop_value(drop_cm, distance, unit, self.ballistics_calc)
 
             self.drop_table.setItem(idx, 0, QTableWidgetItem(str(distance)))
             self.drop_table.setItem(idx, 1, QTableWidgetItem(f"{value:.2f}"))
@@ -928,19 +881,13 @@ class DropChartGenerator(QWidget):
         drag_resolution = self._resolve_drag_model(
             bc_g1,
             bc_g7,
-            (
-                self.drop_drag_model.currentData()
-                if hasattr(self, "drop_drag_model")
-                else "AUTO"
-            ),
+            (self.drop_drag_model.currentData() if hasattr(self, "drop_drag_model") else "AUTO"),
             bc_segments_json,
             velocity,
         )
         drag_model = str(drag_resolution["resolved_model"])
         bc = drag_resolution["bc_value"]
-        segment_label = self._format_segment_match(
-            drag_resolution.get("segment_match"), drag_model
-        )
+        segment_label = self._format_segment_match(drag_resolution.get("segment_match"), drag_model)
         environment = _build_environment(
             self.drop_temp.value(),
             self.drop_pressure.value(),
@@ -964,11 +911,7 @@ class DropChartGenerator(QWidget):
         wind_factor = abs(math.sin(angle_rad))  # 0° = 0, 90° = 1
 
         # Beregn wind drift for hver hastighet
-        segmented_bc_line = (
-            f"{tr('drop_chart_segmented_bc_line', value=segment_label)}<br>"
-            if segment_label
-            else ""
-        )
+        segmented_bc_line = f"{tr('drop_chart_segmented_bc_line', value=segment_label)}<br>" if segment_label else ""
         results_html = f"""
 <h2>{tr("drop_chart_wind_result_title")}</h2>
 
@@ -1063,19 +1006,13 @@ class DropChartGenerator(QWidget):
         drag_resolution = self._resolve_drag_model(
             bc_g1,
             bc_g7,
-            (
-                self.drop_drag_model.currentData()
-                if hasattr(self, "drop_drag_model")
-                else "AUTO"
-            ),
+            (self.drop_drag_model.currentData() if hasattr(self, "drop_drag_model") else "AUTO"),
             bc_segments_json,
             velocity,
         )
         drag_model = str(drag_resolution["resolved_model"])
         bc = drag_resolution["bc_value"]
-        segment_label = self._format_segment_match(
-            drag_resolution.get("segment_match"), drag_model
-        )
+        segment_label = self._format_segment_match(drag_resolution.get("segment_match"), drag_model)
         environment = _build_environment(
             self.drop_temp.value(),
             self.drop_pressure.value(),

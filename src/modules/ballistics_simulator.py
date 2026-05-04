@@ -5,6 +5,7 @@ Shows pressure curves, velocity curves, and barrel time with live updates.
 """
 
 import json
+import logging
 
 import numpy as np
 from PyQt6.QtCore import Qt
@@ -78,6 +79,8 @@ from ..utils.i18n import tr
 from ..utils.rifle_harmonics import calculate_harmonics_profile
 from .ballistics_engine import get_ballistics_engine
 
+_logger = logging.getLogger(__name__)
+
 
 class BallisticsSimulator(QWidget):
     """
@@ -106,9 +109,7 @@ class BallisticsSimulator(QWidget):
 
         # Title
         title = QLabel(tr("ballistics_sim_title"), self)
-        title.setStyleSheet(
-            "font-size: 18pt; font-weight: bold; color: #2c3e50; padding: 10px;"
-        )
+        title.setStyleSheet("font-size: 18pt; font-weight: bold; color: #2c3e50; padding: 10px;")
         layout.addWidget(title)
 
         # Component Selection
@@ -203,12 +204,8 @@ class BallisticsSimulator(QWidget):
         # Slider with value display
         slider_row = QHBoxLayout()
 
-        self.charge_label = QLabel(
-            self._format_charge_label(self.current_charge), group
-        )
-        self.charge_label.setStyleSheet(
-            "font-size: 16pt; font-weight: bold; color: #27ae60;"
-        )
+        self.charge_label = QLabel(self._format_charge_label(self.current_charge), group)
+        self.charge_label.setStyleSheet("font-size: 16pt; font-weight: bold; color: #27ae60;")
         slider_row.addWidget(self.charge_label)
 
         self.charge_slider = QSlider(Qt.Orientation.Horizontal, group)
@@ -244,13 +241,9 @@ class BallisticsSimulator(QWidget):
         # PyQtGraph plot widget
         self.pressure_plot = pg.PlotWidget(widget)
         self.pressure_plot.setBackground("w")
-        self.pressure_plot.setLabel(
-            "left", tr("ballistics_pressure_label"), units="PSI"
-        )
+        self.pressure_plot.setLabel("left", tr("ballistics_pressure_label"), units="PSI")
         self.pressure_plot.setLabel("bottom", tr("ballistics_time_label"), units="ms")
-        self.pressure_plot.setTitle(
-            tr("ballistics_chamber_pressure_vs_time"), color="k", size="12pt"
-        )
+        self.pressure_plot.setTitle(tr("ballistics_chamber_pressure_vs_time"), color="k", size="12pt")
         self.pressure_plot.addLegend()
 
         # Add max pressure line
@@ -273,15 +266,9 @@ class BallisticsSimulator(QWidget):
 
         self.velocity_plot = pg.PlotWidget(widget)
         self.velocity_plot.setBackground("w")
-        self.velocity_plot.setLabel(
-            "left", tr("ballistics_velocity_label"), units="fps"
-        )
-        self.velocity_plot.setLabel(
-            "bottom", tr("ballistics_barrel_position_label"), units="inches"
-        )
-        self.velocity_plot.setTitle(
-            tr("ballistics_bullet_velocity_in_barrel"), color="k", size="12pt"
-        )
+        self.velocity_plot.setLabel("left", tr("ballistics_velocity_label"), units="fps")
+        self.velocity_plot.setLabel("bottom", tr("ballistics_barrel_position_label"), units="inches")
+        self.velocity_plot.setTitle(tr("ballistics_bullet_velocity_in_barrel"), color="k", size="12pt")
         self.velocity_plot.addLegend()
 
         layout.addWidget(self.velocity_plot)
@@ -296,15 +283,9 @@ class BallisticsSimulator(QWidget):
         # Multi-charge comparison
         self.comparison_plot = pg.PlotWidget(widget)
         self.comparison_plot.setBackground("w")
-        self.comparison_plot.setLabel(
-            "left", tr("ballistics_pressure_label"), units="PSI"
-        )
-        self.comparison_plot.setLabel(
-            "bottom", tr("ballistics_charge_weight_label"), units="grains"
-        )
-        self.comparison_plot.setTitle(
-            tr("ballistics_pressure_vs_charge_weight"), color="k", size="12pt"
-        )
+        self.comparison_plot.setLabel("left", tr("ballistics_pressure_label"), units="PSI")
+        self.comparison_plot.setLabel("bottom", tr("ballistics_charge_weight_label"), units="grains")
+        self.comparison_plot.setTitle(tr("ballistics_pressure_vs_charge_weight"), color="k", size="12pt")
 
         # Add SAAMI max line
         self.comp_max_line = pg.InfiniteLine(
@@ -320,15 +301,9 @@ class BallisticsSimulator(QWidget):
         # Velocity vs charge
         self.velocity_comparison_plot = pg.PlotWidget(widget)
         self.velocity_comparison_plot.setBackground("w")
-        self.velocity_comparison_plot.setLabel(
-            "left", tr("ballistics_velocity_label"), units="fps"
-        )
-        self.velocity_comparison_plot.setLabel(
-            "bottom", tr("ballistics_charge_weight_label"), units="grains"
-        )
-        self.velocity_comparison_plot.setTitle(
-            tr("ballistics_velocity_vs_charge_weight"), color="k", size="12pt"
-        )
+        self.velocity_comparison_plot.setLabel("left", tr("ballistics_velocity_label"), units="fps")
+        self.velocity_comparison_plot.setLabel("bottom", tr("ballistics_charge_weight_label"), units="grains")
+        self.velocity_comparison_plot.setTitle(tr("ballistics_velocity_vs_charge_weight"), color="k", size="12pt")
 
         layout.addWidget(self.velocity_comparison_plot)
 
@@ -342,21 +317,13 @@ class BallisticsSimulator(QWidget):
 
         self.harmonics_plot = pg.PlotWidget(widget)
         self.harmonics_plot.setBackground("w")
-        self.harmonics_plot.setLabel(
-            "left", tr("ballistics_muzzle_displacement_label"), units="mm"
-        )
+        self.harmonics_plot.setLabel("left", tr("ballistics_muzzle_displacement_label"), units="mm")
         self.harmonics_plot.setLabel("bottom", tr("ballistics_time_label"), units="ms")
-        self.harmonics_plot.setTitle(
-            tr("ballistics_barrel_harmonics_timing"), color="k", size="12pt"
-        )
+        self.harmonics_plot.setTitle(tr("ballistics_barrel_harmonics_timing"), color="k", size="12pt")
 
         layout.addWidget(self.harmonics_plot)
-        self.harmonics_summary_label = QLabel(
-            tr("ballistics_select_rifle_for_harmonics")
-        )
-        self.harmonics_summary_label.setStyleSheet(
-            "padding: 8px; color: #2c3e50; font-weight: bold;"
-        )
+        self.harmonics_summary_label = QLabel(tr("ballistics_select_rifle_for_harmonics"))
+        self.harmonics_summary_label.setStyleSheet("padding: 8px; color: #2c3e50; font-weight: bold;")
         layout.addWidget(self.harmonics_summary_label)
 
         # Hent harmonics-data fra rifleprofil/barrel
@@ -373,12 +340,8 @@ class BallisticsSimulator(QWidget):
                 start = float(node.get("start_mm", 0))
                 end = float(node.get("end_mm", 0))
                 robustness = float(node.get("robustness", 0))
-                self.harmonics_plot.addLine(
-                    x=start, pen=(0, 255, 0, int(robustness * 255))
-                )
-                self.harmonics_plot.addLine(
-                    x=end, pen=(0, 255, 0, int(robustness * 255))
-                )
+                self.harmonics_plot.addLine(x=start, pen=(0, 255, 0, int(robustness * 255)))
+                self.harmonics_plot.addLine(x=end, pen=(0, 255, 0, int(robustness * 255)))
 
         # Vis harmonic_score
         score_label = QLabel(
@@ -407,13 +370,9 @@ class BallisticsSimulator(QWidget):
 
         harmonics = getattr(self, "harmonics", None) or {}
         if not harmonics:
-            self.harmonics_summary_label.setText(
-                tr("ballistics_select_rifle_for_harmonics")
-            )
+            self.harmonics_summary_label.setText(tr("ballistics_select_rifle_for_harmonics"))
             if hasattr(self, "harmonics_score_label"):
-                self.harmonics_score_label.setText(
-                    tr("ballistics_harmonic_score", score=tr("common_na"))
-                )
+                self.harmonics_score_label.setText(tr("ballistics_harmonic_score", score=tr("common_na")))
             return
 
         barrel_name = harmonics.get("barrel_name") or tr("ballistics_standard_barrel")
@@ -444,9 +403,7 @@ class BallisticsSimulator(QWidget):
                     )
                 )
                 return
-            self.harmonics_score_label.setText(
-                tr("ballistics_harmonic_score", score=score)
-            )
+            self.harmonics_score_label.setText(tr("ballistics_harmonic_score", score=score))
 
     def create_stats_panel(self):
         """Create statistics display panel"""
@@ -456,12 +413,8 @@ class BallisticsSimulator(QWidget):
         self.stat_pressure = QLabel(tr("ballistics_pressure_stat_placeholder"), group)
         self.stat_velocity = QLabel(tr("ballistics_velocity_stat_placeholder"), group)
         self.stat_energy = QLabel(tr("ballistics_energy_stat_placeholder"), group)
-        self.stat_barrel_time = QLabel(
-            tr("ballistics_barrel_time_stat_placeholder"), group
-        )
-        self.stat_safety = QLabel(
-            tr("ballistics_safety_margin_stat_placeholder"), group
-        )
+        self.stat_barrel_time = QLabel(tr("ballistics_barrel_time_stat_placeholder"), group)
+        self.stat_safety = QLabel(tr("ballistics_safety_margin_stat_placeholder"), group)
 
         for label in [
             self.stat_pressure,
@@ -506,9 +459,7 @@ class BallisticsSimulator(QWidget):
                         (f"{diam}%", f".{diam}%", caliber),
                     )
         if not bullets:
-            bullets = self.db.execute_query(
-                "SELECT * FROM bullets ORDER BY weight_grains"
-            )
+            bullets = self.db.execute_query("SELECT * FROM bullets ORDER BY weight_grains")
         self.bullet_combo.clear()
         self.bullet_combo.addItem(tr("ballistics_select_bullet"), None)
         for bullet in bullets or []:
@@ -523,9 +474,7 @@ class BallisticsSimulator(QWidget):
         self.powder_combo.clear()
         self.powder_combo.addItem(tr("ballistics_select_powder"), None)
         for powder in powders:
-            self.powder_combo.addItem(
-                f"{powder['manufacturer']} {powder['name']}", powder
-            )
+            self.powder_combo.addItem(f"{powder['manufacturer']} {powder['name']}", powder)
 
     def _load_rifle_profile_details(self, rifle_id):
         """Load stored rifle profile details for the selected rifle."""
@@ -550,9 +499,7 @@ class BallisticsSimulator(QWidget):
 
         details = details or self._load_rifle_profile_details(rifle_id)
         barrels = details.get("barrels", []) if isinstance(details, dict) else []
-        active_barrel_id = (
-            details.get("active_barrel_id") if isinstance(details, dict) else None
-        )
+        active_barrel_id = details.get("active_barrel_id") if isinstance(details, dict) else None
 
         if isinstance(barrels, list) and barrels:
             active_index = 0
@@ -589,14 +536,24 @@ class BallisticsSimulator(QWidget):
 
     def on_rifle_changed(self, index):
         """Handle rifle selection change"""
+        try:
+            self._on_rifle_changed_impl(index)
+        except Exception:
+            import traceback as _tb
+
+            try:
+                _logger.critical("on_rifle_changed crashed: %s", _tb.format_exc())
+            except Exception:
+                pass
+            raise
+
+    def _on_rifle_changed_impl(self, index):
         rifle = self.rifle_combo.currentData()
         if rifle:
             self.rifle_id = rifle["id"]
             details = self._load_rifle_profile_details(self.rifle_id)
             self.populate_barrel_options(self.rifle_id, details)
-            self.harmonics = calculate_harmonics_profile(
-                rifle, self._current_harmonics_details(rifle, details)
-            )
+            self.harmonics = calculate_harmonics_profile(rifle, self._current_harmonics_details(rifle, details))
             # Update COAL if rifle has max_coal
             if rifle.get("max_coal_magazine_mm"):
                 self.coal_spin.setValue(rifle["max_coal_magazine_mm"] - 2.0)
@@ -612,6 +569,18 @@ class BallisticsSimulator(QWidget):
 
     def on_barrel_changed(self, index):
         """Refresh harmonics and simulation when selected barrel changes."""
+        try:
+            self._on_barrel_changed_impl(index)
+        except Exception:
+            import traceback as _tb
+
+            try:
+                _logger.critical("on_barrel_changed crashed: %s", _tb.format_exc())
+            except Exception:
+                pass
+            raise
+
+    def _on_barrel_changed_impl(self, index):
         rifle = self.rifle_combo.currentData()
         if not rifle:
             self.harmonics = {}
@@ -619,9 +588,7 @@ class BallisticsSimulator(QWidget):
             return
 
         details = self._load_rifle_profile_details(rifle["id"])
-        self.harmonics = calculate_harmonics_profile(
-            rifle, self._current_harmonics_details(rifle, details)
-        )
+        self.harmonics = calculate_harmonics_profile(rifle, self._current_harmonics_details(rifle, details))
         self._refresh_harmonics_tab()
         self.update_simulation()
 
@@ -649,35 +616,46 @@ class BallisticsSimulator(QWidget):
         barrel = self._selected_barrel()
 
         # Calculate ballistics
-        result = self.engine.calculate_load(
-            rifle["id"],
-            bullet["id"],
-            powder["id"],
-            self.current_charge,
-            self.coal_mm,
-            self.cbto_mm,
-            barrel_id=barrel.get("id"),
-        )
+        try:
+            result = self.engine.calculate_load(
+                rifle["id"],
+                bullet["id"],
+                powder["id"],
+                self.current_charge,
+                self.coal_mm,
+                self.cbto_mm,
+                barrel_id=barrel.get("id"),
+            )
+        except Exception:
+            import traceback as _tb
+
+            _logger.warning("update_simulation engine crash: %s", _tb.format_exc())
+            return
 
         if "error" in result:
             return
 
-        # Update pressure curve
-        self.update_pressure_graph(result)
+        try:
+            # Update pressure curve
+            self.update_pressure_graph(result)
 
-        # Update velocity curve
-        self.update_velocity_graph(result)
+            # Update velocity curve
+            self.update_velocity_graph(result)
 
-        # Update combined analysis
-        self.update_combined_graphs(rifle, bullet, powder, barrel)
+            # Update combined analysis
+            self.update_combined_graphs(rifle, bullet, powder, barrel)
 
-        # Update statistics
-        self.update_stats(result)
+            # Update statistics
+            self.update_stats(result)
 
-        # Update SAAMI max line for caliber
-        max_pressure = result["max_pressure_psi"]
-        self.pressure_max_line.setValue(max_pressure)
-        self.comp_max_line.setValue(max_pressure)
+            # Update SAAMI max line for caliber
+            max_pressure = result.get("max_pressure_psi") or 0
+            self.pressure_max_line.setValue(max_pressure)
+            self.comp_max_line.setValue(max_pressure)
+        except Exception:
+            import traceback as _tb
+
+            _logger.warning("update_simulation graph update failed: %s", _tb.format_exc())
 
     def update_pressure_graph(self, result):
         """Update pressure vs time graph"""
@@ -780,9 +758,7 @@ class BallisticsSimulator(QWidget):
         )
 
         # Mark current charge
-        current_idx = min(
-            range(len(charges)), key=lambda i: abs(charges[i] - self.current_charge)
-        )
+        current_idx = min(range(len(charges)), key=lambda i: abs(charges[i] - self.current_charge))
         self.comparison_plot.plot(
             [charges[current_idx]],
             [pressures[current_idx]],
@@ -790,9 +766,7 @@ class BallisticsSimulator(QWidget):
             symbol="o",
             symbolSize=15,
             symbolBrush="#f39c12",
-            name=tr(
-                "ballistics_current_charge_name", charge=f"{self.current_charge:.1f}"
-            ),
+            name=tr("ballistics_current_charge_name", charge=f"{self.current_charge:.1f}"),
         )
 
         # Plot velocity vs charge
@@ -811,9 +785,7 @@ class BallisticsSimulator(QWidget):
             symbol="o",
             symbolSize=15,
             symbolBrush="#f39c12",
-            name=tr(
-                "ballistics_current_charge_name", charge=f"{self.current_charge:.1f}"
-            ),
+            name=tr("ballistics_current_charge_name", charge=f"{self.current_charge:.1f}"),
         )
 
     def update_stats(self, result):
@@ -830,18 +802,10 @@ class BallisticsSimulator(QWidget):
             safety_color = "#27ae60"
             safety_emoji = "🟢"
 
-        self.stat_pressure.setText(
-            tr("ballistics_pressure_stat", value=f"{result['peak_pressure_psi']:.0f}")
-        )
-        self.stat_velocity.setText(
-            tr("ballistics_velocity_stat", value=f"{result['muzzle_velocity_fps']:.0f}")
-        )
-        self.stat_energy.setText(
-            tr("ballistics_energy_stat", value=f"{result['energy_ft_lbs']:.0f}")
-        )
-        self.stat_barrel_time.setText(
-            tr("ballistics_barrel_time_stat", value=f"{result['barrel_time_ms']:.2f}")
-        )
+        self.stat_pressure.setText(tr("ballistics_pressure_stat", value=f"{result['peak_pressure_psi']:.0f}"))
+        self.stat_velocity.setText(tr("ballistics_velocity_stat", value=f"{result['muzzle_velocity_fps']:.0f}"))
+        self.stat_energy.setText(tr("ballistics_energy_stat", value=f"{result['energy_ft_lbs']:.0f}"))
+        self.stat_barrel_time.setText(tr("ballistics_barrel_time_stat", value=f"{result['barrel_time_ms']:.2f}"))
         self.stat_safety.setText(
             tr(
                 "ballistics_safety_stat",
@@ -849,9 +813,7 @@ class BallisticsSimulator(QWidget):
                 value=f"{safety_margin:.1f}",
             )
         )
-        self.stat_safety.setStyleSheet(
-            f"font-size: 11pt; padding: 5px; color: {safety_color}; font-weight: bold;"
-        )
+        self.stat_safety.setStyleSheet(f"font-size: 11pt; padding: 5px; color: {safety_color}; font-weight: bold;")
 
 
 if __name__ == "__main__":
