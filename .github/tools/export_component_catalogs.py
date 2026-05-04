@@ -13,8 +13,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.database.database import Database
-
 DB_PATH = REPO_ROOT / "data" / "reloading.db"
 EXPORT_DIR = REPO_ROOT / ".github" / "data" / "exports"
 
@@ -293,6 +291,8 @@ def main() -> None:
 
     args.export_dir.mkdir(parents=True, exist_ok=True)
     try:
+        from src.database.database import Database  # noqa: PLC0415
+
         bootstrap_db = Database(str(args.db_path))
         bootstrap_db.close()
     except Exception as _exc:
