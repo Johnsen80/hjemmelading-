@@ -364,6 +364,8 @@ class BallisticsEngine:
         bullet = self._fetch_bullet(bullet_id)
         if not bullet:
             return {"error": "Bullet not found"}
+        if not (bullet.get("weight_grains") or bullet.get("weight")):
+            return {"error": "Bullet weight_grains not set"}
 
         # Initialize warnings list
         warnings = []
@@ -422,7 +424,7 @@ class BallisticsEngine:
         # Calculate available volume (case capacity - bullet intrusion)
         available_volume_ml = self._calculate_available_volume(
             case_capacity_ml,
-            bullet["weight_grains"],
+            bullet.get("weight_grains") or bullet.get("weight") or 0,
             coal_mm,
             bullet.get("length_mm") or 0,
             cbto_mm,
@@ -455,7 +457,7 @@ class BallisticsEngine:
         # Calculate velocity with barrel data
         velocity_result = self._calculate_velocity(
             charge_weight_gr,
-            bullet["weight_grains"],
+            bullet.get("weight_grains") or bullet.get("weight") or 0,
             barrel_length_inches,
             pressure_result["peak_pressure_psi"],
             burn_rate_position,
@@ -482,18 +484,20 @@ class BallisticsEngine:
             barrel_weight_kg,
             barrel_length_inches,
             barrel_contour,
-            bullet["weight_grains"],
+            bullet.get("weight_grains") or bullet.get("weight") or 0,
             adjusted_velocity_fps,
         )
         if harmonics_result:
             warnings.append(f"Barrel harmonic: {harmonics_result['explanation']}")
 
         # Calculate muzzle energy
-        energy_ft_lbs = self._calculate_energy(bullet["weight_grains"], adjusted_velocity_fps)
+        energy_ft_lbs = self._calculate_energy(
+            bullet.get("weight_grains") or bullet.get("weight") or 0, adjusted_velocity_fps
+        )
 
         # Safety checks and powder volume
         powder_volume_ml = self._calculate_powder_volume(charge_weight_gr, powder_density)
-        max_pressure = self.PRESSURE_LIMITS.get(rifle["caliber"], 62000)
+        max_pressure = self.PRESSURE_LIMITS.get(rifle.get("caliber"), 62000)
         safety_margin, safety_warnings = self._safety_and_compression_checks(
             pressure_result["peak_pressure_psi"],
             max_pressure,

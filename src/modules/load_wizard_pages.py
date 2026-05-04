@@ -41,10 +41,7 @@ def _format_bullet_drag_summary(bullet: dict) -> str:
         max_v = segment.get("velocity_fps_max")
         if bc_value is not None:
             if max_v is not None:
-                return (
-                    f"{model} {float(bc_value):.3f} @ "
-                    f"{float(min_v or 0):.0f}-{float(max_v):.0f} fps"
-                )
+                return f"{model} {float(bc_value):.3f} @ " f"{float(min_v or 0):.0f}-{float(max_v):.0f} fps"
             return f"{model} {float(bc_value):.3f} @ {float(min_v or 0):.0f}+ fps"
     bc_g7 = bullet.get("bc_g7")
     bc_g1 = bullet.get("bc_g1")
@@ -221,9 +218,7 @@ class BrassSelectionPage(QWizardPage):
         cases = db.get_all("cases", "name")
         self.case_combo.clear()
         for case in cases:
-            self.case_combo.addItem(
-                f"{case['manufacturer']} {case['name']} ({case['caliber']})", case["id"]
-            )
+            self.case_combo.addItem(f"{case['manufacturer']} {case['name']} ({case['caliber']})", case["id"])
 
     def on_batch_type_changed(self):
         """Toggle between existing and new batch"""
@@ -244,9 +239,7 @@ class BrassSelectionPage(QWizardPage):
             self.batch_times_fired_label.setText(times_fired)
 
             self.batch_condition_label.setText(batch.get("condition_rating", "-"))
-            self.batch_last_annealed_label.setText(
-                batch.get("last_annealed_date", "Never") or "Never"
-            )
+            self.batch_last_annealed_label.setText(batch.get("last_annealed_date", "Never") or "Never")
 
     def validatePage(self):
         """Validate brass selection"""
@@ -254,9 +247,7 @@ class BrassSelectionPage(QWizardPage):
 
         if self.existing_radio.isChecked():
             if self.batch_combo.currentData() is None:
-                QMessageBox.warning(
-                    self, "No Batch Selected", "Please select a brass batch."
-                )
+                QMessageBox.warning(self, "No Batch Selected", "Please select a brass batch.")
                 return False
         else:
             # Create new batch
@@ -348,9 +339,7 @@ class BulletSelectionPage(QWizardPage):
         self.bullet_info_layout.addRow("BC / drag:", self.bullet_bc_label)
         self.bullet_info_layout.addRow("Length:", self.bullet_length_label)
         self.bullet_info_layout.addRow("Lot Number:", self.bullet_lot_label)
-        self.bullet_info_layout.addRow(
-            "Quantity Available:", self.bullet_quantity_label
-        )
+        self.bullet_info_layout.addRow("Quantity Available:", self.bullet_quantity_label)
         self.bullet_info_layout.addRow("QC Status:", self.bullet_qc_label)
 
         info_group.setLayout(self.bullet_info_layout)
@@ -376,9 +365,7 @@ class BulletSelectionPage(QWizardPage):
         self.bullet_combo.clear()
         self.bullet_combo.addItem("-- Select Bullet --", None)
         for bullet in bullets:
-            lot_info = (
-                f" [Lot: {bullet['lot_number']}]" if bullet.get("lot_number") else ""
-            )
+            lot_info = f" [Lot: {bullet['lot_number']}]" if bullet.get("lot_number") else ""
             display_text = f"{bullet['manufacturer']} {bullet['name']} {bullet['weight_grains']}gr{lot_info}"
             self.bullet_combo.addItem(display_text, bullet)
 
@@ -391,25 +378,16 @@ class BulletSelectionPage(QWizardPage):
 
             self.bullet_weight_label.setText(f"{bullet.get('weight_grains', 0):.1f} gr")
             self.bullet_bc_label.setText(_format_bullet_drag_summary(bullet))
-            self.bullet_length_label.setText(
-                f"{bullet.get('length_mm', 0):.2f} mm"
-                if bullet.get("length_mm")
-                else "-"
-            )
+            self.bullet_length_label.setText(f"{bullet.get('length_mm', 0):.2f} mm" if bullet.get("length_mm") else "-")
             self.bullet_lot_label.setText(bullet.get("lot_number", "-") or "-")
-            self.bullet_quantity_label.setText(
-                str(bullet.get("quantity_remaining", bullet.get("quantity", 0)))
-            )
+            self.bullet_quantity_label.setText(str(bullet.get("quantity_remaining", bullet.get("quantity", 0))))
 
             if bullet.get("lot_id"):
                 profile = db.refresh_bullet_lot_learning_profile(int(bullet["lot_id"]))
                 qc_text = _format_bullet_lot_learning(profile)
                 advisory_text = _format_bullet_lot_advisory(db, bullet)
                 if bullet.get("qc_performed") and bullet.get("quality_rating"):
-                    qc_text = (
-                        f"QC Performed - {bullet.get('quality_rating', 'good').upper()}\n"
-                        + qc_text
-                    )
+                    qc_text = f"QC Performed - {bullet.get('quality_rating', 'good').upper()}\n" + qc_text
                 if advisory_text:
                     qc_text = qc_text + "\n" + advisory_text
                 self.bullet_qc_label.setText(qc_text)
@@ -462,9 +440,7 @@ class PowderPrimerPage(QWizardPage):
 
         self.powder_info_layout.addRow("Type:", self.powder_type_label)
         self.powder_info_layout.addRow("Burn Rate:", self.powder_burn_rate_label)
-        self.powder_info_layout.addRow(
-            "Quantity Available:", self.powder_quantity_label
-        )
+        self.powder_info_layout.addRow("Quantity Available:", self.powder_quantity_label)
 
         powder_info_group.setLayout(self.powder_info_layout)
         layout.addWidget(powder_info_group)
@@ -493,9 +469,7 @@ class PowderPrimerPage(QWizardPage):
         self.primer_quantity_label = QLabel("-")
 
         self.primer_info_layout.addRow("Type:", self.primer_type_label)
-        self.primer_info_layout.addRow(
-            "Quantity Available:", self.primer_quantity_label
-        )
+        self.primer_info_layout.addRow("Quantity Available:", self.primer_quantity_label)
 
         primer_info_group.setLayout(self.primer_info_layout)
         layout.addWidget(primer_info_group)
@@ -534,9 +508,7 @@ class PowderPrimerPage(QWizardPage):
         self.primer_combo.clear()
         self.primer_combo.addItem("-- Select Primer --", None)
         for primer in primers:
-            display_text = (
-                f"{primer['manufacturer']} {primer['name']} ({primer['type']})"
-            )
+            display_text = f"{primer['manufacturer']} {primer['name']} ({primer['type']})"
             self.primer_combo.addItem(display_text, primer)
 
     def on_powder_changed(self, index):
@@ -548,9 +520,7 @@ class PowderPrimerPage(QWizardPage):
 
             self.powder_type_label.setText(powder.get("type", "-"))
             self.powder_burn_rate_label.setText(powder.get("burn_rate", "-"))
-            self.powder_quantity_label.setText(
-                f"{powder.get('quantity_grams', 0):.0f} grams"
-            )
+            self.powder_quantity_label.setText(f"{powder.get('quantity_grams', 0):.0f} grams")
 
     def on_primer_changed(self, index):
         """Update primer info"""
@@ -559,9 +529,7 @@ class PowderPrimerPage(QWizardPage):
             self.wizard.primer_data = primer
             self.wizard.primer_data["lot_number"] = ""  # Will be filled from input
 
-            self.primer_type_label.setText(
-                f"{primer.get('type', '-')} ({primer.get('size', '-')})"
-            )
+            self.primer_type_label.setText(f"{primer.get('type', '-')} ({primer.get('size', '-')})")
             self.primer_quantity_label.setText(str(primer.get("quantity", 0)))
 
     def validatePage(self):
@@ -712,9 +680,7 @@ class AIPredictionPage(QWizardPage):
 
         self.calculate_btn = QPushButton("Calculate Predicted Load")
         self.calculate_btn.clicked.connect(self.calculate_prediction)
-        self.calculate_btn.setStyleSheet(
-            "background: #27ae60; color: white; font-weight: bold; padding: 12px;"
-        )
+        self.calculate_btn.setStyleSheet("background: #27ae60; color: white; font-weight: bold; padding: 12px;")
         prediction_layout.addWidget(self.calculate_btn)
 
         prediction_group.setLayout(prediction_layout)
@@ -776,20 +742,23 @@ class AIPredictionPage(QWizardPage):
 
         ballistics_results = []
         for charge in test_charges:
-            calc = engine.calculate_load(
-                rifle["id"],
-                bullet.get("id"),
-                powder.get("id"),
-                charge,
-                coal_mm,
-                cbto_mm,
-            )
+            try:
+                calc = engine.calculate_load(
+                    rifle["id"],
+                    bullet.get("id"),
+                    powder.get("id"),
+                    charge,
+                    coal_mm,
+                    cbto_mm,
+                )
+            except Exception:
+                continue
             if "error" not in calc:
                 calc["charge_weight_gr"] = charge
                 ballistics_results.append(calc)
 
         # Find optimal charge (highest safety margin without being too light)
-        safe_loads = [b for b in ballistics_results if b["safety_margin_percent"] > 15]
+        safe_loads = [b for b in ballistics_results if (b.get("safety_margin_percent") or 0) > 15]
         if safe_loads:
             # Pick the highest velocity with good safety margin
             optimal = max(safe_loads, key=lambda x: x["muzzle_velocity_fps"])
@@ -801,14 +770,8 @@ class AIPredictionPage(QWizardPage):
 
         # Show historical data if available
         if similar_loads:
-            valid_charges = [
-                load["charge_weight_grains"]
-                for load in similar_loads
-                if load.get("charge_weight_grains")
-            ]
-            valid_moas = [
-                load["average_moa"] for load in similar_loads if load.get("average_moa")
-            ]
+            valid_charges = [load["charge_weight_grains"] for load in similar_loads if load.get("charge_weight_grains")]
+            valid_moas = [load["average_moa"] for load in similar_loads if load.get("average_moa")]
 
             if valid_charges and valid_moas:
                 hist_avg_charge = sum(valid_charges) / len(valid_charges)
@@ -1156,10 +1119,7 @@ class BatchCreationPage(QWizardPage):
         text.setReadOnly(True)
         text.setHtml(html)
         vbox.addWidget(text)
-        btns = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Print
-            | QDialogButtonBox.StandardButton.Close
-        )
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Print | QDialogButtonBox.StandardButton.Close)
         btns.accepted.connect(lambda: text.print_())
         btns.rejected.connect(dlg.reject)
         vbox.addWidget(btns)
@@ -1169,9 +1129,7 @@ class BatchCreationPage(QWizardPage):
     def create_batches(self):
         """Create batches in database"""
         if not self.create_batches_check.isChecked():
-            QMessageBox.information(
-                self, "Complete", "Wizard complete! Batches not created in database."
-            )
+            QMessageBox.information(self, "Complete", "Wizard complete! Batches not created in database.")
             self.wizard.accept()
             return
 

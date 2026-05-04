@@ -337,9 +337,9 @@ class BallisticsSimulator(QWidget):
         # Visualiser node_bands
         if node_bands:
             for node in node_bands:
-                start = float(node.get("start_mm", 0))
-                end = float(node.get("end_mm", 0))
-                robustness = float(node.get("robustness", 0))
+                start = float(node.get("start_mm") or 0)
+                end = float(node.get("end_mm") or 0)
+                robustness = float(node.get("robustness") or 0)
                 self.harmonics_plot.addLine(x=start, pen=(0, 255, 0, int(robustness * 255)))
                 self.harmonics_plot.addLine(x=end, pen=(0, 255, 0, int(robustness * 255)))
 
